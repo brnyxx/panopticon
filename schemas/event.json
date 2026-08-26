@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panopticon.dev/schemas/event.json",
+  "title": "Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind"
+  ],
+  "properties": {
+    "kind": {
+      "enum": [
+        "file",
+        "net",
+        "proc",
+        "leak",
+        "blocked",
+        "plaintext_http"
+      ]
+    },
+    "op": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^(?!/(Users|home)/)"
+    },
+    "host": {
+      "type": "string"
+    },
+    "port": {
+      "type": "integer"
+    },
+    "argv": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "via": {
+      "enum": [
+        "proxy",
+        "direct",
+        "dns"
+      ]
+    },
+    "decoy": {
+      "type": "boolean"
+    },
+    "decoy_key": {
+      "type": "string"
+    },
+    "sink": {
+      "type": "string"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    }
+  }
+}

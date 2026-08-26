@@ -1,0 +1,18 @@
+# Paths filtered from FileEvents by default (docs/PLAN.md §10). `--raw` disables.
+prefixes:
+  - /proc
+  - /sys
+  - /dev
+  - /etc/ssl
+  - /etc/resolv.conf
+  - /etc/hosts
+  - /etc/nsswitch.conf
+  - /usr/lib
+  - /usr/local/lib/node_modules
+  - /usr/local/lib/python
+  - /usr/share/zoneinfo
+  - /usr/share/locale
+  - /pano-cache
+exact:
+  - /dev/null
+  - /dev/urandom

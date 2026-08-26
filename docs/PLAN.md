@@ -1,0 +1,700 @@
+# Panopticon — v1.0.0 Implementation Plan
+
+> **We don't watch you. We watch your MCPs.**
+> A local-first tool that discovers installed MCP servers, runs them in a decoy-filled sandbox, records what they actually do, and explains the gap between declared and observed behavior.
+
+| Item | Value |
+|---|---|
+| Product | Panopticon |
+| CLI | `pano` |
+| PyPI | `panopticon-mcp` |
+| Document type | Complete implementation plan toward v1.0.0 — no timelines, definition-of-done driven |
+| Upstream | `BashaarJavaid/MCP-Sentinel` @ `e717e955` (MIT) — static/semantic/dynamic analysis assets inherited into the `scan` line |
+
+---
+
+## 0. How this document is organized
+
+This document defines **everything that must exist in v1.0.0**. There are no weeks or deadlines. Each implementation unit (Epic) has scope, contracts, tests, and a definition of done; epics only carry a dependency order. An agent closes epics in that order.
+
+- §1 Product definition and scope
+- §2 v1.0.0 definition of done (master checklist)
+- §3 Epic list and dependency graph
+- §4–§19 Epic details
+- §20 Complete rule catalog
+- §21 Data schemas
+- §22 Quality, security, documentation standards
+- §23 Version stages
+- §24 Open decisions
+
+---
+
+## 1. Product definition and scope
+
+### 1.1 One sentence
+
+Automatically discover MCP servers installed in AI clients, invoke them for real inside a decoy-filled isolated environment, record file/network/process/leak behavior per tool call, explain the gap against the declared scope, and optionally keep recording continuously.
+
+### 1.2 Two product lines
+
+| Line | Commands | Users | Origin |
+|---|---|---|---|
+| **Observe line** | `doctor`, `watch`, `wrap`, `install`, `fix`, `diff`, `explain`, `badge` | People who install MCPs; platform engineers | New |
+| **Analyze line** | `scan` (quick/standard/deep), `ci` | MCP server authors | Inherited from upstream |
+
+Both lines share one CLI, one finding model, and one set of reporters. The observe line is the face of the product; the analyze line reinforces it via `watch --self` and CI.
+
+### 1.3 In scope for v1.0.0
+
+- Config discovery for 6 clients (Claude Desktop, Claude Code, Cursor, VS Code, Windsurf, generic)
+- Isolated observation of stdio MCPs (Docker/Podman); observation of HTTP/SSE remote MCPs via a logging proxy
+- Decoy home, decoy environment variables, leak detection
+- Declared-scope extraction and declared-vs-observed comparison
+- Full config, behavior, history, and fix rule sets
+- Continuous wrapper (`wrap`) and client injection (`install`)
+- Baseline and diff, including implicit baseline
+- Korean and English remediation
+- terminal / JSON / SARIF / Markdown / PNG reporters, SVG badge
+- Upstream static/semantic/dynamic analysis (`scan`) stabilized, GitHub Action
+- macOS and Linux official; Windows via WSL2 official, native Windows discovery only
+- Single-binary distribution in addition to `uvx`
+
+### 1.4 Explicitly out of scope for v1.0.0
+
+- Public observatory, public catalog, weekly reports (only an export format is defined)
+- Universal safety score, "Safe/Certified" certification
+- Exploitation of external services
+- Telemetry of any kind (not even opt-in)
+- Accounts, SaaS, organization dashboard
+- Native Windows sandbox
+- Automatic addition/removal of MCP entries
+
+### 1.5 Product principles
+
+1. Observation precedes judgment. We report what a server *did*; the user decides whether it is dangerous.
+2. What was not observed is never called safe. `UNKNOWN` is always printed.
+3. The user's home and credentials never enter a container.
+4. Every persisted file must pass the leak check.
+5. Same input, same output. Diff is deterministic.
+6. Fix is always: diff → confirm → backup → apply → re-check → undo available.
+7. Korean and English share rule IDs, evidence, and structure.
+8. We don't watch the user. Network use is limited to registry lookups and the MCP's own traffic.
+
+---
+
+## 2. v1.0.0 definition of done
+
+v1.0.0 exists when all of the following hold. Any gap keeps the version at 0.x.
+
+### Features
+- [ ] Read-only discovery and parsing of 6 client configs, producing an inventory.
+- [ ] Isolated execution of stdio MCPs with per-tool file/network/process/leak events.
+- [ ] Remote HTTP/SSE MCPs invoked through a logging proxy with network/leak events.
+- [ ] Declared scope extracted from 5 sources and compared against observations, producing every WATCH rule.
+- [ ] All CFG, HIST, WATCH, FIX, SENT rules implemented, each with fixture tests.
+- [ ] `fix` performs every FIX rule with dry-run, backup, and undo.
+- [ ] `wrap` relays stdio with ≤1 ms added latency and records per-tool network events.
+- [ ] `install`/`uninstall` injects/removes wrap for all 6 clients.
+- [ ] Explicit and implicit baselines and diff work; identical input yields zero diff.
+- [ ] `scan` quick/standard/deep work; upstream replay demo reproduces `COMPLETE`.
+- [ ] GitHub Action uploads SARIF in quick/standard modes.
+- [ ] terminal/JSON/SARIF/Markdown/PNG reporters and SVG badge exist.
+- [ ] Every rule has a ko/en 6-section explain document.
+
+### Quality
+- [ ] Test coverage ≥ 85%; upstream's 125 tests kept green.
+- [ ] 100% rejection on 20+ leak fixtures across every persist path.
+- [ ] Exact expected findings on 5 evil and 5 clean fixture MCPs.
+- [ ] CI matrix green: macOS (arm64, x86_64), Linux (x86_64, arm64), WSL2.
+- [ ] On a clean machine: `pano doctor` first result ≤ 5 min; `pano watch <mcp>` first result ≤ 3 min (including image pull).
+
+### Distribution and docs
+- [ ] `uvx panopticon-mcp`, `pipx`, Homebrew tap, 4 GitHub Release binaries.
+- [ ] README ko/en, architecture, rule catalog, limitations, privacy, SECURITY.md, disclosure policy, upstream NOTICE.
+- [ ] Schema version `1.0` frozen; migrators from 0.x provided.
+
+---
+
+## 3. Epic list and dependency graph
+
+| ID | Epic | Depends on |
+|---|---|---|
+| E01 | Project foundation (repo, packaging, CI, schemas) | — |
+| E02 | Discovery (client config detection) | E01 |
+| E03 | Inventory & identity | E02 |
+| E04 | Registry history (npm/PyPI/GitHub) | E03 |
+| E05 | Sandbox runtime (containers, images, network isolation) | E01 |
+| E06 | Decoy system | E05 |
+| E07 | Event collection (strace, DNS, proxy, snapshot) | E05, E06 |
+| E08 | Probe (MCP client, arg generation, call driver) | E05 |
+| E09 | Remote MCP observation (HTTP/SSE) | E07, E08 |
+| E10 | Declared-scope extraction | E03, E04 |
+| E11 | Finding model and rule engine | E01 |
+| E12 | Rule implementation (CFG, HIST, WATCH) | E03, E04, E07, E10, E11 |
+| E13 | Fix (auto-remediation, backup, undo) | E12 |
+| E14 | Baseline & diff | E11, E03 |
+| E15 | Wrap & install | E03, E07 (partial), E11 |
+| E16 | Analyze line (upstream scan stabilization, CI) | E01, E11 |
+| E17 | Reporters (terminal, JSON, SARIF, Markdown, PNG, badge) | E11 |
+| E18 | i18n (rule docs, glossary, explain) | E12 |
+| E19 | Distribution, docs, security verification, release | all |
+
+The discovery branch (E02–E04) and the observation-engine branch (E05–E08) can proceed in parallel; they merge at E12.
+
+---
+
+## 4. E01 — Project foundation
+
+### Scope
+- Fork preserving upstream history. `NOTICE` lists the MIT copyright, a summary of changes, and inherited modules.
+- `pyproject.toml`: Python 3.11+, `uv` lock, entry point `pano`, package `panopticon-mcp`.
+- Directory layout as in `AGENTS.md`.
+- CI: ruff, ruff-format, mypy (strict), pytest with coverage, schema validation, i18n parity, leak fixtures. OS matrix expanded in E19.
+- Logging: structured (`structlog`), stderr by default, `PANO_LOG=json`. Log records also pass `leak_check`.
+- Config: `~/.panopticon/config.toml` (proxy, container runtime, extra allowlist, language). Precedence: CLI flag > `PANO_*` env > file.
+
+### Definition of done
+- `uv run pano version` works. Upstream 125 tests green (once vendored in E16; until then the placeholder suite passes). Round-trip tests for all schemas (§21). All CI jobs green.
+
+---
+
+## 5. E02 — Discovery
+
+### Supported clients and paths
+
+| client | macOS | Linux | Windows (incl. WSL2) | format |
+|---|---|---|---|---|
+| claude-desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` | `~/.config/Claude/claude_desktop_config.json` | `%APPDATA%\Claude\claude_desktop_config.json` | `mcpServers` |
+| claude-code | `~/.claude.json` (global `mcpServers`, `projects[<path>].mcpServers`), cwd `.mcp.json` | same | same | `mcpServers`, `type: stdio/http/sse` |
+| cursor | `~/.cursor/mcp.json`, cwd `.cursor/mcp.json` | same | `%USERPROFILE%\.cursor\mcp.json` | `mcpServers` |
+| vscode | cwd `.vscode/mcp.json`, user `settings.json` → `mcp.servers` | same | same | `servers`, `${input:*}` variables |
+| windsurf | `~/.codeium/windsurf/mcp_config.json` | same | same | `mcpServers` |
+| generic | `--config <path>` | | | `mcpServers` or `servers` |
+
+### Contract
+```python
+class ClientAdapter(Protocol):
+    name: str
+
+    def candidate_paths(self, env: DiscoveryEnv) -> list[Path]: ...
+    def parse(self, path: Path) -> ParseResult: ...  # entries | ParseError(reason, line)
+    def write(
+        self, path: Path, entries: list[RawServerEntry]
+    ) -> None: ...  # used only by fix/install
+```
+- `DiscoveryEnv` encapsulates home, cwd, os, env so tests can inject.
+- Distinguish `NOT_FOUND` / `PARSE_ERROR` / `PERMISSION`.
+- Follow symlinks but record realpath. Project-scoped configs are searched at most 3 parent levels above cwd.
+- Accept JSONC (comments, trailing commas). VS Code `${input:id}`, `${env:VAR}`, `${workspaceFolder}` are kept as unresolved variables; never guess values.
+- Recognize disabled flags (`disabled: true`, `enabled: false`).
+
+### Tests
+- Per-client fixtures: clean, secret, broad_fs, duplicate, malformed, disabled, remote, variables — 40+ total.
+- mtime/hash test proving real configs are never modified.
+
+### Definition of done
+- All 6 adapters pass fixtures. `pano doctor --list-clients` prints discovery status as a table.
+
+---
+
+## 6. E03 — Inventory & identity
+
+### `InstalledServer` normalization
+- Fields: server_id, name, client, config_path, scope (global/project), transport, command, args, env_keys, url (remote), headers_keys (remote), package, source, pinned, resolved, identity_confidence, disabled, wrapped.
+- One config entry → one `InstalledServer`. No merging; reporters group by server_id only.
+
+### server_id rules
+```
+npm:<package>                 npx / node <node_modules path> / bunx
+pypi:<package>                uvx / pipx run / python -m
+github:<owner>/<repo>         source directory whose git remote is GitHub
+docker:<image>                docker run <image>
+remote:<host>[/<path>]        http/sse URL
+local:<sha256(command+args)[:12]>   everything else
+```
+- Package-name extraction follows fixed parser rules: `npx [-y] [--package=X] <pkg>[@ver] [args]`, `uvx [--from X] <pkg>`, `node <path>` → `node_modules/<pkg>/`, `python -m <mod>` → reverse-map module to PyPI name via registry (low confidence on failure).
+- identity_confidence: high (registry confirmed) / medium (shape matches, unconfirmed) / low (local). `low` is never merged or compared.
+- `resolved` version read from npx cache (`~/.npm/_npx/*/node_modules/<pkg>/package.json`) or uv cache; null if absent.
+
+### Definition of done
+- 30 arg-parsing fixtures (compound flags, scoped packages, version tags, env substitution) produce expected server_ids. Duplicate-install fixtures group without merging.
+
+---
+
+## 7. E04 — Registry history
+
+### Scope
+- npm: `https://registry.npmjs.org/<pkg>` → `time`, `dist-tags`, `maintainers`, `repository`, `dist.integrity`. Cache responses and compare maintainers with the previous cache.
+- PyPI: `https://pypi.org/pypi/<pkg>/json` → `releases` (upload_time), `info.project_urls`, `info.author`.
+- GitHub: `repos/<owner>/<repo>` (archived, pushed_at, default_branch), `releases`, `tags`. Respect unauthenticated rate limits; use `GITHUB_TOKEN` if present (value is leak-checked).
+- Cache: `~/.panopticon/cache/registry/<ecosystem>/<pkg>.json`, TTL 24h, ETag. `--offline` uses cache only.
+
+### Output
+- `PackageHistory`: releases[(version, published_at)], latest, maintainers, repository_url, archived.
+- `since(ts)` → release count, major jumps, maintainer changed.
+
+### Definition of done
+- Mocked network fixtures yield every value HIST rules need. Rate limit, timeout, and 404 each resolve to `UNKNOWN` and never propagate as exceptions.
+
+---
+
+## 8. E05 — Sandbox runtime
+
+### Runtime abstraction
+```python
+class Runtime(Protocol):
+    def available(self) -> bool: ...
+    def pull(self, image_ref: str) -> None: ...
+    def run(self, spec: ContainerSpec) -> Container: ...  # start, exec, logs, stop, rm
+```
+- Implementations: `DockerRuntime`, `PodmanRuntime`. Auto-detect docker → podman; `--runtime` forces.
+- If neither is installed: guidance with install link, exit 5.
+
+### Images
+- `ghcr.io/<org>/pano-sandbox-node:20`, `pano-sandbox-node:22`, `pano-sandbox-python:3.12`, `pano-sandbox-base` (glibc + strace + dnsmasq + ca-certificates). Tags and digests pinned in `sandbox/images.lock`; `pano sandbox update` refreshes.
+- Image selection by ecosystem: node/python; `docker:` wraps the user image on top of base; `local:` uses base.
+- Package installation happens inside the container via `npx`/`uvx`. An install cache volume (`pano-cache`) speeds up repeat runs; it contains no user data.
+
+### Isolation
+- `--read-only` root, `tmpfs /tmp`, `tmpfs $HOME` (populated with decoys), `--cap-drop ALL --cap-add SYS_PTRACE`, `--security-opt no-new-privileges`, `--pids-limit 256`, `--memory 1g`, `--cpus 2`, uid 1000.
+- Network: dedicated bridge `pano-net`. The sandbox can reach only the proxy container (`pano-proxy`) and DNS; all other egress is iptables DROP + LOG. Only the proxy egresses.
+- Proxy: HTTP CONNECT + SOCKS5. Logs (ts, container, dst host, port, bytes; for plaintext HTTP: method, path, header sizes, body hash, decoy matches). TLS is never terminated.
+- Never mount the user's home or project directory. No exceptions. Project files are name-only replicated by E06.
+
+### Definition of done
+- On both Docker and Podman, the evil fixture demonstrates: direct egress DROPPED, proxy egress OK, host files unreachable. Five known container-escape fixtures all fail.
+
+---
+
+## 9. E06 — Decoy system
+
+### Decoy home
+
+| Path | Content | Detects |
+|---|---|---|
+| `~/.ssh/id_ed25519`, `id_rsa`, `config`, `known_hosts` | well-formed fake keys | read |
+| `~/.aws/credentials`, `config` | `AKIA` + decoy | read, leak |
+| `~/.gitconfig` | fake name/email | read (review) |
+| `~/.npmrc`, `~/.pypirc`, `~/.netrc`, `~/.docker/config.json` | fake tokens | leak |
+| `~/.config/gcloud/`, `~/.azure/`, `~/.kube/config` | fake credentials | leak |
+| `~/.bash_history`, `~/.zsh_history` | decoy sentences | read |
+| `~/Documents/`, `~/Desktop/`, `~/Downloads/` | 5 files each with decoy sentences | broad read |
+| `~/project/` | directory tree and filenames of `--project`, empty contents; `.env`-like files filled with decoys | path patterns |
+| Browser profile stubs (e.g. Chrome `Default/Cookies`) | empty SQLite | read |
+
+### Decoy environment variables
+`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `SLACK_TOKEN`, `NOTION_TOKEN`, `DATABASE_URL`, `STRIPE_SECRET_KEY`, `NPM_TOKEN`, … (30 total). Values follow real formats but embed `PANO_DECOY_<8 random chars>`, regenerated each run so hard-coded detection is hard.
+
+### Real env passthrough
+- Default: none. Keys from config `env_keys` are set to decoy values.
+- `--real-env KEY[,KEY]`: only listed keys get real values; those values are registered for leak detection and never persisted.
+- `--real-env-all`: warns, passes everything, forces destructive-tool protection (E08).
+
+### Registry
+- `DecoyRegistry`: (key, value, kind: file|env|content) with `match(bytes) -> list[DecoyHit]` using Aho-Corasick over proxy bodies, file writes, process args; also matches base64 and URL-encoded variants.
+
+### Definition of done
+- Decoy home builds in ≤1 s. 100% match on leak fixtures (plaintext HTTP, file write, exec arg, base64). Verified that the real home path string does not exist anywhere inside the container.
+
+---
+
+## 10. E07 — Event collection
+
+### Sources and events
+
+| Source | Events | Notes |
+|---|---|---|
+| `strace -f -ttt -yy -e trace=openat,open,stat,newfstatat,readlink,execve,execveat,connect,sendto,sendmsg,bind,clone,fork` | FileEvent(op read/write/stat/exec, path, decoy), ProcEvent(argv, parent), NetEvent(raw connect ip:port) | PID tree tracking |
+| DNS log | NetEvent(dns, host, answer) | dnsmasq `log-queries` |
+| Proxy log | NetEvent(connect, host, port, via=proxy, bytes), PlaintextHttp(method, path, decoy_hits) | |
+| iptables LOG | NetEvent(blocked, ip:port) | bypass attempts |
+| Home snapshot diff | FileEvent(write/create/delete) + decoy_hits | after container exit |
+| stdout/stderr capture | decoy matching | servers that leak via stderr |
+
+### Span attribution
+- `probe` sends `SpanBegin(tool, ts)` right before the JSON-RPC request and `SpanEnd(ts)` on response. Container/host clock skew corrected at start by exchanging `date +%s.%N`.
+- Reserved spans: `__install__`, `__startup__` (before initialize), `__idle__` (after last call, default 10 s, `--idle`), `__shutdown__`.
+- Child-process events attribute to the parent's current span.
+
+### Noise filter
+- `sandbox/noise.yaml`: interpreter paths, `/proc`, `/sys`, `/dev`, `/etc/resolv.conf`, `/etc/hosts`, `/etc/ssl`, locale, tzdata, cache volume. Filtered counts are shown in the summary; `--raw` shows everything.
+- Repeated (op, path) collapse into `count`.
+
+### Definition of done
+- 100% parse accuracy on 10 stored strace/netlog fixtures. Evil fixture events attribute to the correct tool span. Clock correction error ≤ 50 ms.
+
+---
+
+## 11. E08 — Probe
+
+### MCP client
+- JSON-RPC 2.0 over stdio. `initialize` (latest protocolVersion, retry with one older), `notifications/initialized`, `tools/list` (paginated), `resources/list`, `prompts/list`, `tools/call`.
+- Record server capabilities, protocolVersion, serverInfo.
+- Timeouts: initialize 30 s, tools/list 20 s, tools/call 20 s (`--timeout`), total 300 s. On timeout mark the stage `INCOMPLETE` and continue.
+
+### Argument generation (deterministic, seed = server_id)
+
+| schema | value |
+|---|---|
+| string | `"panopticon-probe"`; `format:uri` → `https://example.com/pano`; `format:email` → `probe@example.com`; `format:date` → `2026-01-01`; name contains `path/file/dir` → `~/project/README.md`; `url` → uri above; `query/search/q` → `"panopticon"` |
+| number/integer | `minimum` or 1; first enum value if enum |
+| boolean | false |
+| array | one item (recursive) |
+| object | required only (recursive); ignore additionalProperties |
+| oneOf/anyOf | first branch |
+| missing/unknown | `{}` |
+
+- `--calls N`: N invocations; from the 2nd, strings get `-2`, `-3` suffixes to defeat caching.
+- `--args <tool>=<json>`: manual override per tool.
+
+### Destructive-tool protection
+- Name matches `delete|remove|destroy|drop|purge|force|cancel|pay|charge|send|post|publish|deploy|execute|run_command|shell` or description contains `irreversible|permanent|cannot be undone`.
+- Decoy environment (no real env): call it.
+- `--real-env` active: default `SKIPPED_DESTRUCTIVE`; `--allow-destructive` to call.
+
+### `--self`
+- Mount cwd MCP source read-only (the only permitted mount), build and run inside the container. Entry point inferred from `package.json` `bin` or `pyproject` scripts; `--command` overrides.
+
+### Definition of done
+- On 5 official example MCPs (filesystem, github, fetch, memory, sqlite) plus evil/clean fixtures: every tool call completes and generated args validate against the schema. Protocol-version mismatch, server crash, and no-response each map to distinct state codes.
+
+---
+
+## 12. E09 — Remote MCP observation (HTTP/SSE)
+
+### Scope
+- `transport: http` (Streamable HTTP) and `sse`. The remote server itself cannot be observed; record **what is visible from the client side**.
+- Calls go through the local proxy: request URL, redirect chain, external resource references in responses, token kinds in headers (names only), response sizes.
+- Leak detection: whether decoy values appear in request bodies/headers (config `headers` are swapped for decoys).
+- Auth-requiring servers: `--real-header KEY` passes real headers.
+
+### Rule mapping
+- Redirect to a host outside the declared URL host → WATCH-003.
+- Plaintext `http://` → CFG-008.
+- Response with a large number of external URLs (prompt-injection vector) → WATCH-012 (info).
+
+### Definition of done
+- Four local test servers (normal / redirect / plaintext / decoy-reflecting) yield expected events. Remote observations always report `state.stages.file = UNSUPPORTED`.
+
+---
+
+## 13. E10 — Declared-scope extraction
+
+### Sources and extractors
+
+| Source | Extractor | Output |
+|---|---|---|
+| tool description / annotations (`readOnlyHint`, `destructiveHint`, `openWorldHint`) | `ToolDescExtractor` | hosts, paths, capabilities (read/write/destructive/open_world) |
+| README (package tarball or GitHub) | `ReadmeExtractor` | hosts (domain regex, code blocks first), paths (`~/`, `/`), env (UPPER_SNAKE in code blocks / `export` / `=` context), permission sentences ("requires access to …") |
+| `package.json` / `pyproject.toml` | `ManifestExtractor` | homepage, repository host, bin |
+| config `env_keys`, `args` | `ConfigExtractor` | user-granted env, path args |
+| MCP Registry `server.json` | `RegistryExtractor` | remotes, environment_variables, packages |
+| `.panopticon.yaml` (maintainer self-declaration in repo) | `SelfDeclExtractor` | hosts, paths, env, processes — highest priority |
+
+### `Declared` object
+- hosts (normalized, wildcards allowed), paths (globs), env, processes (allowed binaries), capabilities, sources[], completeness: `COMPLETE` (self-decl or registry present) / `PARTIAL` (README/description only) / `NONE`.
+- `NONE` demotes every observation to `review`. `PARTIAL` allows `confirmed` but the report shows "declared source: inferred from README".
+
+### `.panopticon.yaml` spec (for maintainers)
+```yaml
+version: 1
+hosts: [api.github.com, "*.githubusercontent.com"]
+paths: ["~/.gitconfig"]
+env: [GITHUB_TOKEN]
+processes: [git]
+notes: "gitconfig is read only to display the user name"
+```
+- This file is a prerequisite for the badge (E17).
+
+### Definition of done
+- ≥90% host/env extraction accuracy on the 5 official example MCP READMEs (vs. manual labels). Self-declaration parsing and priority-merge tests.
+
+---
+
+## 14. E11 — Finding model and rule engine
+
+### Finding (upstream-extended)
+- Kept: `id`, `rule_id`, `severity` (HIGH/MEDIUM/LOW/INFO), `title`, `evidence[]`, `location`.
+- Added: `kind` (confirmed/review/info), `server_id`, `observation_id`, `span_ref`, `remediation_key`, `fix_available`, `declared_source`, `first_seen`, `suppressed_by`.
+- canonical id = `sha256(rule_id | server_id | normalized_evidence)[:16]`. Evidence normalization: paths → `~`, hosts lowercase, drop ports 443/80, sort.
+
+### Rule engine
+```python
+@rule(id="WATCH-001", severity="HIGH", kind="confirmed", line="observe")
+def decoy_leak(ctx: RuleContext) -> Iterable[Finding]: ...
+```
+- `rules/registry.py` collects via decorator. Metadata: id, severity, kind, line, fix_id, i18n key, since_version.
+- `RuleContext`: inventory, observation, declared, history, config, allowlist, previous_baseline.
+- Rules run isolated (try/except → `RULE_ERROR` info finding). One failing rule never blocks the report.
+- Suppression: `~/.panopticon/suppress.yaml` entries `rule_id + server_id + reason + expires`. Suppressed findings are kept with `suppressed_by` and counted in the summary.
+
+### Definition of done
+- Rule metadata schema validation. CI enforces that every registered rule has ≥1 fixture test. Canonical-id stability test (order/timestamp changes keep the id).
+
+---
+
+## 15. E12 — Rule implementation
+
+Implement all of §20: CFG-001..012, HIST-001..004, WATCH-001..014. Each rule has a condition function, evidence construction, fix_id link, i18n key, ≥1 positive and ≥1 negative fixture. Allowlist-referencing rules record "excluded items" in evidence.
+
+### Initial allowlist
+- Install span only: `registry.npmjs.org`, `registry.yarnpkg.com`, `pypi.org`, `files.pythonhosted.org`, `github.com`, `objects.githubusercontent.com`, `*.cloudfront.net`
+- Always: none. Users may add via `config.toml` `allow.hosts`; additions are labeled "user-allowed" in reports.
+
+### Definition of done
+- All 30 rules green on fixtures. Evil fixtures (5) produce exactly the expected finding sets; clean fixtures (5) produce zero `confirmed`.
+
+---
+
+## 16. E13 — Fix
+
+### Flow
+`pano fix [<server>] [--rule ID] [--yes] [--dry-run]`
+1. Collect findings with `fix_available`.
+2. Each FIX rule builds `plan() -> FixPlan(edits[], prompts[])`; edits are JSON patches by path, prompts are user inputs (e.g., directory choice).
+3. Print a unified diff per file. Without `--yes`: Enter / n / q.
+4. Backup: `<config>.pano-bak-<ts>` (0600); record in `~/.panopticon/fix-journal.ndjson`.
+5. Apply while preserving indentation, key order, and comments (JSONC round-trip parser).
+6. Re-check: re-run the rule; if not `RESOLVED`, auto-rollback and error.
+7. `pano fix --undo [<journal-id>]` restores.
+
+### FIX rules (§20.4)
+- FIX-001: move token to `~/.panopticon/env/<client>.env` (0600), leave `${KEY}` in config. If the client lacks env-reference support (Claude Desktop), fall back to wrap-injected env and suggest `install`; if both are declined, guidance only.
+- FIX-002: pin version.
+- FIX-004: narrow filesystem path (prompt).
+- FIX-005: unify duplicates (prompt).
+- FIX-008: `http` → `https` for remote URLs (only after HEAD confirms https responds).
+- FIX-010: remove disabled entries (prompt).
+
+### Definition of done
+- On fixtures for all 6 clients: fix → re-check RESOLVED → undo → original hash matches. Comment/indent preservation test. Concurrent-edit detection (re-hash immediately before apply).
+
+---
+
+## 17. E14 — Baseline & diff
+
+### Baseline
+- `pano baseline create [--label]`: snapshot of current inventory + latest observation per server + findings to `~/.panopticon/baselines/<id>.json`.
+- `pano baseline list|show|rm`.
+- Implicit baseline: no explicit baseline → most recent observation → config mtime + registry history (used by HIST rules).
+
+### Diff
+- `pano diff [<server>] [--since <id|auto>] [--json]`
+- Canonicalize: sort arrays, strip timestamps/PIDs/durations/container IDs, collapse repeats, merge DNS+connect.
+- Delta classes:
+  - finding: `NEW / CHANGED(severity|evidence|scope) / UNCHANGED / RESOLVED / UNKNOWN (stage mismatch)`
+  - capability: `NEW_TOOL / REMOVED_TOOL / SCHEMA_CHANGED / ANNOTATION_CHANGED`
+  - behavior: `NEW_HOST / REMOVED_HOST / NEW_PATH / NEW_PROCESS / NEW_LEAK`
+  - inventory: `ADDED / REMOVED / COMMAND_CHANGED / VERSION_CHANGED / ENV_KEYS_CHANGED`
+- "Meaningful" (surfaced at the top): NEW_LEAK, NEW_HOST, NEW_TOOL (destructive), SCHEMA_CHANGED, COMMAND_CHANGED, major VERSION_CHANGED, NEW HIGH/MEDIUM finding. Everything else is collapsed.
+
+### Definition of done
+- Same observation twice → zero diff in every category. 12 fixture mutations (one per delta) → exact delta. Observations with different stage coverage report `UNKNOWN` for that category.
+
+---
+
+## 18. E15 — Wrap & install
+
+### `pano wrap -- <command...>`
+- Transparent stdio relay: spawn child, pass stdin/stdout bytes through, ≤1 ms latency (async I/O; parsing in a separate task).
+- JSON-RPC framing (newline-delimited). Match `tools/call` request ids to responses to form spans. On parse failure stop recording but keep relaying.
+- Observation: Linux with `strace` → file+network; otherwise `/proc/<pid>/net/tcp` polling for connect targets. macOS: `nettop`/`lsof` polling (1 s) for connect targets; file observation `UNSUPPORTED`.
+- Env injection: read `~/.panopticon/env/<client>.env` and pass to child (FIX-001 fallback path).
+- Records: `~/.panopticon/wrap/<server_id>/<date>.ndjson`, daily rotation, 30-day retention (`config.toml`).
+- Alerts: first-seen host/process appended to `~/.panopticon/alerts.ndjson`; `pano doctor` shows them at the top. `--notify` for OS notifications (macOS `osascript`, Linux `notify-send`).
+- Self-protection: if wrap crashes the child must survive (detach option); crash log recorded.
+
+### `pano install <client> [--only <server>]` / `pano uninstall`
+- Replace `command` with `pano` and `args` with `["wrap","--",<original command>,<original args>...]` for all (or selected) stdio servers in the client. Original preserved under `_pano_original`.
+- Dry-run diff → confirm → backup → apply → restart hint. Same journal/undo as E13.
+- Skip already-wrapped entries. `uninstall` restores `_pano_original`.
+- Remote MCPs are not install targets (guidance only).
+
+### Definition of done
+- 5 official example MCPs work through wrap in Claude Desktop/Claude Code (documented manual procedure + automated protocol test). Latency benchmark ≤ 1 ms. Install/uninstall round-trip hash match on 6 client fixtures.
+
+---
+
+## 19. E16 — Analyze line (upstream stabilization)
+
+### Scope
+- Move upstream modules into `analyzers/static`, `analyzers/semantic`, `analyzers/dependency`; the dynamic probe is replaced by the E07/E08 engine. Import-path shims for backward compatibility.
+- `pano scan <path> [--mode quick|standard|deep]`
+  - quick: config (example configs in the target repo), Python AST (SENT-001..007), dependency lock parsing.
+  - standard: + Semgrep, OSV/advisory lookup.
+  - deep: + GPT semantic reviewer (`OPENAI_API_KEY`, pre-run disclosure of what is sent, redaction first), dynamic probe (= `watch --self` engine).
+- Restore upstream replay demo: resolve cassette fingerprint drift, reproduce `COMPLETE` in deep mode. Document re-recording if the cause is external API change.
+- Dependency audit green or verified exceptions with expiry.
+- TypeScript static analysis: v1.0 ships a Semgrep rule set (10 rules) only; AST analysis is post-1.0.
+- `pano ci`: GitHub Action entry point. quick/standard, SARIF upload, exit policy (required stage INCOMPLETE = 3, HIGH confirmed = 1, review = 0), scheduled audit workflow template.
+
+### Definition of done
+- Upstream 125 tests + migrated tests green. Replay demo `COMPLETE`. SARIF validates against GitHub Code Scanning schema. E2E workflow runs the Action from a clean checkout.
+
+---
+
+## 20. Complete rule catalog
+
+### 20.1 CFG (config)
+
+| ID | sev | kind | condition | fix |
+|---|---|---|---|---|
+| CFG-001 | HIGH | confirmed | env value matches a known token pattern (ghp_, github_pat_, sk-, sk-ant-, xox[abp]-, AKIA, AIza, glpat-, hf_, pypi-, npm_, JWT) | FIX-001 |
+| CFG-002 | MEDIUM | confirmed | package version unpinned (`@latest` / no tag) | FIX-002 |
+| CFG-003 | MEDIUM | review | command contains `sh -c`, `bash -c`, `curl\|sh`, `powershell`, `eval` | — |
+| CFG-004 | HIGH | confirmed | filesystem-class MCP allowed path is `~`, `/`, `$HOME`, or a drive root | FIX-004 |
+| CFG-005 | LOW | info | same server_id installed multiple times with version mismatch | FIX-005 |
+| CFG-006 | MEDIUM | review | package source unverifiable (not in registry, local) | — |
+| CFG-007 | LOW | review | env contains ≥20-char high-entropy string (unknown pattern) | FIX-001 |
+| CFG-008 | MEDIUM | confirmed | remote URL is plaintext http | FIX-008 |
+| CFG-009 | INFO | info | disabled server | FIX-010 |
+| CFG-010 | MEDIUM | review | args contain absolute system paths outside home (`/etc`, `/var`, `/usr`) | — |
+| CFG-011 | LOW | review | remote MCP headers contain a token pattern | FIX-001 |
+| CFG-012 | INFO | info | stdio server not wrapped | suggest install |
+
+### 20.2 HIST (history)
+
+| ID | sev | kind | condition |
+|---|---|---|---|
+| HIST-001 | INFO | info | ≥1 release since baseline (or config mtime) |
+| HIST-002 | MEDIUM | info | major version jump since baseline |
+| HIST-003 | HIGH | review | npm maintainers changed since baseline |
+| HIST-004 | MEDIUM | info | repository archived or 12 months without activity |
+
+### 20.3 WATCH (behavior)
+
+| ID | sev | kind | condition |
+|---|---|---|---|
+| WATCH-001 | HIGH | confirmed | decoy value exfiltrated via network, file, process arg, or stderr |
+| WATCH-002 | HIGH | confirmed | credential decoy file read without declaration |
+| WATCH-003 | MEDIUM | confirmed | connection to undeclared host (allowlist excluded) |
+| WATCH-004 | MEDIUM | confirmed | network activity in `__idle__` span |
+| WATCH-005 | MEDIUM | confirmed | non-registry host during `__install__` |
+| WATCH-006 | LOW | review | personal config file (`.gitconfig`, shell rc) read without declaration |
+| WATCH-007 | MEDIUM | confirmed | proxy bypass attempt (DROP) |
+| WATCH-008 | MEDIUM | confirmed | undeclared external process (interpreters, git, npm, uv excluded) |
+| WATCH-009 | LOW | info | broad enumeration (≥10 stat/read under `Documents/Desktop/Downloads`) |
+| WATCH-010 | INFO | info | declared = observed (badge condition; requires declared COMPLETE) |
+| WATCH-011 | — | review | verdict withheld because declared is NONE/PARTIAL |
+| WATCH-012 | INFO | info | remote response contains many external URLs |
+| WATCH-013 | MEDIUM | confirmed | tool declared `readOnlyHint: true` performs a write or network POST |
+| WATCH-014 | MEDIUM | confirmed | network activity in `__startup__` span (pre-handshake beacon) |
+
+### 20.4 FIX
+
+| ID | targets | action |
+|---|---|---|
+| FIX-001 | CFG-001/007/011 | move token to env file; `${KEY}` reference or wrap injection |
+| FIX-002 | CFG-002 | pin resolved version |
+| FIX-004 | CFG-004 | narrow path (prompt) |
+| FIX-005 | CFG-005 | unify versions (prompt) |
+| FIX-008 | CFG-008 | switch to https (after check) |
+| FIX-010 | CFG-009 | remove disabled entries (prompt) |
+
+### 20.5 SENT (upstream)
+SENT-001..011 preserved. Details migrated to `docs/rules/sent.md`.
+
+---
+
+## 21. Data schemas (summary)
+
+JSON Schema in `schemas/`, `schema_version: "1.0"`. Migrators from 0.x included.
+
+### InstalledServer
+`server_id, name, client, config_path, scope, transport, command, args[], env_keys[], url, headers_keys[], package{ecosystem,name,pinned,resolved}, source{kind,url}, identity_confidence, disabled, wrapped`
+
+### Observation
+`schema_version, observation_id, server_id, observed_at, pano_version, sandbox{runtime,image,image_digest,tracer}, package_resolved, protocol{version,server_info,capabilities}, tools[{name,input_schema_hash,annotations}], spans[{tool,args_fingerprint,result,duration_ms,events[]}], declared{hosts,paths,env,processes,capabilities,sources,completeness}, findings[], state{overall,stages{install,startup,handshake,probe,idle,declared,file,net}}`
+
+### Event
+`kind(file|net|proc|leak|blocked|plaintext_http), op, path|host|argv, port, via, decoy, decoy_key, sink, count`
+
+### Finding
+Per E11.
+
+### Baseline
+`baseline_id, created_at, label, kind(explicit|last_observation|implicit_mtime), inventory[], observations[], findings[]`
+
+### DiffResult
+`since, until, findings{new,changed,unchanged,resolved,unknown}, capability[], behavior[], inventory[], meaningful[]`
+
+### WrapRecord (NDJSON)
+`ts, server_id, span{tool,request_id,duration_ms}, events[]`
+
+### Common constraints
+- No schema may contain a real home absolute path, a raw token, or a `--real-env` value. `util/leak_check` enforces this immediately before persistence.
+- Paths `~`-relative, hosts lowercase, times UTC ISO-8601.
+
+---
+
+## 22. Quality, security, and documentation standards
+
+### Tests
+- Unit tests for every module. Rules require positive/negative fixtures (CI-enforced).
+- Integration: 5 evil fixture MCPs (each specialized: file read, host connect, leak, idle beacon, process exec), 5 clean, 5 official examples. Docker-requiring tests run in a separate job.
+- E2E: `pano doctor`, `pano watch`, `pano fix`, `pano wrap` scenarios in a clean container.
+- Determinism: repeat-run zero-diff tests for observations, baselines, and every reporter.
+- Leak: 20+ fixtures (token patterns, home paths, real-env values, base64 variants; covering logs, PNG, SARIF) — every persist path must reject.
+- Performance job: doctor 5 s, single watch 60 s (warm cache), wrap 1 ms, diff 5 s.
+- Coverage ≥ 85%.
+
+### Security
+- Container isolation regression tests (§8).
+- Dependency lock, scheduled OSV scan, exceptions with expiry.
+- `SECURITY.md` with a vulnerability intake channel.
+- Release binaries signed (Sigstore), SBOM attached.
+- Run `pano scan --mode standard` on this repository in CI.
+
+### Documentation (`docs/`)
+- README ko/en (30-second demo GIF, one-line install, three principles)
+- `architecture.md`, `rules/` catalog (generated), `limitations.md` (all limits from §8 and §12), `privacy.md` (exhaustive list of network use), `sandbox.md`, `self-declaration.md` (`.panopticon.yaml`), `disclosure.md`, `contributing.md` (how to add adapters/rules), `NOTICE`
+- Every rule: `i18n/{ko,en}/rules/<ID>.md` with 6 sections (Problem / Impact / Evidence / Recommended action / How to verify / Limits). Forbidden-phrase lint.
+
+### Disclosure policy
+- Governs the project (not the tool) when publishing observations of popular MCPs. `docs/disclosure.md`.
+- Contact: SECURITY.md → maintainer email → request a private issue. Embargo: leak (WATCH-001) 30 days, others 14 days. No response → publish facts only. Publication format: observation JSON + reproduction command. Never published: exploitation method, decoy generation details.
+
+---
+
+## 23. Version stages
+
+Versions advance by **closed epics**, not by dates.
+
+| Version | Epics to close | What the user can do |
+|---|---|---|
+| 0.1 | E01, E02, E03, E04, E11, E12 (CFG/HIST), E17 (terminal/json) | `pano doctor` — discovery, config checks, history |
+| 0.2 | E05, E06, E07, E08, E10, E12 (WATCH), E18 (ko) | `pano watch` — stdio observation, declared comparison |
+| 0.3 | E13, E14 | `pano fix`, `pano diff`, baselines |
+| 0.4 | E15 | `pano wrap`, `pano install` |
+| 0.5 | E09, E17 (PNG/badge/Markdown) | remote MCPs, share card, badge |
+| 0.6 | E16 | `pano scan`, GitHub Action, upstream replay restored |
+| 0.7 | E18 (en), all 6 clients, WSL2 | multilingual, all clients |
+| 0.8 | E19 (distribution: binaries, brew, signing, SBOM) | every install path |
+| 0.9 | all quality standards (§22), schema 1.0 frozen, all docs | release candidate |
+| **1.0.0** | entire §2 checklist | — |
+
+Schema changes between 0.x bump `schema_version` and add a migrator. Post-1.0 breaking schema changes are 2.0.
+
+---
+
+## 24. Open decisions
+
+Decide before starting the relevant epic (track in `docs/DECISIONS.md`):
+- Container image registry org (`ghcr.io/<org>`) — before E05
+- Final initial allowlist (§15) — before E12
+- PNG card design — before E17
+- `wrap` OS notification default (currently off) — before E15
+- Host wildcard syntax scope in `.panopticon.yaml` — before E10
+
+Decide after start:
+- eBPF tracer migration (once privilege issues are solved)
+- macOS wrap file observation (EndpointSecurity requires signing; deferred)
+- TypeScript AST static analysis
+- Whether to publish exported observations as a public dataset
+- Organization features (private inventory, policies, alert channels)
+
+---
+
+## 25. Product description (final)
+
+> Panopticon is a watchtower for MCPs. It watches your MCPs, not you. `pano doctor` finds the MCP servers installed across six AI clients, shows config risks and what changed since you last looked, and fixes them with a single Enter. `pano watch` runs an MCP inside a decoy-filled isolated environment, calls its tools for real, records every file, network, process, and leak event per tool, and compares that against what the server declared. `pano wrap` makes that continuous, `pano diff` compares then and now, and `pano scan` keeps static, semantic, and dynamic analysis in the MCP author's CI. What was not observed is never called safe. Every verdict is explained, in Korean and English, with problem, impact, evidence, action, verification, and limits.

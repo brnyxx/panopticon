@@ -1,0 +1,10 @@
+# Allowlist for WATCH-003/005 (docs/PLAN.md §15). Excluded hosts are still recorded in evidence.
+install_only:
+  - registry.npmjs.org
+  - registry.yarnpkg.com
+  - pypi.org
+  - files.pythonhosted.org
+  - github.com
+  - objects.githubusercontent.com
+  - "*.cloudfront.net"
+always: []

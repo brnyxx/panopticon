@@ -1,0 +1,17 @@
+Panopticon
+Copyright (c) 2026 Panopticon contributors
+
+This project is a source-derived successor of MCP-Sentinel
+(https://github.com/BashaarJavaid/MCP-Sentinel), MIT License,
+Copyright (c) 2025 Bashaar Javaid.
+
+Inherited (vendored in epic E16) with original copyright headers preserved:
+  - analyzers/static/      Python AST rules SENT-001..007, Semgrep rule set
+  - analyzers/semantic/    GPT semantic reviewer, structured-output validation, cassette tests
+  - analyzers/dependency/  dependency and advisory checks
+  - findings/              canonical finding/evidence model (extended)
+  - reporters/sarif.py     SARIF output (extended)
+  - tests/upstream/        upstream test suite and fixtures
+
+Summary of changes relative to upstream: see docs/PLAN.md §19 and CHANGELOG.md.
+"MCP-Sentinel" is the name of the upstream project; Panopticon does not claim it.

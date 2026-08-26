@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panopticon.dev/schemas/baseline.json",
+  "title": "Baseline",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "baseline_id",
+    "created_at",
+    "kind",
+    "inventory",
+    "observations",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "baseline_id": {
+      "type": "string",
+      "pattern": "^bl_"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "explicit",
+        "last_observation",
+        "implicit_mtime"
+      ]
+    },
+    "inventory": {
+      "type": "array",
+      "items": {
+        "$ref": "installed_server.json"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{16}$"
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panopticon.dev/schemas/wrap_record.json",
+  "title": "WrapRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ts",
+    "server_id",
+    "span",
+    "events"
+  ],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "server_id": {
+      "type": "string"
+    },
+    "span": {
+      "type": "object",
+      "required": [
+        "tool"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string"
+        },
+        "request_id": {},
+        "duration_ms": {
+          "type": "integer"
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "event.json"
+      }
+    }
+  }
+}

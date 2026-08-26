@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panopticon.dev/schemas/finding.json",
+  "title": "Finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "rule_id",
+    "kind",
+    "title",
+    "evidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^(CFG|HIST|WATCH|FIX|SENT)-\\d{3}$"
+    },
+    "severity": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "INFO",
+        null
+      ]
+    },
+    "kind": {
+      "enum": [
+        "confirmed",
+        "review",
+        "info"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "location": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "server_id": {
+      "type": "string"
+    },
+    "observation_id": {
+      "type": "string"
+    },
+    "span_ref": {
+      "type": "string"
+    },
+    "remediation_key": {
+      "type": "string"
+    },
+    "fix_available": {
+      "type": "boolean"
+    },
+    "declared_source": {
+      "type": "string"
+    },
+    "first_seen": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "suppressed_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

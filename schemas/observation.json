@@ -1,0 +1,328 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panopticon.dev/schemas/observation.json",
+  "title": "Observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "server_id",
+    "observed_at",
+    "pano_version",
+    "spans",
+    "declared",
+    "findings",
+    "state"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "observation_id": {
+      "type": "string",
+      "pattern": "^obs_"
+    },
+    "server_id": {
+      "type": "string"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "pano_version": {
+      "type": "string"
+    },
+    "sandbox": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "enum": [
+            "docker",
+            "podman",
+            "none"
+          ]
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_digest": {
+          "type": "string"
+        },
+        "tracer": {
+          "type": "string"
+        }
+      }
+    },
+    "package_resolved": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "protocol": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "server_info": {
+          "type": "object"
+        },
+        "capabilities": {
+          "type": "object"
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "input_schema_hash"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "input_schema_hash": {
+            "type": "string"
+          },
+          "annotations": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "spans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tool",
+          "result",
+          "events"
+        ],
+        "properties": {
+          "tool": {
+            "type": "string"
+          },
+          "args_fingerprint": {
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "ok",
+              "error",
+              "timeout",
+              "skipped_destructive"
+            ]
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "event.json"
+            }
+          }
+        }
+      }
+    },
+    "declared": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completeness",
+        "sources"
+      ],
+      "properties": {
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "processes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "read",
+              "write",
+              "destructive",
+              "open_world"
+            ]
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "self_decl",
+              "registry",
+              "tool_description",
+              "readme",
+              "manifest",
+              "config"
+            ]
+          }
+        },
+        "completeness": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "NONE"
+          ]
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "finding.json"
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall",
+        "stages"
+      ],
+      "properties": {
+        "overall": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "INCOMPLETE",
+            "FAILED"
+          ]
+        },
+        "stages": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "install": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            },
+            "startup": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            },
+            "handshake": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            },
+            "probe": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            },
+            "idle": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            },
+            "declared": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            },
+            "file": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            },
+            "net": {
+              "enum": [
+                "COMPLETE",
+                "PARTIAL",
+                "INCOMPLETE",
+                "FAILED",
+                "UNSUPPORTED",
+                "NOT_REQUESTED",
+                "SKIPPED_DESTRUCTIVE"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

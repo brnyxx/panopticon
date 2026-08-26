@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panopticon.dev/schemas/diff_result.json",
+  "title": "DiffResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "since",
+    "until",
+    "findings",
+    "capability",
+    "behavior",
+    "inventory",
+    "meaningful"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "since": {
+      "type": "string"
+    },
+    "until": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "new": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unchanged": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unknown": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "capability": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "server_id"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "NEW_TOOL",
+              "REMOVED_TOOL",
+              "SCHEMA_CHANGED",
+              "ANNOTATION_CHANGED"
+            ]
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "behavior": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "server_id"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "NEW_HOST",
+              "REMOVED_HOST",
+              "NEW_PATH",
+              "NEW_PROCESS",
+              "NEW_LEAK"
+            ]
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "server_id"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "ADDED",
+              "REMOVED",
+              "COMMAND_CHANGED",
+              "VERSION_CHANGED",
+              "ENV_KEYS_CHANGED"
+            ]
+          },
+          "server_id": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "meaningful": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

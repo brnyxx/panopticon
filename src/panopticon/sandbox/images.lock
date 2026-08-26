@@ -1,0 +1,5 @@
+# image_ref = digest — pinned by `pano sandbox update`. Placeholder until E05 builds images.
+ghcr.io/OWNER/pano-sandbox-base:1 = sha256:TODO
+ghcr.io/OWNER/pano-sandbox-node:20 = sha256:TODO
+ghcr.io/OWNER/pano-sandbox-node:22 = sha256:TODO
+ghcr.io/OWNER/pano-sandbox-python:3.12 = sha256:TODO

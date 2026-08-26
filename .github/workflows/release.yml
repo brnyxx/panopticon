@@ -1,0 +1,31 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest,  target: linux-x86_64 }
+          - { os: ubuntu-24.04-arm, target: linux-arm64 }
+          - { os: macos-13,       target: darwin-x86_64 }
+          - { os: macos-latest,   target: darwin-arm64 }
+    runs-on: ${{ matrix.os }}
+    permissions: { contents: write, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --all-extras
+      - run: uv build
+      # E19: single-binary build (PyInstaller or similar), Sigstore signing, SBOM.
+      - run: echo "TODO(E19): binary build for ${{ matrix.target }}, cosign sign-blob, syft sbom"
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: { id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv build
+      - uses: pypa/gh-action-pypi-publish@release/v1

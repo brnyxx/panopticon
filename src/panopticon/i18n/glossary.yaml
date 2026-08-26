@@ -1,0 +1,12 @@
+# Term consistency for ko/en. The forbidden list is enforced by scripts/check_phrases.py.
+terms:
+  finding: { en: finding, ko: 탐지 항목 }
+  evidence: { en: evidence, ko: 근거 }
+  declared: { en: declared scope, ko: 선언 범위 }
+  observed: { en: observed behavior, ko: 관측 행동 }
+  decoy: { en: decoy, ko: 미끼 }
+  span: { en: tool call span, ko: tool 호출 구간 }
+  baseline: { en: baseline, ko: 기준선 }
+forbidden:
+  en: ["is safe", "certified", "100% secure", "perfectly safe", "guaranteed safe"]
+  ko: ["안전합니다", "인증됨", "완벽하게 안전", "100% 안전"]
