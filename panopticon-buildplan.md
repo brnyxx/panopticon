@@ -110,7 +110,7 @@ v1.0.0 exists when all of the following hold. Any gap keeps the version at 0.x.
 
 ### Distribution and docs
 - [ ] `uvx panopticon-mcp`, `pipx`, Homebrew tap, 4 GitHub Release binaries.
-- [ ] README ko/en, architecture, rule catalog, limitations, privacy, SECURITY.md, disclosure policy, upstream NOTICE.
+- [ ] README ko/en, architecture, rule catalog, limitations, privacy, SECURITY.md, disclosure policy, THIRD_PARTY_NOTICES.md.
 - [ ] Schema version `1.0` frozen; migrators from 0.x provided.
 
 ---

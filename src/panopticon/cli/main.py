@@ -22,7 +22,7 @@ NOT_IMPLEMENTED_EXIT = 64
 
 def _not_implemented(cmd: str, epic: str) -> int:
     typer.secho(
-        f"`pano {cmd}` is not implemented yet — delivered by epic {epic} (see panopticon-buildplan.md).",
+        f"`pano {cmd}` is not implemented yet — delivered by epic {epic} (see buildplan).",
         err=True,
         fg=typer.colors.YELLOW,
     )

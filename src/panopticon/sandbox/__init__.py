@@ -1,1 +1,1 @@
-"""Container runtime, images, decoy home, tracer, netlog, snapshot (panopticon-buildplan.md §8-§10)."""
+"""Container runtime, images, decoy home, tracer, netlog, snapshot (buildplan §8-§10)."""
