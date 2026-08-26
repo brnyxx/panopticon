@@ -1,1 +1,1 @@
-"""CFG-* rules (docs/PLAN.md §20.1)."""
+"""CFG-* rules (panopticon-buildplan.md §20.1)."""

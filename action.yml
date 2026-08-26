@@ -1,0 +1,37 @@
+name: "Panopticon"
+description: "Static/semantic/dynamic analysis of an MCP server repository with SARIF output (pano scan / pano ci)."
+author: "Panopticon contributors"
+branding: { icon: "eye", color: "gray-dark" }
+inputs:
+  path:
+    description: "Path to the MCP source tree"
+    default: "."
+  mode:
+    description: "quick | standard | deep (deep needs OPENAI_API_KEY and Docker)"
+    default: "standard"
+  sarif:
+    description: "Write SARIF to this file"
+    default: "pano.sarif"
+  fail-on:
+    description: "Exit non-zero on: high | medium | incomplete | never"
+    default: "high"
+  config:
+    description: "Path to panopticon.toml"
+    default: "panopticon.toml"
+outputs:
+  sarif:
+    description: "Path to the SARIF file"
+    value: ${{ steps.scan.outputs.sarif }}
+runs:
+  using: "composite"
+  steps:
+    - uses: astral-sh/setup-uv@v3
+    - id: scan
+      shell: bash
+      run: |
+        uvx panopticon-mcp ci "${{ inputs.path }}" \
+          --mode "${{ inputs.mode }}" \
+          --sarif "${{ inputs.sarif }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          --config "${{ inputs.config }}"
+        echo "sarif=${{ inputs.sarif }}" >> "$GITHUB_OUTPUT"

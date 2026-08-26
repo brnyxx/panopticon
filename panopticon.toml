@@ -1,0 +1,30 @@
+# Project-level configuration for the analyze line (`pano scan` / `pano ci`) and for
+# observations of this repository (`pano watch --self`). Lives at the repo root of an MCP server.
+# User-level settings (runtime, proxy, language) live in ~/.panopticon/config.toml instead.
+
+[scan]
+mode = "standard"            # quick | standard | deep
+fail_on = "high"             # high | medium | incomplete | never
+paths = ["src"]              # analyzed roots
+exclude = ["tests/fixtures"]
+
+[scan.static]
+semgrep_rules = ["builtin"]  # builtin | path/to/rules.yaml
+
+[scan.semantic]
+enabled = false              # requires OPENAI_API_KEY; source excerpts are redacted and shown before sending
+model = "gpt-4o-mini"
+
+[scan.dynamic]
+enabled = false              # requires Docker/Podman; same engine as `pano watch --self`
+calls_per_tool = 1
+idle_seconds = 10
+
+[declared]                   # optional inline self-declaration; `.panopticon.yaml` takes precedence
+hosts = []
+paths = []
+env = []
+processes = []
+
+[suppress]                   # rule_id = { reason = "...", expires = "YYYY-MM-DD" }
+# "CFG-002" = { reason = "pinned in lockfile", expires = "2026-12-31" }

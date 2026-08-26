@@ -7,7 +7,7 @@ E__ — <name>
 - [ ] ...
 
 ## Plan / schema / rule changes
-- [ ] docs/PLAN.md updated (or N/A)
+- [ ] panopticon-buildplan.md updated (or N/A)
 - [ ] schemas/ updated + migrator (or N/A)
 - [ ] i18n ko+en docs added for new rules (or N/A)
 - [ ] docs/PROGRESS.md updated

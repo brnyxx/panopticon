@@ -38,11 +38,11 @@ uvx panopticon-mcp watch --all   # needs Docker or Podman
 
 ## Status
 
-Pre-alpha scaffold. Implementation follows [`docs/PLAN.md`](docs/PLAN.md) epic by epic; progress in [`docs/PROGRESS.md`](docs/PROGRESS.md). Agents: read [`AGENTS.md`](AGENTS.md).
+Pre-alpha scaffold. Implementation follows [`panopticon-buildplan.md`](panopticon-buildplan.md) epic by epic; progress in [`docs/PROGRESS.md`](docs/PROGRESS.md). Agents: read [`AGENTS.md`](AGENTS.md).
 
 ## Lineage
 
-Static, semantic, and dynamic analysis in the `scan` line are inherited from [MCP-Sentinel](https://github.com/BashaarJavaid/MCP-Sentinel) (MIT). See `NOTICE`.
+Static, semantic, and dynamic analysis in the `scan` line are inherited from [MCP-Sentinel](https://github.com/BashaarJavaid/MCP-Sentinel) (MIT). See `THIRD_PARTY_NOTICES.md`.
 
 ## License
 

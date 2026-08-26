@@ -19,7 +19,7 @@ One line per epic. Update in every PR touching the epic. States: TODO / IN PROGR
 | E13 Fix | TODO | |
 | E14 Baseline/Diff | TODO | |
 | E15 Wrap/Install | TODO | |
-| E16 Analyze line | TODO | vendor upstream with headers → NOTICE |
+| E16 Analyze line | TODO | vendor upstream with headers → THIRD_PARTY_NOTICES.md |
 | E17 Reporters | TODO | |
 | E18 i18n | TODO | |
 | E19 Release | TODO | |

@@ -1,1 +1,1 @@
-"""Declared-scope extractors (docs/PLAN.md §13)."""
+"""Declared-scope extractors (panopticon-buildplan.md §13)."""

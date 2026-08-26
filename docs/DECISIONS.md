@@ -3,13 +3,13 @@
 Numbered, append-only. Format: context / options / chosen / why.
 
 ## 1. Container image registry org
-- Context: E05 needs a home for `pano-sandbox-*` images (docs/PLAN.md §8).
+- Context: E05 needs a home for `pano-sandbox-*` images (panopticon-buildplan.md §8).
 - Options: `ghcr.io/<personal>`, `ghcr.io/<org>`, Docker Hub.
 - Chosen: **TBD**
 - Why:
 
 ## 2. Initial network allowlist
-- Context: WATCH-003/005 need an install-time allowlist (docs/PLAN.md §15).
+- Context: WATCH-003/005 need an install-time allowlist (panopticon-buildplan.md §15).
 - Chosen: the list in `analyzers/behavior/allow.yaml` (registry + GitHub release CDN only). Revisit when a fixture shows a false positive.
 
 ## 3. `wrap` OS notification default

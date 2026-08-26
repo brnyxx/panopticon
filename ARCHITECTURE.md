@@ -1,6 +1,6 @@
 # Architecture
 
-See `docs/PLAN.md §3` for the epic graph and `AGENTS.md` for layout and dependency direction.
+See `panopticon-buildplan.md §3` for the epic graph and `AGENTS.md` for layout and dependency direction.
 
 ```
 pano watch <server>

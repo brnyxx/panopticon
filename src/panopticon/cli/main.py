@@ -22,7 +22,7 @@ NOT_IMPLEMENTED_EXIT = 64
 
 def _not_implemented(cmd: str, epic: str) -> int:
     typer.secho(
-        f"`pano {cmd}` is not implemented yet — delivered by epic {epic} (see docs/PLAN.md).",
+        f"`pano {cmd}` is not implemented yet — delivered by epic {epic} (see panopticon-buildplan.md).",
         err=True,
         fg=typer.colors.YELLOW,
     )
@@ -115,6 +115,18 @@ def scan(
 ) -> None:
     """Static / semantic / dynamic analysis of an MCP source tree (upstream line). (E16)"""
     raise typer.Exit(_not_implemented("scan", "E16"))
+
+
+@app.command()
+def ci(
+    path: str = typer.Argument("."),
+    mode: str = typer.Option("standard", help="quick|standard|deep"),
+    sarif: str = typer.Option("pano.sarif"),
+    fail_on: str = typer.Option("high", "--fail-on", help="high|medium|incomplete|never"),
+    config: str = typer.Option("panopticon.toml"),
+) -> None:
+    """GitHub Action entry point: scan + SARIF + exit policy (action.yml). (E16)"""
+    raise typer.Exit(_not_implemented("ci", "E16"))
 
 
 @app.command()

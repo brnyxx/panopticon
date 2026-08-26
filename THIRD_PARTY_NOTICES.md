@@ -1,4 +1,4 @@
-Panopticon
+Third-party notices — Panopticon
 Copyright (c) 2026 Panopticon contributors
 
 This project is a source-derived successor of MCP-Sentinel
@@ -13,5 +13,5 @@ Inherited (vendored in epic E16) with original copyright headers preserved:
   - reporters/sarif.py     SARIF output (extended)
   - tests/upstream/        upstream test suite and fixtures
 
-Summary of changes relative to upstream: see docs/PLAN.md §19 and CHANGELOG.md.
+Summary of changes relative to upstream: see panopticon-buildplan.md §19 and CHANGELOG.md.
 "MCP-Sentinel" is the name of the upstream project; Panopticon does not claim it.

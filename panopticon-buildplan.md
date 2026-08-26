@@ -146,12 +146,12 @@ The discovery branch (E02–E04) and the observation-engine branch (E05–E08) c
 ## 4. E01 — Project foundation
 
 ### Scope
-- Fork preserving upstream history. `NOTICE` lists the MIT copyright, a summary of changes, and inherited modules.
+- Fork preserving upstream history. `THIRD_PARTY_NOTICES.md` lists the MIT copyright, a summary of changes, and inherited modules.
 - `pyproject.toml`: Python 3.11+, `uv` lock, entry point `pano`, package `panopticon-mcp`.
 - Directory layout as in `AGENTS.md`.
 - CI: ruff, ruff-format, mypy (strict), pytest with coverage, schema validation, i18n parity, leak fixtures. OS matrix expanded in E19.
 - Logging: structured (`structlog`), stderr by default, `PANO_LOG=json`. Log records also pass `leak_check`.
-- Config: `~/.panopticon/config.toml` (proxy, container runtime, extra allowlist, language). Precedence: CLI flag > `PANO_*` env > file.
+- Config: `~/.panopticon/config.toml` (proxy, container runtime, extra allowlist, language) for the user; `panopticon.toml` at an MCP repo root for the analyze line (scan modes, fail policy, suppressions, inline declaration). Precedence: CLI flag > `PANO_*` env > file.
 
 ### Definition of done
 - `uv run pano version` works. Upstream 125 tests green (once vendored in E16; until then the placeholder suite passes). Round-trip tests for all schemas (§21). All CI jobs green.
@@ -647,7 +647,7 @@ Per E11.
 
 ### Documentation (`docs/`)
 - README ko/en (30-second demo GIF, one-line install, three principles)
-- `architecture.md`, `rules/` catalog (generated), `limitations.md` (all limits from §8 and §12), `privacy.md` (exhaustive list of network use), `sandbox.md`, `self-declaration.md` (`.panopticon.yaml`), `disclosure.md`, `contributing.md` (how to add adapters/rules), `NOTICE`
+- `architecture.md`, `rules/` catalog (generated), `limitations.md` (all limits from §8 and §12), `privacy.md` (exhaustive list of network use), `sandbox.md`, `self-declaration.md` (`.panopticon.yaml`), `disclosure.md`, `contributing.md` (how to add adapters/rules), `THIRD_PARTY_NOTICES.md`
 - Every rule: `i18n/{ko,en}/rules/<ID>.md` with 6 sections (Problem / Impact / Evidence / Recommended action / How to verify / Limits). Forbidden-phrase lint.
 
 ### Disclosure policy

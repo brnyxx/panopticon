@@ -1,1 +1,1 @@
-"""Rule registry and metadata (docs/PLAN.md §14)."""
+"""Rule registry and metadata (panopticon-buildplan.md §14)."""

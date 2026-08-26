@@ -1,1 +1,1 @@
-"""InstalledServer normalization and server_id rules (docs/PLAN.md §6)."""
+"""InstalledServer normalization and server_id rules (panopticon-buildplan.md §6)."""

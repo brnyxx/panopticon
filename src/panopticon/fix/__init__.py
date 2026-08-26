@@ -1,1 +1,1 @@
-"""FIX-* rules, JSONC round-trip editing, backup journal, undo (docs/PLAN.md §16)."""
+"""FIX-* rules, JSONC round-trip editing, backup journal, undo (panopticon-buildplan.md §16)."""

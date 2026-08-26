@@ -1,4 +1,4 @@
-"""ClientAdapter contract. See docs/PLAN.md §5."""
+"""ClientAdapter contract. See panopticon-buildplan.md §5."""
 
 from __future__ import annotations
 

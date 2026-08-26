@@ -1,1 +1,1 @@
-"""Client config discovery. One adapter per client (docs/PLAN.md §5)."""
+"""Client config discovery. One adapter per client (panopticon-buildplan.md §5)."""

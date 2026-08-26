@@ -93,6 +93,6 @@ source = ["src/panopticon"]
 branch = true
 
 [tool.coverage.report]
-# Target is 85 (docs/PLAN.md §22). Raised progressively as epics close; do not lower.
+# Target is 85 (panopticon-buildplan.md §22). Raised progressively as epics close; do not lower.
 fail_under = 40
 show_missing = true

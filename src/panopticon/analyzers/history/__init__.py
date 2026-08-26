@@ -1,1 +1,1 @@
-"""HIST-* rules (docs/PLAN.md §20.2)."""
+"""HIST-* rules (panopticon-buildplan.md §20.2)."""

@@ -1,1 +1,1 @@
-"""Baseline create/load/canonicalize and schema migrators (docs/PLAN.md §17)."""
+"""Baseline create/load/canonicalize and schema migrators (panopticon-buildplan.md §17)."""

@@ -1,1 +1,1 @@
-"""npm / PyPI / GitHub history lookups with on-disk cache (docs/PLAN.md §7)."""
+"""npm / PyPI / GitHub history lookups with on-disk cache (panopticon-buildplan.md §7)."""

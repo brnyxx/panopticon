@@ -1,1 +1,1 @@
-"""Finding model, canonical IDs, severity (docs/PLAN.md §14)."""
+"""Finding model, canonical IDs, severity (panopticon-buildplan.md §14)."""

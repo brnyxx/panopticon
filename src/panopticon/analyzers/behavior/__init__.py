@@ -1,1 +1,1 @@
-"""WATCH-* rules (docs/PLAN.md §20.3)."""
+"""WATCH-* rules (panopticon-buildplan.md §20.3)."""

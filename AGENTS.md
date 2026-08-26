@@ -10,7 +10,7 @@
 
 It discovers MCP servers installed in AI clients, runs them inside a decoy-filled sandbox, records what they actually do (files, network, processes, leaks) per tool call, and compares observed behavior against what the server *declares*. It also fixes risky configs, wraps servers for continuous recording, and (for MCP authors) runs static/semantic/dynamic analysis inherited from the upstream project `BashaarJavaid/MCP-Sentinel` (MIT).
 
-The complete product and implementation plan is in **`docs/PLAN.md`**. Read it before starting any epic. This file tells you *how to work*; `docs/PLAN.md` tells you *what to build*.
+The complete product and implementation plan is in **`panopticon-buildplan.md`**. Read it before starting any epic. This file tells you *how to work*; `panopticon-buildplan.md` tells you *what to build*.
 
 ## Ground rules (non-negotiable)
 
@@ -22,7 +22,7 @@ The complete product and implementation plan is in **`docs/PLAN.md`**. Read it b
 6. **Fix is always: dry-run diff → confirm → backup → apply → re-check → undo available.** Never edit a client config outside `fix/` and `install/` code paths.
 7. **ko and en are the same rule.** Every rule has `i18n/ko/rules/<ID>.md` and `i18n/en/rules/<ID>.md` with identical 6-section structure. CI fails if the ID sets differ.
 8. **No telemetry.** Network use is limited to registry lookups (`registry/`) and the MCP's own traffic inside the sandbox. `--offline` must disable everything.
-9. **Don't fork the plan silently.** If an epic's scope, a rule's condition, or a schema must change, edit `docs/PLAN.md` in the same PR and say why in the PR body.
+9. **Don't fork the plan silently.** If an epic's scope, a rule's condition, or a schema must change, edit `panopticon-buildplan.md` in the same PR and say why in the PR body.
 
 ## Repository layout
 
@@ -47,6 +47,9 @@ src/panopticon/
   i18n/         Message catalog, rule docs (ko, en), glossary, forbidden-phrase lint.
   util/         leak_check, paths, canonicalize, jsonc.
 schemas/        JSON Schema (2020-12), schema_version "1.0".
+panopticon-buildplan.md   The plan (what to build). ARCHITECTURE.md, ROADMAP.md at root.
+action.yml      GitHub Action wrapper around `pano ci`. panopticon.toml: example project config for the analyze line.
+THIRD_PARTY_NOTICES.md    Upstream MIT attribution; list every vendored file here.
 tests/          unit/, integration/ (Docker-marked), e2e/, fixtures/.
 docs/           PLAN.md (the plan), architecture, limitations, privacy, disclosure, self-declaration, rules/.
 scripts/        Dev helpers (image build, i18n check, rule catalog generation).
@@ -75,7 +78,7 @@ make ci                            # everything above
 ```
 
 ### Picking work
-- Work epic by epic in the dependency order in `docs/PLAN.md §3`. Do not start an epic whose dependencies are not closed.
+- Work epic by epic in the dependency order in `panopticon-buildplan.md §3`. Do not start an epic whose dependencies are not closed.
 - An epic is **closed** only when every item in its "Definition of done" passes in CI.
 - Track progress in `docs/PROGRESS.md` (one line per epic: `E05 — IN PROGRESS — <what remains>`). Update it in every PR that touches the epic.
 
@@ -83,19 +86,19 @@ make ci                            # everything above
 1. Implement in `analyzers/<line>/rules.py` with the `@rule(...)` decorator (`rules/registry.py`).
 2. Add `tests/fixtures/...` positive **and** negative cases; `scripts/check_rules.py` fails otherwise.
 3. Add `i18n/en/rules/<ID>.md` and `i18n/ko/rules/<ID>.md` using `i18n/RULE_TEMPLATE.md` (6 sections: Problem / Impact / Evidence / Recommended action / How to verify / Limits).
-4. Add the row to `docs/PLAN.md §20`.
+4. Add the row to `panopticon-buildplan.md §20`.
 
 ### Adding a client adapter
 1. `discovery/<client>.py` implementing `ClientAdapter` (`discovery/base.py`).
 2. Fixtures under `tests/fixtures/discovery/<client>/` — at minimum: `clean.json`, `secret.json`, `broad_fs.json`, `duplicate.json`, `malformed.json`, `disabled.json`, `remote.json`.
-3. Register in `discovery/__init__.py`. Add the row to `docs/PLAN.md §5`.
+3. Register in `discovery/__init__.py`. Add the row to `panopticon-buildplan.md §5`.
 
 ### Schemas
-- Any change to a persisted shape → update `schemas/*.json`, bump `schema_version` if breaking, add a migrator in `baseline/migrate.py`, update `docs/PLAN.md §21`.
+- Any change to a persisted shape → update `schemas/*.json`, bump `schema_version` if breaking, add a migrator in `baseline/migrate.py`, update `panopticon-buildplan.md §21`.
 - Round-trip tests in `tests/unit/test_schema_roundtrip.py` must pass.
 
 ### Upstream code (E16)
-- Upstream modules from MCP-Sentinel are vendored into `analyzers/static`, `analyzers/semantic`, `analyzers/dependency`. Preserve the MIT copyright header in each copied file and list the file in `NOTICE`. Keep upstream tests under `tests/upstream/` green.
+- Upstream modules from MCP-Sentinel are vendored into `analyzers/static`, `analyzers/semantic`, `analyzers/dependency`. Preserve the MIT copyright header in each copied file and list the file in `THIRD_PARTY_NOTICES.md`. Keep upstream tests under `tests/upstream/` green.
 
 ## Code standards
 
@@ -122,9 +125,9 @@ make ci                            # everything above
 - Do not mount the user's home or cwd into a container (except `--self`, read-only).
 - Do not write "Safe", "Certified", or a numeric safety score anywhere.
 - Do not delete or add MCP entries in a client config. `fix` edits values; `install` swaps `command`/`args` and preserves the original under `_pano_original`.
-- Do not skip `docs/PLAN.md` updates when behavior changes.
+- Do not skip `panopticon-buildplan.md` updates when behavior changes.
 - Do not weaken a "Definition of done" to close an epic.
 
 ## Where to ask
 
-Open questions go to `docs/DECISIONS.md` as a numbered entry (context, options, chosen, why). Undecided items from `docs/PLAN.md §24` live there too.
+Open questions go to `docs/DECISIONS.md` as a numbered entry (context, options, chosen, why). Undecided items from `panopticon-buildplan.md §24` live there too.

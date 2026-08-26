@@ -1,4 +1,4 @@
-"""Decorator-based rule registry. See docs/PLAN.md §14.
+"""Decorator-based rule registry. See panopticon-buildplan.md §14.
 
     @rule(id="WATCH-001", severity="HIGH", kind="confirmed", line="observe")
     def decoy_leak(ctx: RuleContext) -> Iterable[Finding]: ...

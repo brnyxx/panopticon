@@ -1,4 +1,4 @@
-"""Container Runtime contract. See docs/PLAN.md §8."""
+"""Container Runtime contract. See panopticon-buildplan.md §8."""
 
 from __future__ import annotations
 

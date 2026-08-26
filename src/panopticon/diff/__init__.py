@@ -1,1 +1,1 @@
-"""Delta computation (docs/PLAN.md §17)."""
+"""Delta computation (panopticon-buildplan.md §17)."""
