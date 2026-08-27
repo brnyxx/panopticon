@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import errno
 import os
-import secrets
 import stat
 from dataclasses import dataclass
 from pathlib import Path
@@ -118,7 +117,7 @@ def atomic_replace(
         _check_target(directory_fd, target.name)
         operation = AtomicOperation.CREATE_TEMP
         active_injector.before(operation)
-        temporary_name = f".{target.name}.{secrets.token_hex(8)}.tmp"
+        temporary_name = f".{target.name}.{os.urandom(8).hex()}.tmp"
         flags = (
             os.O_WRONLY
             | os.O_CREAT

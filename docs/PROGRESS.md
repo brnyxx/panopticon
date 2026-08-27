@@ -6,7 +6,7 @@ An epic is CLOSED only when every item in its definition of done has been proven
 
 | Epic | State | Remaining |
 |---|---|---|
-| E01 Foundation | IN PROGRESS | typed persisted contracts, schema lifecycle, canonical leak-checked `store/` gateway, and direct-write checker complete; still open: `SecretStore` backends, engine pipelines, and the exit-code table |
+| E01 Foundation | IN PROGRESS | typed persisted contracts, schema lifecycle, canonical leak-checked `store/` gateway, direct-write checker, and credential-backed `SecretStore`/encrypted backups are complete; still open: engine pipelines and the exit-code table |
 | E02 Discovery | TODO | |
 | E03 Inventory | TODO | needs `installation_id` from E01 |
 | E04 Registry | TODO | |
@@ -28,4 +28,4 @@ An epic is CLOSED only when every item in its definition of done has been proven
 
 ## Why E01 is still open
 
-The scaffold builds, CI is green, and the contracts above are now frozen in writing. None of that closes E01: its definition of done requires the typed spine, the persistence gateway, the secret backends, and the engine boundaries to exist and pass their gates. Freezing a contract is not implementing it.
+The scaffold builds, CI is green, and the contracts above are now frozen in writing. The typed spine, persistence gateway, and credential-backed secret storage are complete; E01 remains open only because the engine boundaries and their gates still need to exist and pass.
