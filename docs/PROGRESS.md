@@ -6,7 +6,7 @@ An epic is CLOSED only when every item in its definition of done has been proven
 
 | Epic | State | Remaining |
 |---|---|---|
-| E01 Foundation | IN PROGRESS | contracts frozen (docs/DECISIONS.md #6-#12, ARCHITECTURE.md); still open: typed models and branded IDs, `installation_id`, structured stage/reason/coverage, 0.1 schemas and migrators, the `store/` gateway and direct-write checker, `SecretStore` backends, engine pipelines and the exit-code table |
+| E01 Foundation | IN PROGRESS | typed persisted contracts, branded identities, structured stage/reason/coverage, generated 0.1 schemas, and baseline migrators complete; still open: the `store/` gateway and direct-write checker, `SecretStore` backends, engine pipelines, and the exit-code table |
 | E02 Discovery | TODO | |
 | E03 Inventory | TODO | needs `installation_id` from E01 |
 | E04 Registry | TODO | |

@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.1",
+  "baseline_id": "bl_example",
+  "created_at": "2026-08-26T00:00:00Z",
+  "label": null,
+  "kind": "explicit",
+  "inventory": [],
+  "observations": [],
+  "findings": []
+}

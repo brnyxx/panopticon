@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1",
+  "server_id": "npm:@modelcontextprotocol/server-github",
+  "installation_id": "inst_0123456789abcdef",
+  "name": "github",
+  "client": "claude-desktop",
+  "config_path": "~/Library/Application Support/Claude/claude_desktop_config.json",
+  "config_pointer": "/mcpServers/github",
+  "scope": "global",
+  "transport": "stdio",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-github"],
+  "env_keys": ["GITHUB_TOKEN"],
+  "url": null,
+  "headers_keys": [],
+  "package": {
+    "ecosystem": "npm",
+    "name": "@modelcontextprotocol/server-github",
+    "pinned": "1.2.3",
+    "resolved": "1.2.3"
+  },
+  "source": {
+    "kind": "registry",
+    "url": "https://www.npmjs.com/package/@modelcontextprotocol/server-github"
+  },
+  "identity_confidence": "high",
+  "disabled": false,
+  "wrapped": false
+}

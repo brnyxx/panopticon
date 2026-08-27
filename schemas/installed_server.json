@@ -1,31 +1,6 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://panopticon.dev/schemas/installed_server.json",
-  "title": "InstalledServer",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "server_id",
-    "name",
-    "client",
-    "config_path",
-    "scope",
-    "transport",
-    "identity_confidence"
-  ],
-  "properties": {
-    "schema_version": {
-      "const": "1.0"
-    },
-    "server_id": {
-      "type": "string",
-      "pattern": "^(npm|pypi|github|docker|remote|local):.+"
-    },
-    "name": {
-      "type": "string"
-    },
-    "client": {
+  "$defs": {
+    "ClientName": {
       "enum": [
         "claude-desktop",
         "claude-code",
@@ -33,123 +8,265 @@
         "vscode",
         "windsurf",
         "generic"
-      ]
+      ],
+      "title": "ClientName",
+      "type": "string"
     },
-    "config_path": {
-      "type": "string",
-      "pattern": "^(?!/(Users|home)/)"
-    },
-    "scope": {
+    "ConfigScope": {
       "enum": [
         "global",
         "project"
-      ]
-    },
-    "transport": {
-      "enum": [
-        "stdio",
-        "http",
-        "sse"
-      ]
-    },
-    "command": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "args": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "env_keys": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "url": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "headers_keys": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "package": {
-      "type": [
-        "object",
-        "null"
       ],
-      "additionalProperties": false,
-      "properties": {
-        "ecosystem": {
-          "enum": [
-            "npm",
-            "pypi",
-            "docker"
-          ]
-        },
-        "name": {
-          "type": "string"
-        },
-        "pinned": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "resolved": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
+      "title": "ConfigScope",
+      "type": "string"
     },
-    "source": {
-      "type": [
-        "object",
-        "null"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "enum": [
-            "registry",
-            "git",
-            "local",
-            "remote"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
-    },
-    "identity_confidence": {
+    "IdentityConfidence": {
       "enum": [
         "high",
         "medium",
         "low"
-      ]
+      ],
+      "title": "IdentityConfidence",
+      "type": "string"
+    },
+    "InstallationSource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Url"
+        }
+      },
+      "required": [
+        "kind",
+        "url"
+      ],
+      "title": "InstallationSource",
+      "type": "object"
+    },
+    "PackageEcosystem": {
+      "enum": [
+        "npm",
+        "pypi",
+        "docker"
+      ],
+      "title": "PackageEcosystem",
+      "type": "string"
+    },
+    "PackageIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "ecosystem": {
+          "$ref": "#/$defs/PackageEcosystem"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pinned": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pinned"
+        },
+        "resolved": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved"
+        }
+      },
+      "required": [
+        "ecosystem",
+        "name",
+        "pinned",
+        "resolved"
+      ],
+      "title": "PackageIdentity",
+      "type": "object"
+    },
+    "SourceKind": {
+      "enum": [
+        "registry",
+        "git",
+        "local",
+        "remote"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    },
+    "Transport": {
+      "enum": [
+        "stdio",
+        "http",
+        "sse"
+      ],
+      "title": "Transport",
+      "type": "string"
+    }
+  },
+  "$id": "https://panopticon.dev/schemas/installed_server.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "args": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Args",
+      "type": "array"
+    },
+    "client": {
+      "$ref": "#/$defs/ClientName"
+    },
+    "command": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Command"
+    },
+    "config_path": {
+      "pattern": "^~(?:/[^/]+)*$",
+      "title": "Config Path",
+      "type": "string"
+    },
+    "config_pointer": {
+      "pattern": "^(?:/(?:[^~/]|~[01])*)+$",
+      "title": "Config Pointer",
+      "type": "string"
     },
     "disabled": {
-      "type": "boolean",
-      "default": false
+      "title": "Disabled",
+      "type": "boolean"
+    },
+    "env_keys": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Env Keys",
+      "type": "array"
+    },
+    "headers_keys": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Headers Keys",
+      "type": "array"
+    },
+    "identity_confidence": {
+      "$ref": "#/$defs/IdentityConfidence"
+    },
+    "installation_id": {
+      "pattern": "^inst_[0-9a-f]{16}$",
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "package": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PackageIdentity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schema_version": {
+      "const": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ConfigScope"
+    },
+    "server_id": {
+      "pattern": "^(npm|pypi|github|docker|remote|local):.+$",
+      "title": "Server Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/InstallationSource"
+    },
+    "transport": {
+      "$ref": "#/$defs/Transport"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "format": "uri",
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Url"
     },
     "wrapped": {
-      "type": "boolean",
-      "default": false
+      "title": "Wrapped",
+      "type": "boolean"
     }
-  }
+  },
+  "required": [
+    "schema_version",
+    "server_id",
+    "installation_id",
+    "name",
+    "client",
+    "config_path",
+    "config_pointer",
+    "scope",
+    "transport",
+    "command",
+    "args",
+    "env_keys",
+    "url",
+    "headers_keys",
+    "package",
+    "source",
+    "identity_confidence",
+    "disabled",
+    "wrapped"
+  ],
+  "title": "InstalledServer",
+  "type": "object"
 }

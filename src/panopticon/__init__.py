@@ -10,4 +10,4 @@ try:
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "0.0.0+dev"
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "0.1"

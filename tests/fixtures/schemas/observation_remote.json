@@ -1,0 +1,58 @@
+{
+  "schema_version": "0.1",
+  "observation_id": "obs_remote",
+  "server_id": "remote:api.example.com/mcp",
+  "installation_id": "inst_fedcba9876543210",
+  "observed_at": "2026-08-26T01:00:00Z",
+  "pano_version": "0.0.1",
+  "sandbox": {
+    "runtime": "remote",
+    "transport": "streamable_http",
+    "endpoint": "https://api.example.com/mcp"
+  },
+  "package_resolved": null,
+  "protocol": {
+    "era": "legacy",
+    "requested_version": "2026-07-28",
+    "selected_version": "2025-11-25",
+    "discovery_reason": "LEGACY_HANDSHAKE",
+    "fallback_reason": "LEGACY_REQUIRED",
+    "server_info": {"name": "remote-example", "version": "2.0.0"},
+    "capabilities": ["tools"]
+  },
+  "tools": [],
+  "spans": [],
+  "declared": {
+    "hosts": ["api.example.com"],
+    "paths": [],
+    "env": [],
+    "processes": [],
+    "capabilities": ["open_world"],
+    "sources": ["registry"],
+    "completeness": "COMPLETE"
+  },
+  "findings": [],
+  "state": {
+    "overall": {"status": "PARTIAL", "reason_code": "LEGACY_FALLBACK", "diagnostics": []},
+    "stages": {
+      "install": {"status": "NOT_REQUESTED", "reason_code": "NOT_APPLICABLE", "diagnostics": []},
+      "startup": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "version_discovery": {"status": "PARTIAL", "reason_code": "LEGACY_FALLBACK", "diagnostics": []},
+      "handshake": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "probe": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "idle": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "declared": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "file": {"status": "UNSUPPORTED", "reason_code": "UNSUPPORTED_TRANSPORT", "diagnostics": []},
+      "net": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []}
+    },
+    "coverage": {
+      "file": {"status": "UNSUPPORTED", "reason_code": "UNSUPPORTED_TRANSPORT", "diagnostics": []},
+      "net": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "process": {"status": "UNSUPPORTED", "reason_code": "UNSUPPORTED_TRANSPORT", "diagnostics": []},
+      "dns": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "proxy": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "snapshot": {"status": "NOT_REQUESTED", "reason_code": "NOT_APPLICABLE", "diagnostics": []},
+      "stdio": {"status": "NOT_REQUESTED", "reason_code": "NOT_APPLICABLE", "diagnostics": []}
+    }
+  }
+}

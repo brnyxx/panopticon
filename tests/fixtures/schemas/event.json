@@ -1,0 +1,9 @@
+{
+  "schema_version": "0.1",
+  "kind": "file",
+  "op": "read",
+  "path": "~/.ssh/config",
+  "decoy": true,
+  "decoy_key": "ssh_config",
+  "count": 1
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "id": "0123456789abcdef",
+  "logical_key": "lk_0123456789abcdef",
+  "rule_id": "WATCH-001",
+  "severity": "HIGH",
+  "kind": "confirmed",
+  "title": "Observed decoy disclosure",
+  "evidence": [
+    {
+      "kind": "HOST",
+      "subject": "api.example.com",
+      "value": "api.example.com"
+    }
+  ],
+  "location": null,
+  "server_id": "npm:@modelcontextprotocol/server-github",
+  "installation_id": "inst_0123456789abcdef",
+  "observation_id": "obs_local",
+  "span_ref": "list_issues:0",
+  "remediation_key": "WATCH-001",
+  "fix_available": false,
+  "declared_source": "readme",
+  "first_seen": "2026-08-26T00:00:00Z",
+  "suppressed_by": null
+}

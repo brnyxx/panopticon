@@ -1,62 +1,360 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://panopticon.dev/schemas/event.json",
-  "title": "Event",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "kind"
-  ],
-  "properties": {
-    "kind": {
-      "enum": [
-        "file",
-        "net",
-        "proc",
-        "leak",
-        "blocked",
-        "plaintext_http"
-      ]
+  "$defs": {
+    "BlockedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "blocked",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "connect",
+          "title": "Op",
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "port",
+        "count"
+      ],
+      "title": "BlockedEvent",
+      "type": "object"
     },
-    "op": {
-      "type": "string"
+    "FileEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy": {
+          "title": "Decoy",
+          "type": "boolean"
+        },
+        "decoy_key": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Decoy Key"
+        },
+        "kind": {
+          "const": "file",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "read",
+            "write",
+            "stat",
+            "exec",
+            "create",
+            "delete"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "path": {
+          "pattern": "^(?!.*\\\\)(?!\\.\\.(?:/|$))(?!.*\\/\\.\\.(?:/|$))(?!//)(?![A-Za-z]:)(?!/[Uu][Ss][Ee][Rr][Ss]/)(?!/[Hh][Oo][Mm][Ee]/)(?!/[Mm][Nn][Tt]/[A-Za-z]/[Uu][Ss][Ee][Rr][Ss]/).+",
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "path",
+        "decoy",
+        "decoy_key",
+        "count"
+      ],
+      "title": "FileEvent",
+      "type": "object"
     },
-    "path": {
-      "type": "string",
-      "pattern": "^(?!/(Users|home)/)"
+    "LeakEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy_key": {
+          "minLength": 1,
+          "title": "Decoy Key",
+          "type": "string"
+        },
+        "kind": {
+          "const": "leak",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "expose",
+          "title": "Op",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sink": {
+          "minLength": 1,
+          "title": "Sink",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "decoy_key",
+        "sink",
+        "count"
+      ],
+      "title": "LeakEvent",
+      "type": "object"
     },
-    "host": {
-      "type": "string"
+    "NetEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "net",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "connect",
+            "dns"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "maximum": 65535,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Port"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "via": {
+          "enum": [
+            "proxy",
+            "direct",
+            "dns"
+          ],
+          "title": "Via",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "port",
+        "via",
+        "count"
+      ],
+      "title": "NetEvent",
+      "type": "object"
     },
-    "port": {
-      "type": "integer"
+    "PlaintextHttpEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy_keys": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Decoy Keys",
+          "type": "array"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "plaintext_http",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "request",
+          "title": "Op",
+          "type": "string"
+        },
+        "request_path": {
+          "pattern": "^/",
+          "title": "Request Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "request_path",
+        "decoy_keys",
+        "count"
+      ],
+      "title": "PlaintextHttpEvent",
+      "type": "object"
     },
-    "argv": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "via": {
-      "enum": [
-        "proxy",
-        "direct",
-        "dns"
-      ]
-    },
-    "decoy": {
-      "type": "boolean"
-    },
-    "decoy_key": {
-      "type": "string"
-    },
-    "sink": {
-      "type": "string"
-    },
-    "count": {
-      "type": "integer",
-      "minimum": 1,
-      "default": 1
+    "ProcessEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "argv": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "proc",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "exec",
+          "title": "Op",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "argv",
+        "count"
+      ],
+      "title": "ProcessEvent",
+      "type": "object"
     }
-  }
+  },
+  "$id": "https://panopticon.dev/schemas/event.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Persistence-boundary root for the exhaustive event union.",
+  "discriminator": {
+    "mapping": {
+      "blocked": "#/$defs/BlockedEvent",
+      "file": "#/$defs/FileEvent",
+      "leak": "#/$defs/LeakEvent",
+      "net": "#/$defs/NetEvent",
+      "plaintext_http": "#/$defs/PlaintextHttpEvent",
+      "proc": "#/$defs/ProcessEvent"
+    },
+    "propertyName": "kind"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/FileEvent"
+    },
+    {
+      "$ref": "#/$defs/NetEvent"
+    },
+    {
+      "$ref": "#/$defs/ProcessEvent"
+    },
+    {
+      "$ref": "#/$defs/LeakEvent"
+    },
+    {
+      "$ref": "#/$defs/BlockedEvent"
+    },
+    {
+      "$ref": "#/$defs/PlaintextHttpEvent"
+    }
+  ],
+  "title": "Event"
 }

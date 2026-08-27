@@ -1,9 +1,139 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DiffEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        },
+        "installation_id": {
+          "pattern": "^inst_[0-9a-f]{16}$",
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "key": {
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "installation_id",
+        "key",
+        "detail"
+      ],
+      "title": "DiffEntry",
+      "type": "object"
+    },
+    "FindingChanges": {
+      "additionalProperties": false,
+      "properties": {
+        "changed": {
+          "items": {
+            "$ref": "#/$defs/DiffEntry"
+          },
+          "title": "Changed",
+          "type": "array"
+        },
+        "new": {
+          "items": {
+            "$ref": "#/$defs/DiffEntry"
+          },
+          "title": "New",
+          "type": "array"
+        },
+        "resolved": {
+          "items": {
+            "$ref": "#/$defs/DiffEntry"
+          },
+          "title": "Resolved",
+          "type": "array"
+        },
+        "unchanged": {
+          "items": {
+            "$ref": "#/$defs/DiffEntry"
+          },
+          "title": "Unchanged",
+          "type": "array"
+        },
+        "unknown": {
+          "items": {
+            "$ref": "#/$defs/DiffEntry"
+          },
+          "title": "Unknown",
+          "type": "array"
+        }
+      },
+      "required": [
+        "new",
+        "changed",
+        "unchanged",
+        "resolved",
+        "unknown"
+      ],
+      "title": "FindingChanges",
+      "type": "object"
+    }
+  },
   "$id": "https://panopticon.dev/schemas/diff_result.json",
-  "title": "DiffResult",
-  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
+  "properties": {
+    "behavior": {
+      "items": {
+        "$ref": "#/$defs/DiffEntry"
+      },
+      "title": "Behavior",
+      "type": "array"
+    },
+    "capability": {
+      "items": {
+        "$ref": "#/$defs/DiffEntry"
+      },
+      "title": "Capability",
+      "type": "array"
+    },
+    "findings": {
+      "$ref": "#/$defs/FindingChanges"
+    },
+    "inventory": {
+      "items": {
+        "$ref": "#/$defs/DiffEntry"
+      },
+      "title": "Inventory",
+      "type": "array"
+    },
+    "meaningful": {
+      "items": {
+        "$ref": "#/$defs/DiffEntry"
+      },
+      "title": "Meaningful",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "since": {
+      "minLength": 1,
+      "title": "Since",
+      "type": "string"
+    },
+    "until": {
+      "minLength": 1,
+      "title": "Until",
+      "type": "string"
+    }
+  },
   "required": [
     "schema_version",
     "since",
@@ -14,137 +144,6 @@
     "inventory",
     "meaningful"
   ],
-  "properties": {
-    "schema_version": {
-      "const": "1.0"
-    },
-    "since": {
-      "type": "string"
-    },
-    "until": {
-      "type": "string"
-    },
-    "findings": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "new": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "changed": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "unchanged": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "resolved": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "unknown": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "capability": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "kind",
-          "server_id"
-        ],
-        "properties": {
-          "kind": {
-            "enum": [
-              "NEW_TOOL",
-              "REMOVED_TOOL",
-              "SCHEMA_CHANGED",
-              "ANNOTATION_CHANGED"
-            ]
-          },
-          "server_id": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "object"
-          }
-        }
-      }
-    },
-    "behavior": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "kind",
-          "server_id"
-        ],
-        "properties": {
-          "kind": {
-            "enum": [
-              "NEW_HOST",
-              "REMOVED_HOST",
-              "NEW_PATH",
-              "NEW_PROCESS",
-              "NEW_LEAK"
-            ]
-          },
-          "server_id": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "object"
-          }
-        }
-      }
-    },
-    "inventory": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "kind",
-          "server_id"
-        ],
-        "properties": {
-          "kind": {
-            "enum": [
-              "ADDED",
-              "REMOVED",
-              "COMMAND_CHANGED",
-              "VERSION_CHANGED",
-              "ENV_KEYS_CHANGED"
-            ]
-          },
-          "server_id": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "object"
-          }
-        }
-      }
-    },
-    "meaningful": {
-      "type": "array",
-      "items": {
-        "type": "object"
-      }
-    }
-  }
+  "title": "DiffResult",
+  "type": "object"
 }

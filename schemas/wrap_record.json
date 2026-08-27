@@ -1,43 +1,973 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "BlockedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "blocked",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "connect",
+          "title": "Op",
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "port",
+        "count"
+      ],
+      "title": "BlockedEvent",
+      "type": "object"
+    },
+    "CompleteStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "COMPLETED",
+            "VERSION_SELECTED"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "COMPLETE",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "CompleteStage",
+      "type": "object"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "dns": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Dns"
+        },
+        "file": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "File"
+        },
+        "net": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Net"
+        },
+        "process": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Process"
+        },
+        "proxy": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Proxy"
+        },
+        "snapshot": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Snapshot"
+        },
+        "stdio": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Stdio"
+        }
+      },
+      "required": [
+        "file",
+        "net",
+        "process",
+        "dns",
+        "proxy",
+        "snapshot",
+        "stdio"
+      ],
+      "title": "Coverage",
+      "type": "object"
+    },
+    "Diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[A-Z][A-Z0-9_]+$",
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    },
+    "Event": {
+      "description": "Persistence-boundary root for the exhaustive event union.",
+      "discriminator": {
+        "mapping": {
+          "blocked": "#/$defs/BlockedEvent",
+          "file": "#/$defs/FileEvent",
+          "leak": "#/$defs/LeakEvent",
+          "net": "#/$defs/NetEvent",
+          "plaintext_http": "#/$defs/PlaintextHttpEvent",
+          "proc": "#/$defs/ProcessEvent"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FileEvent"
+        },
+        {
+          "$ref": "#/$defs/NetEvent"
+        },
+        {
+          "$ref": "#/$defs/ProcessEvent"
+        },
+        {
+          "$ref": "#/$defs/LeakEvent"
+        },
+        {
+          "$ref": "#/$defs/BlockedEvent"
+        },
+        {
+          "$ref": "#/$defs/PlaintextHttpEvent"
+        }
+      ],
+      "title": "Event"
+    },
+    "FailedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "STAGE_ERROR",
+            "PROTOCOL_ERROR",
+            "TRANSPORT_ERROR"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "FAILED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "FailedStage",
+      "type": "object"
+    },
+    "FileEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy": {
+          "title": "Decoy",
+          "type": "boolean"
+        },
+        "decoy_key": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Decoy Key"
+        },
+        "kind": {
+          "const": "file",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "read",
+            "write",
+            "stat",
+            "exec",
+            "create",
+            "delete"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "path": {
+          "pattern": "^(?!.*\\\\)(?!\\.\\.(?:/|$))(?!.*\\/\\.\\.(?:/|$))(?!//)(?![A-Za-z]:)(?!/[Uu][Ss][Ee][Rr][Ss]/)(?!/[Hh][Oo][Mm][Ee]/)(?!/[Mm][Nn][Tt]/[A-Za-z]/[Uu][Ss][Ee][Rr][Ss]/).+",
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "path",
+        "decoy",
+        "decoy_key",
+        "count"
+      ],
+      "title": "FileEvent",
+      "type": "object"
+    },
+    "IncompleteStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "TIMEOUT",
+            "DISCOVERY_FAILED"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "INCOMPLETE",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "IncompleteStage",
+      "type": "object"
+    },
+    "LeakEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy_key": {
+          "minLength": 1,
+          "title": "Decoy Key",
+          "type": "string"
+        },
+        "kind": {
+          "const": "leak",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "expose",
+          "title": "Op",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sink": {
+          "minLength": 1,
+          "title": "Sink",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "decoy_key",
+        "sink",
+        "count"
+      ],
+      "title": "LeakEvent",
+      "type": "object"
+    },
+    "NetEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "net",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "connect",
+            "dns"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "maximum": 65535,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Port"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "via": {
+          "enum": [
+            "proxy",
+            "direct",
+            "dns"
+          ],
+          "title": "Via",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "port",
+        "via",
+        "count"
+      ],
+      "title": "NetEvent",
+      "type": "object"
+    },
+    "NotRequestedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "MODERN_HANDSHAKE_NOT_REQUESTED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "NOT_REQUESTED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "NotRequestedStage",
+      "type": "object"
+    },
+    "PartialStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "PARTIAL_COVERAGE",
+            "LEGACY_FALLBACK",
+            "BUFFER_OVERFLOW"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "PARTIAL",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "PartialStage",
+      "type": "object"
+    },
+    "PlaintextHttpEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy_keys": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Decoy Keys",
+          "type": "array"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "plaintext_http",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "request",
+          "title": "Op",
+          "type": "string"
+        },
+        "request_path": {
+          "pattern": "^/",
+          "title": "Request Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "request_path",
+        "decoy_keys",
+        "count"
+      ],
+      "title": "PlaintextHttpEvent",
+      "type": "object"
+    },
+    "ProcessEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "argv": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "proc",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "exec",
+          "title": "Op",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "argv",
+        "count"
+      ],
+      "title": "ProcessEvent",
+      "type": "object"
+    },
+    "SkippedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "SKIPPED_DESTRUCTIVE",
+            "USER_SKIPPED"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "SKIPPED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "SkippedStage",
+      "type": "object"
+    },
+    "UnsupportedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "RUNTIME_UNAVAILABLE",
+            "UNSUPPORTED_PLATFORM",
+            "UNSUPPORTED_TRANSPORT",
+            "VERSION_UNSUPPORTED",
+            "OFFLINE"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "UNSUPPORTED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "UnsupportedStage",
+      "type": "object"
+    },
+    "WrapSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "request_id": {
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        },
+        "span_id": {
+          "pattern": "^.+:[0-9]+$",
+          "title": "Span Id",
+          "type": "string"
+        },
+        "tool": {
+          "minLength": 1,
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "span_id",
+        "tool",
+        "request_id",
+        "duration_ms"
+      ],
+      "title": "WrapSpan",
+      "type": "object"
+    }
+  },
   "$id": "https://panopticon.dev/schemas/wrap_record.json",
-  "title": "WrapRecord",
-  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "required": [
-    "ts",
-    "server_id",
-    "span",
-    "events"
-  ],
   "properties": {
-    "ts": {
-      "type": "string",
-      "format": "date-time"
+    "coverage": {
+      "$ref": "#/$defs/Coverage"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/Event"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "installation_id": {
+      "pattern": "^inst_[0-9a-f]{16}$",
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.1",
+      "title": "Schema Version",
+      "type": "string"
     },
     "server_id": {
+      "pattern": "^(npm|pypi|github|docker|remote|local):.+$",
+      "title": "Server Id",
       "type": "string"
     },
     "span": {
-      "type": "object",
-      "required": [
-        "tool"
-      ],
-      "properties": {
-        "tool": {
-          "type": "string"
-        },
-        "request_id": {},
-        "duration_ms": {
-          "type": "integer"
-        }
-      }
+      "$ref": "#/$defs/WrapSpan"
     },
-    "events": {
-      "type": "array",
-      "items": {
-        "$ref": "event.json"
-      }
+    "ts": {
+      "format": "date-time",
+      "title": "Ts",
+      "type": "string"
     }
-  }
+  },
+  "required": [
+    "schema_version",
+    "ts",
+    "server_id",
+    "installation_id",
+    "span",
+    "events",
+    "coverage"
+  ],
+  "title": "WrapRecord",
+  "type": "object"
 }

@@ -1,328 +1,2028 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "BlockedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "blocked",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "connect",
+          "title": "Op",
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Port",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "port",
+        "count"
+      ],
+      "title": "BlockedEvent",
+      "type": "object"
+    },
+    "CompleteStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "COMPLETED",
+            "VERSION_SELECTED"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "COMPLETE",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "CompleteStage",
+      "type": "object"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "dns": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Dns"
+        },
+        "file": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "File"
+        },
+        "net": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Net"
+        },
+        "process": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Process"
+        },
+        "proxy": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Proxy"
+        },
+        "snapshot": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Snapshot"
+        },
+        "stdio": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Stdio"
+        }
+      },
+      "required": [
+        "file",
+        "net",
+        "process",
+        "dns",
+        "proxy",
+        "snapshot",
+        "stdio"
+      ],
+      "title": "Coverage",
+      "type": "object"
+    },
+    "Declared": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/DeclaredCapability"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "completeness": {
+          "$ref": "#/$defs/DeclaredCompleteness"
+        },
+        "env": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Env",
+          "type": "array"
+        },
+        "hosts": {
+          "items": {
+            "format": "hostname",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "title": "Hosts",
+          "type": "array"
+        },
+        "paths": {
+          "items": {
+            "pattern": "^(?!.*\\\\)(?!\\.\\.(?:/|$))(?!.*\\/\\.\\.(?:/|$))(?!//)(?![A-Za-z]:)(?!/[Uu][Ss][Ee][Rr][Ss]/)(?!/[Hh][Oo][Mm][Ee]/)(?!/[Mm][Nn][Tt]/[A-Za-z]/[Uu][Ss][Ee][Rr][Ss]/).+",
+            "type": "string"
+          },
+          "title": "Paths",
+          "type": "array"
+        },
+        "processes": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Processes",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/DeclaredSource"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "hosts",
+        "paths",
+        "env",
+        "processes",
+        "capabilities",
+        "sources",
+        "completeness"
+      ],
+      "title": "Declared",
+      "type": "object"
+    },
+    "DeclaredCapability": {
+      "enum": [
+        "read",
+        "write",
+        "destructive",
+        "open_world"
+      ],
+      "title": "DeclaredCapability",
+      "type": "string"
+    },
+    "DeclaredCompleteness": {
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "NONE"
+      ],
+      "title": "DeclaredCompleteness",
+      "type": "string"
+    },
+    "DeclaredSource": {
+      "enum": [
+        "self_decl",
+        "registry",
+        "tool_description",
+        "readme",
+        "manifest",
+        "config"
+      ],
+      "title": "DeclaredSource",
+      "type": "string"
+    },
+    "Diagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "pattern": "^[A-Z][A-Z0-9_]+$",
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "Diagnostic",
+      "type": "object"
+    },
+    "DiscoveryReason": {
+      "enum": [
+        "MODERN_METADATA",
+        "SERVER_DISCOVERY",
+        "LEGACY_HANDSHAKE"
+      ],
+      "title": "DiscoveryReason",
+      "type": "string"
+    },
+    "Event": {
+      "description": "Persistence-boundary root for the exhaustive event union.",
+      "discriminator": {
+        "mapping": {
+          "blocked": "#/$defs/BlockedEvent",
+          "file": "#/$defs/FileEvent",
+          "leak": "#/$defs/LeakEvent",
+          "net": "#/$defs/NetEvent",
+          "plaintext_http": "#/$defs/PlaintextHttpEvent",
+          "proc": "#/$defs/ProcessEvent"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FileEvent"
+        },
+        {
+          "$ref": "#/$defs/NetEvent"
+        },
+        {
+          "$ref": "#/$defs/ProcessEvent"
+        },
+        {
+          "$ref": "#/$defs/LeakEvent"
+        },
+        {
+          "$ref": "#/$defs/BlockedEvent"
+        },
+        {
+          "$ref": "#/$defs/PlaintextHttpEvent"
+        }
+      ],
+      "title": "Event"
+    },
+    "EvidenceKind": {
+      "enum": [
+        "PATH",
+        "HOST",
+        "PROCESS",
+        "DECOY",
+        "CONFIG",
+        "PROTOCOL"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    },
+    "FailedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "STAGE_ERROR",
+            "PROTOCOL_ERROR",
+            "TRANSPORT_ERROR"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "FAILED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "FailedStage",
+      "type": "object"
+    },
+    "FallbackReason": {
+      "enum": [
+        "NONE",
+        "VERSION_RETRY",
+        "LEGACY_REQUIRED",
+        "STREAMABLE_HTTP_UNAVAILABLE",
+        "DEPRECATED_SSE"
+      ],
+      "title": "FallbackReason",
+      "type": "string"
+    },
+    "FileEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy": {
+          "title": "Decoy",
+          "type": "boolean"
+        },
+        "decoy_key": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Decoy Key"
+        },
+        "kind": {
+          "const": "file",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "read",
+            "write",
+            "stat",
+            "exec",
+            "create",
+            "delete"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "path": {
+          "pattern": "^(?!.*\\\\)(?!\\.\\.(?:/|$))(?!.*\\/\\.\\.(?:/|$))(?!//)(?![A-Za-z]:)(?!/[Uu][Ss][Ee][Rr][Ss]/)(?!/[Hh][Oo][Mm][Ee]/)(?!/[Mm][Nn][Tt]/[A-Za-z]/[Uu][Ss][Ee][Rr][Ss]/).+",
+          "title": "Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "path",
+        "decoy",
+        "decoy_key",
+        "count"
+      ],
+      "title": "FileEvent",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "declared_source": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Declared Source"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/FindingEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "first_seen": {
+          "format": "date-time",
+          "title": "First Seen",
+          "type": "string"
+        },
+        "fix_available": {
+          "title": "Fix Available",
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[0-9a-f]{16}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "installation_id": {
+          "pattern": "^inst_[0-9a-f]{16}$",
+          "title": "Installation Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/FindingKind"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "logical_key": {
+          "pattern": "^lk_[0-9a-f]{16}$",
+          "title": "Logical Key",
+          "type": "string"
+        },
+        "observation_id": {
+          "pattern": "^obs_[a-z0-9_-]+$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "remediation_key": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Remediation Key"
+        },
+        "rule_id": {
+          "pattern": "^(CFG|HIST|WATCH|FIX|SENT)-\\d{3}$",
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "server_id": {
+          "pattern": "^(npm|pypi|github|docker|remote|local):.+$",
+          "title": "Server Id",
+          "type": "string"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FindingSeverity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "span_ref": {
+          "anyOf": [
+            {
+              "pattern": "^.+:[0-9]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Span Ref"
+        },
+        "suppressed_by": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Suppressed By"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "logical_key",
+        "rule_id",
+        "severity",
+        "kind",
+        "title",
+        "evidence",
+        "location",
+        "server_id",
+        "installation_id",
+        "observation_id",
+        "span_ref",
+        "remediation_key",
+        "fix_available",
+        "declared_source",
+        "first_seen",
+        "suppressed_by"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "FindingEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/EvidenceKind"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "subject",
+        "value"
+      ],
+      "title": "FindingEvidence",
+      "type": "object"
+    },
+    "FindingKind": {
+      "enum": [
+        "confirmed",
+        "review",
+        "info"
+      ],
+      "title": "FindingKind",
+      "type": "string"
+    },
+    "FindingSeverity": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "INFO"
+      ],
+      "title": "FindingSeverity",
+      "type": "string"
+    },
+    "IncompleteStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "TIMEOUT",
+            "DISCOVERY_FAILED"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "INCOMPLETE",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "IncompleteStage",
+      "type": "object"
+    },
+    "LeakEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy_key": {
+          "minLength": 1,
+          "title": "Decoy Key",
+          "type": "string"
+        },
+        "kind": {
+          "const": "leak",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "expose",
+          "title": "Op",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sink": {
+          "minLength": 1,
+          "title": "Sink",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "decoy_key",
+        "sink",
+        "count"
+      ],
+      "title": "LeakEvent",
+      "type": "object"
+    },
+    "LocalSandbox": {
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "minLength": 1,
+          "title": "Image",
+          "type": "string"
+        },
+        "image_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Image Digest",
+          "type": "string"
+        },
+        "runtime": {
+          "enum": [
+            "docker",
+            "podman"
+          ],
+          "title": "Runtime",
+          "type": "string"
+        },
+        "tracer": {
+          "minLength": 1,
+          "title": "Tracer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runtime",
+        "image",
+        "image_digest",
+        "tracer"
+      ],
+      "title": "LocalSandbox",
+      "type": "object"
+    },
+    "NetEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "net",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "connect",
+            "dns"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "maximum": 65535,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Port"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "via": {
+          "enum": [
+            "proxy",
+            "direct",
+            "dns"
+          ],
+          "title": "Via",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "port",
+        "via",
+        "count"
+      ],
+      "title": "NetEvent",
+      "type": "object"
+    },
+    "NotRequestedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "MODERN_HANDSHAKE_NOT_REQUESTED",
+            "NOT_APPLICABLE"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "NOT_REQUESTED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "NotRequestedStage",
+      "type": "object"
+    },
+    "ObservationState": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "overall": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Overall"
+        },
+        "stages": {
+          "$ref": "#/$defs/StageSet"
+        }
+      },
+      "required": [
+        "overall",
+        "stages",
+        "coverage"
+      ],
+      "title": "ObservationState",
+      "type": "object"
+    },
+    "PartialStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "PARTIAL_COVERAGE",
+            "LEGACY_FALLBACK",
+            "BUFFER_OVERFLOW"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "PARTIAL",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "PartialStage",
+      "type": "object"
+    },
+    "PlaintextHttpEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "decoy_keys": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Decoy Keys",
+          "type": "array"
+        },
+        "host": {
+          "format": "hostname",
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "Host",
+          "type": "string"
+        },
+        "kind": {
+          "const": "plaintext_http",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "request",
+          "title": "Op",
+          "type": "string"
+        },
+        "request_path": {
+          "pattern": "^/",
+          "title": "Request Path",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "host",
+        "request_path",
+        "decoy_keys",
+        "count"
+      ],
+      "title": "PlaintextHttpEvent",
+      "type": "object"
+    },
+    "ProcessEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "argv": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Argv",
+          "type": "array"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "proc",
+          "title": "Kind",
+          "type": "string"
+        },
+        "op": {
+          "const": "exec",
+          "title": "Op",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "op",
+        "argv",
+        "count"
+      ],
+      "title": "ProcessEvent",
+      "type": "object"
+    },
+    "ProtocolEra": {
+      "enum": [
+        "modern",
+        "legacy"
+      ],
+      "title": "ProtocolEra",
+      "type": "string"
+    },
+    "ProtocolInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "discovery_reason": {
+          "$ref": "#/$defs/DiscoveryReason"
+        },
+        "era": {
+          "$ref": "#/$defs/ProtocolEra"
+        },
+        "fallback_reason": {
+          "$ref": "#/$defs/FallbackReason"
+        },
+        "requested_version": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Requested Version",
+          "type": "string"
+        },
+        "selected_version": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Selected Version",
+          "type": "string"
+        },
+        "server_info": {
+          "$ref": "#/$defs/ServerInfo"
+        }
+      },
+      "required": [
+        "era",
+        "requested_version",
+        "selected_version",
+        "discovery_reason",
+        "fallback_reason",
+        "server_info",
+        "capabilities"
+      ],
+      "title": "ProtocolInfo",
+      "type": "object"
+    },
+    "RemoteSandbox": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "format": "uri",
+          "minLength": 1,
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "runtime": {
+          "const": "remote",
+          "title": "Runtime",
+          "type": "string"
+        },
+        "transport": {
+          "enum": [
+            "streamable_http",
+            "sse"
+          ],
+          "title": "Transport",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runtime",
+        "transport",
+        "endpoint"
+      ],
+      "title": "RemoteSandbox",
+      "type": "object"
+    },
+    "ServerInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ServerInfo",
+      "type": "object"
+    },
+    "SkippedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "SKIPPED_DESTRUCTIVE",
+            "USER_SKIPPED"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "SKIPPED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "SkippedStage",
+      "type": "object"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "minimum": 1,
+          "title": "Column",
+          "type": "integer"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "path": {
+          "pattern": "^(?!.*\\\\)(?!\\.\\.(?:/|$))(?!.*\\/\\.\\.(?:/|$))(?!//)(?![A-Za-z]:)(?!/[Uu][Ss][Ee][Rr][Ss]/)(?!/[Hh][Oo][Mm][Ee]/)(?!/[Mm][Nn][Tt]/[A-Za-z]/[Uu][Ss][Ee][Rr][Ss]/).+",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "line",
+        "column"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    },
+    "Span": {
+      "additionalProperties": false,
+      "properties": {
+        "args_fingerprint": {
+          "pattern": "^[0-9a-f]{16}$",
+          "title": "Args Fingerprint",
+          "type": "string"
+        },
+        "call_index": {
+          "minimum": 0,
+          "title": "Call Index",
+          "type": "integer"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "title": "Events",
+          "type": "array"
+        },
+        "result": {
+          "$ref": "#/$defs/SpanResult"
+        },
+        "span_id": {
+          "pattern": "^.+:[0-9]+$",
+          "title": "Span Id",
+          "type": "string"
+        },
+        "tool": {
+          "minLength": 1,
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "span_id",
+        "tool",
+        "call_index",
+        "args_fingerprint",
+        "result",
+        "duration_ms",
+        "events"
+      ],
+      "title": "Span",
+      "type": "object"
+    },
+    "SpanResult": {
+      "enum": [
+        "ok",
+        "error",
+        "timeout",
+        "skipped"
+      ],
+      "title": "SpanResult",
+      "type": "string"
+    },
+    "StageSet": {
+      "additionalProperties": false,
+      "properties": {
+        "declared": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Declared"
+        },
+        "file": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "File"
+        },
+        "handshake": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Handshake"
+        },
+        "idle": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Idle"
+        },
+        "install": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Install"
+        },
+        "net": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Net"
+        },
+        "probe": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Probe"
+        },
+        "startup": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Startup"
+        },
+        "version_discovery": {
+          "discriminator": {
+            "mapping": {
+              "COMPLETE": "#/$defs/CompleteStage",
+              "FAILED": "#/$defs/FailedStage",
+              "INCOMPLETE": "#/$defs/IncompleteStage",
+              "NOT_REQUESTED": "#/$defs/NotRequestedStage",
+              "PARTIAL": "#/$defs/PartialStage",
+              "SKIPPED": "#/$defs/SkippedStage",
+              "UNSUPPORTED": "#/$defs/UnsupportedStage"
+            },
+            "propertyName": "status"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CompleteStage"
+            },
+            {
+              "$ref": "#/$defs/PartialStage"
+            },
+            {
+              "$ref": "#/$defs/IncompleteStage"
+            },
+            {
+              "$ref": "#/$defs/FailedStage"
+            },
+            {
+              "$ref": "#/$defs/UnsupportedStage"
+            },
+            {
+              "$ref": "#/$defs/SkippedStage"
+            },
+            {
+              "$ref": "#/$defs/NotRequestedStage"
+            }
+          ],
+          "title": "Version Discovery"
+        }
+      },
+      "required": [
+        "install",
+        "startup",
+        "version_discovery",
+        "handshake",
+        "probe",
+        "idle",
+        "declared",
+        "file",
+        "net"
+      ],
+      "title": "StageSet",
+      "type": "object"
+    },
+    "ToolAnnotations": {
+      "additionalProperties": false,
+      "properties": {
+        "destructive": {
+          "title": "Destructive",
+          "type": "boolean"
+        },
+        "open_world": {
+          "title": "Open World",
+          "type": "boolean"
+        },
+        "read_only": {
+          "title": "Read Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "read_only",
+        "destructive",
+        "open_world"
+      ],
+      "title": "ToolAnnotations",
+      "type": "object"
+    },
+    "ToolInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "annotations": {
+          "$ref": "#/$defs/ToolAnnotations"
+        },
+        "input_schema_hash": {
+          "pattern": "^[0-9a-f]{16}$",
+          "title": "Input Schema Hash",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "input_schema_hash",
+        "annotations"
+      ],
+      "title": "ToolInfo",
+      "type": "object"
+    },
+    "UnsupportedStage": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/Diagnostic"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "reason_code": {
+          "enum": [
+            "RUNTIME_UNAVAILABLE",
+            "UNSUPPORTED_PLATFORM",
+            "UNSUPPORTED_TRANSPORT",
+            "VERSION_UNSUPPORTED",
+            "OFFLINE"
+          ],
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "status": {
+          "const": "UNSUPPORTED",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason_code",
+        "diagnostics"
+      ],
+      "title": "UnsupportedStage",
+      "type": "object"
+    }
+  },
   "$id": "https://panopticon.dev/schemas/observation.json",
-  "title": "Observation",
-  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
+  "properties": {
+    "declared": {
+      "$ref": "#/$defs/Declared"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "installation_id": {
+      "pattern": "^inst_[0-9a-f]{16}$",
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "observation_id": {
+      "pattern": "^obs_[a-z0-9_-]+$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "package_resolved": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Package Resolved"
+    },
+    "pano_version": {
+      "minLength": 1,
+      "title": "Pano Version",
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "#/$defs/ProtocolInfo"
+    },
+    "sandbox": {
+      "discriminator": {
+        "mapping": {
+          "docker": "#/$defs/LocalSandbox",
+          "podman": "#/$defs/LocalSandbox",
+          "remote": "#/$defs/RemoteSandbox"
+        },
+        "propertyName": "runtime"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LocalSandbox"
+        },
+        {
+          "$ref": "#/$defs/RemoteSandbox"
+        }
+      ],
+      "title": "Sandbox"
+    },
+    "schema_version": {
+      "const": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "server_id": {
+      "pattern": "^(npm|pypi|github|docker|remote|local):.+$",
+      "title": "Server Id",
+      "type": "string"
+    },
+    "spans": {
+      "items": {
+        "$ref": "#/$defs/Span"
+      },
+      "title": "Spans",
+      "type": "array"
+    },
+    "state": {
+      "$ref": "#/$defs/ObservationState"
+    },
+    "tools": {
+      "items": {
+        "$ref": "#/$defs/ToolInfo"
+      },
+      "title": "Tools",
+      "type": "array"
+    }
+  },
   "required": [
     "schema_version",
     "observation_id",
     "server_id",
+    "installation_id",
     "observed_at",
     "pano_version",
+    "sandbox",
+    "package_resolved",
+    "protocol",
+    "tools",
     "spans",
     "declared",
     "findings",
     "state"
   ],
-  "properties": {
-    "schema_version": {
-      "const": "1.0"
-    },
-    "observation_id": {
-      "type": "string",
-      "pattern": "^obs_"
-    },
-    "server_id": {
-      "type": "string"
-    },
-    "observed_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "pano_version": {
-      "type": "string"
-    },
-    "sandbox": {
-      "type": [
-        "object",
-        "null"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "runtime": {
-          "enum": [
-            "docker",
-            "podman",
-            "none"
-          ]
-        },
-        "image": {
-          "type": "string"
-        },
-        "image_digest": {
-          "type": "string"
-        },
-        "tracer": {
-          "type": "string"
-        }
-      }
-    },
-    "package_resolved": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "protocol": {
-      "type": [
-        "object",
-        "null"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "version": {
-          "type": "string"
-        },
-        "server_info": {
-          "type": "object"
-        },
-        "capabilities": {
-          "type": "object"
-        }
-      }
-    },
-    "tools": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "name",
-          "input_schema_hash"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "input_schema_hash": {
-            "type": "string"
-          },
-          "annotations": {
-            "type": "object"
-          }
-        }
-      }
-    },
-    "spans": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "tool",
-          "result",
-          "events"
-        ],
-        "properties": {
-          "tool": {
-            "type": "string"
-          },
-          "args_fingerprint": {
-            "type": "string"
-          },
-          "result": {
-            "enum": [
-              "ok",
-              "error",
-              "timeout",
-              "skipped_destructive"
-            ]
-          },
-          "duration_ms": {
-            "type": "integer"
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "$ref": "event.json"
-            }
-          }
-        }
-      }
-    },
-    "declared": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "completeness",
-        "sources"
-      ],
-      "properties": {
-        "hosts": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "paths": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "env": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "processes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "capabilities": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "read",
-              "write",
-              "destructive",
-              "open_world"
-            ]
-          }
-        },
-        "sources": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "self_decl",
-              "registry",
-              "tool_description",
-              "readme",
-              "manifest",
-              "config"
-            ]
-          }
-        },
-        "completeness": {
-          "enum": [
-            "COMPLETE",
-            "PARTIAL",
-            "NONE"
-          ]
-        }
-      }
-    },
-    "findings": {
-      "type": "array",
-      "items": {
-        "$ref": "finding.json"
-      }
-    },
-    "state": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "overall",
-        "stages"
-      ],
-      "properties": {
-        "overall": {
-          "enum": [
-            "COMPLETE",
-            "PARTIAL",
-            "INCOMPLETE",
-            "FAILED"
-          ]
-        },
-        "stages": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "install": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            },
-            "startup": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            },
-            "handshake": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            },
-            "probe": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            },
-            "idle": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            },
-            "declared": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            },
-            "file": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            },
-            "net": {
-              "enum": [
-                "COMPLETE",
-                "PARTIAL",
-                "INCOMPLETE",
-                "FAILED",
-                "UNSUPPORTED",
-                "NOT_REQUESTED",
-                "SKIPPED_DESTRUCTIVE"
-              ]
-            }
-          }
-        }
-      }
-    }
-  }
+  "title": "Observation",
+  "type": "object"
 }

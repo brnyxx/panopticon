@@ -1,83 +1,241 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://panopticon.dev/schemas/finding.json",
-  "title": "Finding",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "id",
-    "rule_id",
-    "kind",
-    "title",
-    "evidence"
-  ],
-  "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{16}$"
-    },
-    "rule_id": {
-      "type": "string",
-      "pattern": "^(CFG|HIST|WATCH|FIX|SENT)-\\d{3}$"
-    },
-    "severity": {
+  "$defs": {
+    "EvidenceKind": {
       "enum": [
-        "HIGH",
-        "MEDIUM",
-        "LOW",
-        "INFO",
-        null
-      ]
+        "PATH",
+        "HOST",
+        "PROCESS",
+        "DECOY",
+        "CONFIG",
+        "PROTOCOL"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
     },
-    "kind": {
+    "FindingEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/EvidenceKind"
+        },
+        "subject": {
+          "minLength": 1,
+          "title": "Subject",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "subject",
+        "value"
+      ],
+      "title": "FindingEvidence",
+      "type": "object"
+    },
+    "FindingKind": {
       "enum": [
         "confirmed",
         "review",
         "info"
-      ]
-    },
-    "title": {
+      ],
+      "title": "FindingKind",
       "type": "string"
+    },
+    "FindingSeverity": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "INFO"
+      ],
+      "title": "FindingSeverity",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "minimum": 1,
+          "title": "Column",
+          "type": "integer"
+        },
+        "line": {
+          "minimum": 1,
+          "title": "Line",
+          "type": "integer"
+        },
+        "path": {
+          "pattern": "^(?!.*\\\\)(?!\\.\\.(?:/|$))(?!.*\\/\\.\\.(?:/|$))(?!//)(?![A-Za-z]:)(?!/[Uu][Ss][Ee][Rr][Ss]/)(?!/[Hh][Oo][Mm][Ee]/)(?!/[Mm][Nn][Tt]/[A-Za-z]/[Uu][Ss][Ee][Rr][Ss]/).+",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "line",
+        "column"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    }
+  },
+  "$id": "https://panopticon.dev/schemas/finding.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "declared_source": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Declared Source"
     },
     "evidence": {
-      "type": "array",
       "items": {
-        "type": "object"
-      }
+        "$ref": "#/$defs/FindingEvidence"
+      },
+      "title": "Evidence",
+      "type": "array"
     },
-    "location": {
-      "type": [
-        "object",
-        "null"
-      ]
-    },
-    "server_id": {
-      "type": "string"
-    },
-    "observation_id": {
-      "type": "string"
-    },
-    "span_ref": {
-      "type": "string"
-    },
-    "remediation_key": {
+    "first_seen": {
+      "format": "date-time",
+      "title": "First Seen",
       "type": "string"
     },
     "fix_available": {
+      "title": "Fix Available",
       "type": "boolean"
     },
-    "declared_source": {
+    "id": {
+      "pattern": "^[0-9a-f]{16}$",
+      "title": "Id",
       "type": "string"
     },
-    "first_seen": {
-      "type": "string",
-      "format": "date-time"
+    "installation_id": {
+      "pattern": "^inst_[0-9a-f]{16}$",
+      "title": "Installation Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/FindingKind"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "logical_key": {
+      "pattern": "^lk_[0-9a-f]{16}$",
+      "title": "Logical Key",
+      "type": "string"
+    },
+    "observation_id": {
+      "pattern": "^obs_[a-z0-9_-]+$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "remediation_key": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Remediation Key"
+    },
+    "rule_id": {
+      "pattern": "^(CFG|HIST|WATCH|FIX|SENT)-\\d{3}$",
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "server_id": {
+      "pattern": "^(npm|pypi|github|docker|remote|local):.+$",
+      "title": "Server Id",
+      "type": "string"
+    },
+    "severity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FindingSeverity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "span_ref": {
+      "anyOf": [
+        {
+          "pattern": "^.+:[0-9]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Span Ref"
     },
     "suppressed_by": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Suppressed By"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
     }
-  }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "logical_key",
+    "rule_id",
+    "severity",
+    "kind",
+    "title",
+    "evidence",
+    "location",
+    "server_id",
+    "installation_id",
+    "observation_id",
+    "span_ref",
+    "remediation_key",
+    "fix_available",
+    "declared_source",
+    "first_seen",
+    "suppressed_by"
+  ],
+  "title": "Finding",
+  "type": "object"
 }

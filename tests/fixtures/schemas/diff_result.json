@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "since": "bl_example",
+  "until": "obs_local",
+  "findings": {
+    "new": [],
+    "changed": [],
+    "unchanged": [],
+    "resolved": [],
+    "unknown": []
+  },
+  "capability": [],
+  "behavior": [],
+  "inventory": [],
+  "meaningful": []
+}

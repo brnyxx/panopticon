@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.1",
+  "observation_id": "obs_local",
+  "server_id": "npm:@modelcontextprotocol/server-github",
+  "installation_id": "inst_0123456789abcdef",
+  "observed_at": "2026-08-26T00:00:00Z",
+  "pano_version": "0.0.1",
+  "sandbox": {
+    "runtime": "docker",
+    "image": "ghcr.io/brnyxx/pano-sandbox-node:20",
+    "image_digest": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "tracer": "strace"
+  },
+  "package_resolved": "1.2.3",
+  "protocol": {
+    "era": "modern",
+    "requested_version": "2026-07-28",
+    "selected_version": "2026-07-28",
+    "discovery_reason": "MODERN_METADATA",
+    "fallback_reason": "NONE",
+    "server_info": {"name": "github", "version": "1.2.3"},
+    "capabilities": ["tools"]
+  },
+  "tools": [
+    {
+      "name": "list_issues",
+      "input_schema_hash": "0123456789abcdef",
+      "annotations": {
+        "read_only": true,
+        "destructive": false,
+        "open_world": true
+      }
+    }
+  ],
+  "spans": [
+    {
+      "span_id": "list_issues:0",
+      "tool": "list_issues",
+      "call_index": 0,
+      "args_fingerprint": "fedcba9876543210",
+      "result": "skipped",
+      "duration_ms": 0,
+      "events": []
+    }
+  ],
+  "declared": {
+    "hosts": ["api.github.com"],
+    "paths": ["~/.gitconfig"],
+    "env": ["GITHUB_TOKEN"],
+    "processes": ["git"],
+    "capabilities": ["read", "open_world"],
+    "sources": ["readme"],
+    "completeness": "PARTIAL"
+  },
+  "findings": [],
+  "state": {
+    "overall": {"status": "PARTIAL", "reason_code": "PARTIAL_COVERAGE", "diagnostics": []},
+    "stages": {
+      "install": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "startup": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "version_discovery": {"status": "COMPLETE", "reason_code": "VERSION_SELECTED", "diagnostics": []},
+      "handshake": {"status": "NOT_REQUESTED", "reason_code": "MODERN_HANDSHAKE_NOT_REQUESTED", "diagnostics": []},
+      "probe": {"status": "SKIPPED", "reason_code": "SKIPPED_DESTRUCTIVE", "diagnostics": []},
+      "idle": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "declared": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "file": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "net": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []}
+    },
+    "coverage": {
+      "file": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "net": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "process": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "dns": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "proxy": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "snapshot": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []},
+      "stdio": {"status": "COMPLETE", "reason_code": "COMPLETED", "diagnostics": []}
+    }
+  }
+}
