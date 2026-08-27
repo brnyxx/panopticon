@@ -1,0 +1,1 @@
+READ \\server\Users\alice\Documents\secret.txt

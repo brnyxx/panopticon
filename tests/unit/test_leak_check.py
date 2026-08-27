@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from panopticon.util.leak_check import LeakError, assert_clean, find_leaks, redact_token
+from panopticon.util.leak_check import (
+    LeakContext,
+    LeakError,
+    assert_clean,
+    find_leaks,
+    redact_token,
+)
 
 LEAK_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "leak"
 
@@ -11,12 +17,16 @@ LEAK_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "leak"
 def test_every_leak_fixture_is_rejected(payload: Path) -> None:
     with pytest.raises(LeakError):
         assert_clean(
-            payload.read_text(), home_paths=("/Users/alice",), secrets=("REAL-SECRET-VALUE",)
+            payload.read_text(),
+            LeakContext(
+                home_paths=("/home/alice",),
+                secrets=("REAL-SECRET-VALUE", "REAL/SECRET+VALUE=="),
+            ),
         )
 
 
 def test_clean_text_passes() -> None:
-    assert find_leaks("READ ~/.ssh/config\nNET api.github.com:443") == []
+    assert find_leaks("READ ~/.ssh/config\nNET api.github.com:443") == ()
 
 
 def test_redact() -> None:

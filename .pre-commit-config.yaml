@@ -1,8 +1,8 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.6
+    rev: v0.16.4
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
   - repo: local
@@ -15,6 +15,11 @@ repos:
       - id: forbidden-phrases
         name: forbidden verdict phrases
         entry: uv run python scripts/check_phrases.py
+        language: system
+        pass_filenames: false
+      - id: persistence-boundary
+        name: forbid direct product persistence
+        entry: uv run python scripts/check_persistence_boundary.py
         language: system
         pass_filenames: false
       - id: no-local-state

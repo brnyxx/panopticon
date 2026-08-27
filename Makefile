@@ -1,4 +1,4 @@
-.PHONY: setup lint type test test-docker i18n rules leak ci images clean
+.PHONY: setup lint type test test-docker i18n rules leak persistence ci images clean
 
 setup:
 	uv sync --all-extras
@@ -30,7 +30,10 @@ leak:
 schemas:
 	uv run python scripts/validate_schemas.py
 
-ci: lint type schemas i18n rules test
+persistence:
+	uv run python scripts/check_persistence_boundary.py
+
+ci: lint type schemas i18n rules persistence test
 
 images:
 	docker build -t pano-sandbox-base -f src/panopticon/sandbox/images/base.Dockerfile src/panopticon/sandbox/images
