@@ -54,7 +54,7 @@ Pre-alpha scaffold. Implementation follows [`panopticon-buildplan.md`](panoptico
 
 ## Lineage
 
-Static, semantic, and dynamic analysis in the `scan` line are vendored from [MCP-Sentinel](https://github.com/BashaarJavaid/MCP-Sentinel) at pinned commit [`e717e955`](https://github.com/BashaarJavaid/MCP-Sentinel/commit/e717e955210b1d2a3e9fb1cdc266587c77ffebf3) (MIT), with the original copyright headers preserved. Vendored files are listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+The static, semantic, and dependency analysis assets in the `scan` line come from [MCP-Sentinel](https://github.com/BashaarJavaid/MCP-Sentinel) at commit [`e717e955`](https://github.com/BashaarJavaid/MCP-Sentinel/commit/e717e955210b1d2a3e9fb1cdc266587c77ffebf3) (MIT), carried here with the original copyright headers intact and the exact file list in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). Dynamic behavior is not inherited: Panopticon's own sandbox and decoy-probe engine replaces upstream dynamic probing entirely.
 
 ## License
 

@@ -49,9 +49,12 @@ static = ["semgrep>=1.75"]
 pano = "panopticon.cli.main:app"
 
 [project.urls]
-Homepage = "https://github.com/OWNER/panopticon"
-Documentation = "https://github.com/OWNER/panopticon/tree/main/docs"
-Issues = "https://github.com/OWNER/panopticon/issues"
+Homepage = "https://github.com/brnyxx/panopticon"
+Documentation = "https://github.com/brnyxx/panopticon/tree/main/docs"
+Issues = "https://github.com/brnyxx/panopticon/issues"
+Source = "https://github.com/brnyxx/panopticon"
+Changelog = "https://github.com/brnyxx/panopticon/blob/main/CHANGELOG.md"
+"Security policy" = "https://github.com/brnyxx/panopticon/security/policy"
 
 [build-system]
 requires = ["hatchling>=1.24"]

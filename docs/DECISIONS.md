@@ -5,8 +5,8 @@ Numbered, append-only. Format: context / options / chosen / why.
 ## 1. Container image registry org
 - Context: E05 needs a home for `pano-sandbox-*` images (panopticon-buildplan.md §8).
 - Options: `ghcr.io/<personal>`, `ghcr.io/<org>`, Docker Hub.
-- Chosen: **TBD**
-- Why:
+- Chosen: **`ghcr.io/brnyxx`**. Image references are `ghcr.io/brnyxx/pano-sandbox-base`, `pano-sandbox-node:20`, `pano-sandbox-node:22`, `pano-sandbox-python:3.12`.
+- Why: the release targets already live under the `brnyxx` account, GHCR inherits repository authentication and OIDC signing, and one namespace keeps `sandbox/images.lock` digests, package permissions, and Sigstore identities in a single trust domain. Packages stay non-public until the release publishes them (E19).
 
 ## 2. Initial network allowlist
 - Context: WATCH-003/005 need an install-time allowlist (panopticon-buildplan.md §15).
@@ -19,4 +19,74 @@ Numbered, append-only. Format: context / options / chosen / why.
 - Chosen: leading `*.` only (`*.example.com`). No mid-label globs. Matches allow.yaml semantics.
 
 ## 5. PNG card design
-- Chosen: **TBD** before E17.
+- Context: E17 needs one shareable evidence artifact that carries observation results without becoming marketing decoration.
+- Options: marketing-style hero card, minimal badge-only image, terminal-style evidence card.
+- Chosen: **deterministic high-contrast terminal-style evidence card**. It renders the same sanitized model the terminal reporter uses: server identity, observation date, per-stage coverage with visible `UNKNOWN`/`UNSUPPORTED`, declared-versus-observed differences, and finding counts by kind. Bundled fonts, fixed layout and color tokens, fixed compression, stripped metadata, ko/en text.
+- Why: accessibility and leak-safe rendering outrank decoration, and byte-stable output is testable by golden hash. The card carries no verdict term and never implies a pass.
+
+## 6. Persisted schema lifecycle
+- Context: the scaffold hard-codes `schema_version: "1.0"` in `schemas/*.json` while §21 and §23 require 0.x migrators before a 1.0 freeze.
+- Options: freeze 1.0 now, keep an unversioned line, develop on 0.x and freeze once at release.
+- Chosen: **develop on `0.1`, bump within the 0.x line for every breaking shape change with an idempotent migrator, and migrate to `1.0` exactly once at the 0.9 release-candidate gate.**
+- Why: a public compatibility promise cannot be made before the shapes are proven by real observations. Freezing early would either lock in wrong shapes or force silent redefinition of a published version.
+
+## 7. Installation identity versus server identity
+- Context: one `server_id` cannot address a specific config entry when the same package is installed in several clients or scopes.
+- Chosen: **keep `server_id` as the group identity and add `installation_id` as the per-entry identity**, defined as a stable hash of `client | normalized config path | scope | JSON pointer | entry name`.
+- Why: observations, baselines, wrap records, suppressions, fixes, and diff all address a specific installed entry. Grouping stays a reporting concern.
+
+## 8. Stage results carry structure, not strings
+- Context: a bare stage string cannot say whether missing evidence means complete, unsupported, skipped, timed out, or failed.
+- Chosen: **every stage result carries an exhaustive status, a stable `reason_code`, and explicit coverage dimensions.** Absent evidence under incomplete coverage is `UNKNOWN`.
+- Why: rules and diff both branch on why evidence is missing. Without the reason, absence silently reads as a pass.
+
+## 9. One persistence gateway
+- Context: the leak-check and determinism invariants quantify over every persisted artifact.
+- Chosen: **`store/` is the only module allowed to write persisted artifacts**, and it runs typed normalization, versioned canonical serialization, mandatory leak scan, restrictive temp write, fsync, and symlink-safe atomic replace. `fix`/`install` config patching is the one narrow exception and follows the same journal, backup, and leak rules. A checker enforces the boundary.
+- Why: duplicating the persist path is how a leak eventually ships.
+
+## 10. Secret storage and backups
+- Context: FIX-001 plaintext env files and exact config backups can hold raw tokens, which the leak invariant forbids.
+- Chosen: **a typed `SecretStore` backed by the OS credential store** (macOS Keychain, Linux Secret Service, Windows Credential Manager). Secret-bearing config backups are encrypted with authenticated encryption whose key lives in the credential store. **When no secure backend is available, the fix is guidance-only** and nothing secret-bearing is written.
+- Why: the alternative is a plaintext secret file created by a tool whose main promise is that secrets do not leak.
+
+## 11. Dual-era MCP support
+- Context: the current official MCP specification is `2026-07-28` and moves lifecycle and version negotiation from the `initialize` handshake to per-request metadata; older servers still require the legacy handshake.
+- Chosen: **implement both eras explicitly.** Modern first with per-request metadata, server discovery, and version retry; legacy `initialize`/`notifications/initialized` on typed fallback; Streamable HTTP with deprecated HTTP+SSE fallback. Every observation records the requested version, the selected version, the era, and the fallback reason.
+- Why: silent fallback makes observations incomparable across runs, and a modern-only client cannot observe most installed servers.
+
+## 12. Semantic analysis is the one user-invoked network exception
+- Context: `scan --mode deep` sends redacted source excerpts to a hosted model.
+- Chosen: **the semantic analyzer is an explicit exception to local-only operation.** It runs only when the user selects deep mode and supplies their own API key, prints the exact payload disclosure before the first request, sends redacted excerpts only, and is disabled by `--offline`. With `--offline`, semantic results are typed `UNSUPPORTED` and the scan result is `INCOMPLETE`, never a pass.
+- Why: an undisclosed outbound call would contradict the product's central claim. A disclosed, user-invoked, user-keyed exception does not.
+
+## 13. Upstream provenance is pinned, not inherited
+- Context: the buildplan originally said the repository forks upstream Git history.
+- Chosen: **vendor only the required MCP-Sentinel files and the 125-test corpus from pinned commit `e717e955`**, preserving MIT headers and recording a per-file provenance and checksum manifest plus `THIRD_PARTY_NOTICES.md` entries.
+- Why: the working history is the local scaffold, not upstream. Pinned provenance is verifiable by hash; ancestry claims are not.
+
+### 13a. Read-only upstream reference clone (clarification, not a scope change)
+- Context: adapting upstream analyzers sometimes needs the surrounding business logic, which a per-file copy at the pinned commit doesn't show in context.
+- Chosen: an implementer **may clone `https://github.com/BashaarJavaid/MCP-Sentinel` into a disposable directory outside the repository and read it**, under these limits:
+  - The clone is **reference only**. The single vendorable source stays exact commit `e717e955`.
+  - Never modify the clone, and never vendor content from a moving branch such as `main`.
+  - Never import upstream Git ancestry into this repository.
+  - Every vendored file keeps its MIT header and lands in the per-file provenance and checksum manifest.
+  - The selected upstream test IDs are enumerated explicitly, not described as a count.
+  - After task 21, delete the clone and prove the path is absent.
+- Why: reading upstream in context is how the adaptation stays faithful. Bounding it to a disposable read-only copy keeps the provenance claim exactly as strong as before: everything shipped still resolves to `e717e955` by hash.
+
+## 14. Vulnerability intake
+- Context: `SECURITY.md` advertised a `security@<domain>` address that does not exist.
+- Chosen: **GitHub Private Vulnerability Reporting on `brnyxx/panopticon` is the only official intake.**
+- Why: an unmonitored mailbox is worse than no mailbox. Private reporting is authenticated, tracked, and needs no published address.
+
+## 15. Forbidden verdict terms
+- Context: ground rule 1 lists forbidden verdict words; `src/panopticon/i18n/glossary.yaml` holds the machine-checked phrase list that `scripts/check_phrases.py` enforces.
+- Chosen: **the authoritative phrase set is `src/panopticon/i18n/glossary.yaml` (`forbidden.en`, `forbidden.ko`), and the authoritative term-level rule is ground rule 1 in `AGENTS.md`: `safe`, `certified`, `dangerous` (as a verdict), `perfect`, `100%`.** A numeric safety score is a separately prohibited claim, not a phrase in this list. Adding a term requires amending the glossary, `AGENTS.md`, and this entry in the same change.
+- Why: one named source of truth stops the linter, the glossary, and the prose from drifting apart. Enumerating the set in three places by hand is how they diverge.
+
+## 16. Release history normalization is archived first
+- Context: the local scaffold and the one-commit remote `main` share no merge base.
+- Chosen: **push the immutable tag `archive/pre-normalization-main-20260826` at the old remote root, then replace `origin/main` once with `--force-with-lease`.** Tag names in this family are normalized as `archive/<reason>-<YYYYMMDD>`. No later force push is authorized.
+- Why: the old history stays recoverable by ref, and the lease makes the one-time replacement fail closed if the remote moved.

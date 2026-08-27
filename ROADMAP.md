@@ -2,7 +2,9 @@
 
 Versions advance by closed epics, never by dates. Full definitions: `panopticon-buildplan.md` (§3 epics, §23 stages). Live status: `docs/PROGRESS.md`.
 
-| Version | Closes | User-visible result |
+`0.1` through `0.9` below are internal development and schema milestones — capability checkpoints recording which epics are closed, not promises to publish. None of them ships to a public channel. The first public release in this accepted execution is `1.0.0`, after every release gate has passed. The "result" column therefore states what the capability does once its epics close, not what is available for download.
+
+| Version | Closes | Capability once closed |
 |---|---|---|
 | 0.1 | E01–E04, E11, E12 (CFG/HIST), E17 (terminal/json) | `pano doctor` — discovery, config checks, release history since last look |
 | 0.2 | E05–E08, E10, E12 (WATCH), E18 (ko) | `pano watch` — sandboxed observation, declared-vs-observed |
