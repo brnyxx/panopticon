@@ -9,6 +9,11 @@ from __future__ import annotations
 import typer
 
 from panopticon import SCHEMA_VERSION, __version__
+from panopticon.engine import foundation as engine
+from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
+from panopticon.reporters import foundation as reporters
+
+__all__ = ["NOT_IMPLEMENTED_EXIT"]
 
 app = typer.Typer(
     name="pano",
@@ -16,8 +21,6 @@ app = typer.Typer(
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
-
-NOT_IMPLEMENTED_EXIT = 64
 
 
 def _not_implemented(cmd: str, epic: str) -> int:
@@ -43,7 +46,15 @@ def doctor(
     list_clients: bool = typer.Option(False, "--list-clients", help="Discovery status only."),
 ) -> None:
     """Discover installed MCPs, check configs, report changes since last look. (E02-E04, E12)"""
-    raise typer.Exit(_not_implemented("doctor", "E02"))
+    rendered = reporters.render(
+        engine.run_doctor(
+            engine.DoctorRequest(client=client, list_clients=list_clients, fix=fix),
+        ),
+        json_output=json_out,
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()
@@ -55,7 +66,13 @@ def watch(
     png: bool = typer.Option(False, help="Render a shareable PNG card."),
 ) -> None:
     """Run an MCP in the decoy sandbox and record what it does per tool call. (E05-E10, E12)"""
-    raise typer.Exit(_not_implemented("watch", "E05"))
+    rendered = reporters.render(
+        engine.run_watch(engine.WatchRequest(target=target, calls=calls, timeout=timeout)),
+        json_output=json_out,
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()
@@ -91,7 +108,13 @@ def fix(
 @app.command()
 def diff(server: str | None = typer.Argument(None), since: str = typer.Option("auto")) -> None:
     """Compare current state against a baseline. (E14)"""
-    raise typer.Exit(_not_implemented("diff", "E14"))
+    rendered = reporters.render(
+        engine.run_diff(engine.DiffRequest(server=server, since=since)),
+        json_output=False,
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()
@@ -114,7 +137,13 @@ def scan(
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Static / semantic / dynamic analysis of an MCP source tree (upstream line). (E16)"""
-    raise typer.Exit(_not_implemented("scan", "E16"))
+    rendered = reporters.render(
+        engine.run_scan(engine.ScanRequest(path=path, mode=mode)),
+        json_output=json_out,
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()

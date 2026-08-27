@@ -11,10 +11,16 @@ jobs:
       - run: uv sync --all-extras
       - run: uv run ruff check . && uv run ruff format --check .
       - run: uv run mypy
+      - run: uv run mypy --strict tests/unit/engine
+      - run: uv run mypy --strict scripts/check_rules.py
+      - run: uv run mypy --strict scripts/check_engine_loc.py scripts/check_no_excuse_rules.py
+      - run: uv run python scripts/check_no_excuse_rules.py tests/unit/engine scripts/check_rules.py
+      - run: uv run python scripts/check_engine_loc.py  # 250 pure LOC maximum
       - run: uv run python scripts/validate_schemas.py
       - run: uv run python scripts/check_i18n.py
       - run: uv run python scripts/check_phrases.py
       - run: uv run python scripts/check_rules.py
+      - run: uv run python scripts/check_persistence_boundary.py
   test:
     strategy:
       matrix:

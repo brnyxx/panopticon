@@ -1,4 +1,4 @@
-.PHONY: setup lint type test test-docker i18n rules leak persistence ci images clean
+.PHONY: setup lint type foundation test test-docker i18n rules leak persistence schemas ci images clean
 
 setup:
 	uv sync --all-extras
@@ -10,6 +10,13 @@ lint:
 
 type:
 	uv run mypy
+
+foundation:
+	uv run mypy --strict tests/unit/engine
+	uv run mypy --strict scripts/check_rules.py
+	uv run mypy --strict scripts/check_engine_loc.py scripts/check_no_excuse_rules.py
+	uv run python scripts/check_no_excuse_rules.py tests/unit/engine scripts/check_rules.py
+	uv run python scripts/check_engine_loc.py  # 250 pure LOC maximum
 
 test:
 	uv run pytest -m "not docker and not network"
@@ -33,7 +40,7 @@ schemas:
 persistence:
 	uv run python scripts/check_persistence_boundary.py
 
-ci: lint type schemas i18n rules persistence test
+ci: lint type foundation schemas i18n rules persistence test
 
 images:
 	docker build -t pano-sandbox-base -f src/panopticon/sandbox/images/base.Dockerfile src/panopticon/sandbox/images
