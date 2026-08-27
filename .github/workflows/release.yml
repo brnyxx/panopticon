@@ -19,7 +19,7 @@ jobs:
       - run: uv sync --all-extras
       - run: uv build
       # E19: single-binary build (PyInstaller or similar), Sigstore signing, SBOM.
-      - run: echo "TODO(E19): binary build for ${{ matrix.target }}, cosign sign-blob, syft sbom"
+      - run: 'echo "TODO(E19): binary build for ${{ matrix.target }}, cosign sign-blob, syft sbom"'
   publish:
     needs: build
     runs-on: ubuntu-latest
