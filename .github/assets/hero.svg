@@ -1,0 +1,111 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="80%">
+      <stop offset="0%" stop-color="#111931"/>
+      <stop offset="55%" stop-color="#0B101F"/>
+      <stop offset="100%" stop-color="#070A13"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FF7A1A" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FF7A1A" stop-opacity="0.25"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="dotglow" x="-140%" y="-140%" width="380%" height="380%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="420" fill="url(#bg)"/>
+
+  <!-- faint panopticon floor plan spanning the banner -->
+  <g transform="translate(600 210)">
+    <circle r="320" stroke="#2E3D63" stroke-width="1" fill="none"/>
+    <circle r="250" stroke="#2E3D63" stroke-width="1" fill="none"/>
+    <circle r="185" stroke="#35486F" stroke-width="1" fill="none" stroke-dasharray="3 14"/>
+    <!-- radial spokes -->
+    <g stroke="#26345A" stroke-width="1">
+      <path d="M0 -320 L0 -185"/><path d="M0 320 L0 185"/>
+      <path d="M-320 0 L-185 0"/><path d="M320 0 L185 0"/>
+      <path d="M-226 -226 L-131 -131"/><path d="M226 -226 L131 -131"/>
+      <path d="M-226 226 L-131 131"/><path d="M226 226 L131 131"/>
+    </g>
+    <!-- outer cell ticks -->
+    <g stroke="#46588A" stroke-width="10" stroke-linecap="round">
+      <g id="tick"><path d="M-14 -285 A285 285 0 0 1 42 -282" fill="none"/></g>
+      <use href="#tick" transform="rotate(24)"/>
+      <use href="#tick" transform="rotate(72)"/>
+      <use href="#tick" transform="rotate(144)"/>
+      <use href="#tick" transform="rotate(168)"/>
+      <use href="#tick" transform="rotate(192)"/>
+      <use href="#tick" transform="rotate(216)"/>
+      <use href="#tick" transform="rotate(240)"/>
+      <use href="#tick" transform="rotate(264)"/>
+      <use href="#tick" transform="rotate(288)"/>
+      <use href="#tick" transform="rotate(336)"/>
+    </g>
+    <!-- caught cells: primary + secondary detection lights -->
+    <path d="M-14 -285 A285 285 0 0 1 42 -282" transform="rotate(96)"
+          fill="none" stroke="#FF7A1A" stroke-width="10" stroke-linecap="round" filter="url(#glow)"/>
+    <path d="M-14 -285 A285 285 0 0 1 42 -282" transform="rotate(312)"
+          fill="none" stroke="#FF7A1A" stroke-width="10" stroke-linecap="round" opacity="0.8" filter="url(#glow)"/>
+    <path d="M-14 -285 A285 285 0 0 1 42 -282" transform="rotate(48)"
+          fill="none" stroke="#FFB020" stroke-width="10" stroke-linecap="round" opacity="0.75" filter="url(#glow)"/>
+    <!-- detection dots on the rings -->
+    <g filter="url(#dotglow)">
+      <circle cx="161" cy="-191" r="4.5" fill="#FF7A1A"/>
+      <circle cx="-235" cy="-85" r="3.5" fill="#FFB020" opacity="0.85"/>
+      <circle cx="-296" cy="120" r="3" fill="#FF7A1A" opacity="0.7"/>
+      <circle cx="304" cy="98" r="3.5" fill="#FF7A1A" opacity="0.75"/>
+      <circle cx="-90" cy="-244" r="2.8" fill="#FFB020" opacity="0.6"/>
+    </g>
+  </g>
+
+  <!-- central emblem -->
+  <g transform="translate(600 148)">
+    <circle r="54" stroke="#6B7EB0" stroke-width="2" fill="none" stroke-dasharray="2 9" stroke-linecap="round"/>
+    <circle r="38" stroke="#E8EDF7" stroke-width="4" fill="#0A0E1A"/>
+    <rect x="-12" y="-18" width="24" height="36" rx="3.5" fill="#FF7A1A" filter="url(#softglow)"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="600" y="268" text-anchor="middle" fill="#E8EDF7"
+        font-family="Futura, 'Avenir Next', 'Helvetica Neue', Arial, sans-serif"
+        font-size="52" font-weight="700" letter-spacing="22">PANOPTICON</text>
+
+  <!-- tagline -->
+  <text x="600" y="316" text-anchor="middle" fill="#8B98B8"
+        font-family="SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace"
+        font-size="19" letter-spacing="1">We don't watch you. We watch your MCPs.</text>
+
+  <!-- sub line -->
+  <text x="600" y="352" text-anchor="middle" fill="#4E5C7E"
+        font-family="SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace"
+        font-size="14" letter-spacing="4">LOCAL-FIRST MCP BEHAVIOR OBSERVATORY</text>
+
+  <!-- corner terminal hints -->
+  <g font-family="SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="13">
+    <text x="48" y="52" fill="#3E4C6E">$ pano watch github</text>
+    <text x="48" y="76" fill="#8B98B8">READ  ~/.ssh/config</text>
+    <text x="238" y="76" fill="#FFB020">not declared</text>
+    <text x="48" y="100" fill="#FF6B4A">LEAK  AWS_ACCESS_KEY_ID</text>
+    <text x="268" y="100" fill="#5E6C8E">&lt;- decoy value</text>
+    <text x="1152" y="388" text-anchor="end" fill="#2E3A58">UNKNOWN stays visible - unobserved behavior stays UNKNOWN</text>
+  </g>
+</svg>
