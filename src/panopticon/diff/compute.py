@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TypeAlias
 
 from panopticon.models.artifacts import Baseline, DiffEntry, DiffResult, FindingChanges
+from panopticon.models.finding import Finding
+from panopticon.models.ids import InstallationId
 from panopticon.models.observation import Observation
 from panopticon.models.state import StageStatus
+
+from .inventory import inventory_diff
 
 Record: TypeAlias = Baseline | Observation
 
@@ -16,15 +20,17 @@ def _observations(record: Record) -> tuple[Observation, ...]:
     return record.observations if isinstance(record, Baseline) else (record,)
 
 
-def _entries(kind: str, installation: str, values: Iterable[str]) -> tuple[DiffEntry, ...]:
-    return tuple(
-        DiffEntry(kind=kind, installation_id=installation, key=value, detail=kind)
-        for value in sorted(set(values))
-    )
-
-
 def _coverage(record: Observation, category: str) -> bool:
-    stage: object = getattr(record.state.coverage, category)
+    coverage = record.state.coverage
+    stage = {
+        "file": coverage.file,
+        "net": coverage.net,
+        "process": coverage.process,
+        "dns": coverage.dns,
+        "proxy": coverage.proxy,
+        "snapshot": coverage.snapshot,
+        "stdio": coverage.stdio,
+    }[category]
     return stage.status is StageStatus.COMPLETE
 
 
@@ -51,9 +57,12 @@ def _event_keys(observation: Observation, category: str) -> set[str]:
 def _finding_changes(before: Sequence[Observation], after: Sequence[Observation]) -> FindingChanges:
     left = {str(f.logical_key): f for obs in before for f in obs.findings}
     right = {str(f.logical_key): f for obs in after for f in obs.findings}
-    after_obs = {str(obs.installation_id): obs for obs in after}
-    before_obs = {str(obs.installation_id): obs for obs in before}
-    installation = lambda finding: str(finding.installation_id)
+    after_obs = {obs.installation_id: obs for obs in after}
+    before_obs = {obs.installation_id: obs for obs in before}
+
+    def installation(finding: Finding) -> InstallationId:
+        return finding.installation_id
+
     new: list[DiffEntry] = []
     changed: list[DiffEntry] = []
     unchanged: list[DiffEntry] = []
@@ -104,11 +113,11 @@ def _finding_changes(before: Sequence[Observation], after: Sequence[Observation]
 def compute_diff(before: Record, after: Record) -> DiffResult:
     """Compute a stable diff. No persistence or side effects occur."""
     old, new = _observations(before), _observations(after)
-    old_by = {str(o.installation_id): o for o in old}
-    new_by = {str(o.installation_id): o for o in new}
+    old_by = {o.installation_id: o for o in old}
+    new_by = {o.installation_id: o for o in new}
     capability: list[DiffEntry] = []
     behavior: list[DiffEntry] = []
-    for installation in sorted(set(old_by) | set(new_by)):
+    for installation in sorted(set(old_by) | set(new_by), key=str):
         left, right = old_by.get(installation), new_by.get(installation)
         if left is None or right is None:
             continue
@@ -163,16 +172,22 @@ def compute_diff(before: Record, after: Record) -> DiffResult:
             kind = "REMOVED_" + prefix.upper()
             behavior.append(
                 DiffEntry(
-                    kind=kind if _coverage(right, coverage) and _coverage(left, coverage) else "UNKNOWN",
+                    kind=kind
+                    if _coverage(right, coverage) and _coverage(left, coverage)
+                    else "UNKNOWN",
                     installation_id=installation,
                     key=key,
                     detail="behavior",
                 )
             )
-    inventory = _inventory_diff(before, after)
+    inventory = (
+        inventory_diff(before, after)
+        if isinstance(before, Baseline) and isinstance(after, Baseline)
+        else ()
+    )
     meaningful = tuple(
         entry
-        for entry in capability + behavior + inventory
+        for entry in (*capability, *behavior, *inventory)
         if entry.kind
         in {
             "NEW_LEAK",
@@ -197,41 +212,6 @@ def compute_diff(before: Record, after: Record) -> DiffResult:
 
 def _label(record: Record) -> str:
     return str(record.baseline_id if isinstance(record, Baseline) else record.observation_id)
-
-
-def _inventory_diff(before: Record, after: Record) -> tuple[DiffEntry, ...]:
-    left = {
-        str(i.installation_id): i
-        for i in (before.inventory if isinstance(before, Baseline) else ())
-    }
-    right = {
-        str(i.installation_id): i for i in (after.inventory if isinstance(after, Baseline) else ())
-    }
-    result: list[DiffEntry] = []
-    for key in sorted(set(left) | set(right)):
-        if key not in left:
-            result.append(DiffEntry(kind="ADDED", installation_id=key, key=key, detail="inventory"))
-        elif key not in right:
-            result.append(
-                DiffEntry(kind="REMOVED", installation_id=key, key=key, detail="inventory")
-            )
-        elif left[key].command != right[key].command:
-            result.append(
-                DiffEntry(kind="COMMAND_CHANGED", installation_id=key, key=key, detail="inventory")
-            )
-        elif left[key].env_keys != right[key].env_keys:
-            result.append(
-                DiffEntry(kind="ENV_KEYS_CHANGED", installation_id=key, key=key, detail="inventory")
-            )
-        elif (
-            left[key].package is not None
-            and right[key].package is not None
-            and left[key].package.resolved != right[key].package.resolved
-        ):
-            result.append(
-                DiffEntry(kind="VERSION_CHANGED", installation_id=key, key=key, detail="inventory")
-            )
-    return tuple(result)
 
 
 __all__ = ["compute_diff"]

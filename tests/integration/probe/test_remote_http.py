@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 
 from panopticon.probe.remote import RemoteLimits, RemoteObserver, RemoteRequest, RemoteStatus
@@ -53,7 +54,7 @@ def test_sessionful_streamable_http_records_events() -> None:
 
     result = observer.observe(request)
     assert result.status is RemoteStatus.COMPLETE
-    assert result.session_id == "session-7"
+    assert result.session_fingerprint == hashlib.sha256(b"session-7").hexdigest()[:16]
     assert result.messages and result.messages[0]["jsonrpc"] == "2.0"
     assert any(event.kind == "net" and event.op == "connect" for event in result.events)
     plaintext = next(event for event in result.events if event.kind == "plaintext_http")
@@ -63,7 +64,7 @@ def test_sessionful_streamable_http_records_events() -> None:
     assert leak.decoy_key == "session" and leak.path == "response"
     assert secret not in _values(result) and "raw-secret" not in _values(result)
 
-    resumed = observer.resume(request, "session-7", "cursor-4")
+    resumed = observer.resume(request, "cursor-4")
     method, url, headers, body = client.calls[-1]
     assert resumed.status is RemoteStatus.COMPLETE
     assert method == "GET" and url == "http://api.example.test/mcp"

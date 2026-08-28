@@ -9,7 +9,7 @@ import pytest
 
 from panopticon.diff.compute import compute_diff
 from panopticon.models.artifacts import Baseline, BaselineKind
-from panopticon.models.finding import Finding
+from panopticon.models.finding import EvidenceKind, Finding, FindingEvidence
 from panopticon.models.observation import Observation
 from panopticon.models.state import StageStatus
 
@@ -118,8 +118,14 @@ def test_logical_findings_new_changed_resolved(old, new, expected):
 
 
 def test_finding_change_and_evidence_only_change_are_distinct():
-    old = _finding("CFG-001", evidence=(SimpleNamespace(kind="PATH", subject="p", value="1"),))
-    new = _finding("CFG-001", evidence=(SimpleNamespace(kind="PATH", subject="p", value="2"),))
+    old = _finding(
+        "CFG-001",
+        evidence=(FindingEvidence(kind=EvidenceKind.PATH, subject="p", value="1"),),
+    )
+    new = _finding(
+        "CFG-001",
+        evidence=(FindingEvidence(kind=EvidenceKind.PATH, subject="p", value="2"),),
+    )
     result = compute_diff(_obs(findings=(old,)), _obs(findings=(new,)))
     assert result.findings.changed[0].kind == "CHANGED"
 

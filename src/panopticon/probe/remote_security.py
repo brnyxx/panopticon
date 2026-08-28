@@ -1,10 +1,11 @@
 """SSRF-safe URL and redirect validation for remote probes."""
+
 from __future__ import annotations
 
 import ipaddress
-from dataclasses import dataclass
-from urllib.parse import urlsplit, urlunsplit
+from dataclasses import dataclass, field
 from typing import Protocol
+from urllib.parse import urlsplit, urlunsplit
 
 
 class Resolver(Protocol):
@@ -16,8 +17,18 @@ class SecurityDecision:
     allowed: bool
     reason: str
     url: str
+    transport_url: str = field(default="", repr=False)
 
-_BLOCKED_NAMES = frozenset({"localhost", "localhost.localdomain", "metadata.google.internal", "metadata.amazonaws.com", "instance-data.ec2.internal"})
+
+_BLOCKED_NAMES = frozenset(
+    {
+        "localhost",
+        "localhost.localdomain",
+        "metadata.google.internal",
+        "metadata.amazonaws.com",
+        "instance-data.ec2.internal",
+    }
+)
 
 
 def _blocked_ip(value: str) -> bool:
@@ -28,7 +39,7 @@ def _blocked_ip(value: str) -> bool:
     return not ip.is_global
 
 
-def validate_url(url: str, resolver: Resolver | None = None, origin: str | None = None) -> SecurityDecision:
+def validate_url(url: str, resolver: Resolver | None = None) -> SecurityDecision:
     try:
         p = urlsplit(url)
     except ValueError:
@@ -47,17 +58,19 @@ def validate_url(url: str, resolver: Resolver | None = None, origin: str | None 
     addresses = resolver.resolve(host) if resolver is not None else (host,)
     if any(_blocked_ip(address) for address in addresses):
         return SecurityDecision(False, "ADDRESS_BLOCKED", "")
-    normalized = urlunsplit((p.scheme.casefold(), f"{host}:{port}" if p.port else host, p.path or "/", "", ""))
-    if origin is not None:
-        old = urlsplit(origin)
-        if old.scheme.casefold() != p.scheme.casefold() or old.hostname != p.hostname or (old.port or (443 if old.scheme == "https" else 80)) != port:
-            return SecurityDecision(False, "CROSS_ORIGIN", normalized)
-    return SecurityDecision(True, "OK", normalized)
+    normalized = urlunsplit(
+        (p.scheme.casefold(), f"{host}:{port}" if p.port else host, p.path or "/", "", "")
+    )
+    return SecurityDecision(True, "OK", normalized, urlunsplit(p))
 
 
 def same_origin(a: str, b: str) -> bool:
     pa, pb = urlsplit(a), urlsplit(b)
-    return (pa.scheme.casefold(), pa.hostname, pa.port or (443 if pa.scheme == "https" else 80)) == (pb.scheme.casefold(), pb.hostname, pb.port or (443 if pb.scheme == "https" else 80))
+    return (
+        pa.scheme.casefold(),
+        pa.hostname,
+        pa.port or (443 if pa.scheme == "https" else 80),
+    ) == (pb.scheme.casefold(), pb.hostname, pb.port or (443 if pb.scheme == "https" else 80))
 
 
-__all__ = ["Resolver", "SecurityDecision", "validate_url", "same_origin"]
+__all__ = ["Resolver", "SecurityDecision", "same_origin", "validate_url"]

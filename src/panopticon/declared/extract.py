@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from .model import Authority, Capability, Diagnostic, ScopeGrant, SourceKind
 from .normalize import (
@@ -20,24 +20,24 @@ def _seq(value: object) -> tuple[str, ...]:
     if isinstance(value, str):
         return (value,)
     if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
-        return tuple(str(x) for x in value)
+        return tuple(item for item in value if isinstance(item, str))
     return ()
 
 
 def _grant(
     source: SourceKind,
     *,
-    paths=(),
-    hosts=(),
-    ports=(),
-    env=(),
-    processes=(),
-    caps=(),
-    maintainer=False,
-    complete=False,
-    authority=Authority.PARTIAL,
-    diagnostics=(),
-):
+    paths: Iterable[str] = (),
+    hosts: Iterable[str] = (),
+    ports: Iterable[int] = (),
+    env: Iterable[str] = (),
+    processes: Iterable[str] = (),
+    caps: Iterable[Capability] = (),
+    maintainer: bool = False,
+    complete: bool = False,
+    authority: Authority = Authority.PARTIAL,
+    diagnostics: Iterable[Diagnostic] = (),
+) -> ScopeGrant:
     return ScopeGrant(
         tuple(sorted(set(paths))),
         tuple(sorted(set(hosts))),
@@ -108,20 +108,37 @@ class ReadmeExtractor:
 
 class ManifestExtractor:
     def extract(self, manifest: Mapping[str, object] | str) -> ScopeGrant:
-        data = json.loads(manifest) if isinstance(manifest, str) else manifest
+        if isinstance(manifest, str):
+            try:
+                parsed: object = json.loads(manifest)
+            except json.JSONDecodeError:
+                parsed = None
+        else:
+            parsed = manifest
+        if not isinstance(parsed, Mapping):
+            return _grant(
+                SourceKind.MANIFEST,
+                authority=Authority.NONE,
+                diagnostics=(Diagnostic("MALFORMED_VALUE", "manifest must be an object"),),
+            )
+        data = {str(key): value for key, value in parsed.items()}
         vals = []
         for key in ("homepage", "repository", "bugs"):
-            v = data.get(key) if isinstance(data, Mapping) else None
+            v = data.get(key)
             if isinstance(v, str):
                 vals.append(v)
             elif isinstance(v, Mapping) and isinstance(v.get("url"), str):
                 vals.append(str(v["url"]))
         hosts = tuple(host_port(v)[0] for v in vals if host_port(v)[0])
-        bins = data.get("bin", ()) if isinstance(data, Mapping) else ()
+        bins = data.get("bin", ())
         return _grant(
             SourceKind.MANIFEST,
             hosts=hosts,
-            processes=tuple(normalize_process(x) for x in _seq(bins) if normalize_process(x)),
+            processes=tuple(
+                normalized
+                for item in _seq(bins)
+                if (normalized := normalize_process(item)) is not None
+            ),
             authority=Authority.PARTIAL,
         )
 
@@ -137,17 +154,19 @@ class RegistryExtractor:
     def extract(self, data: Mapping[str, object]) -> ScopeGrant:
         hosts = []
         for item in _seq(data.get("remotes", ())):
-            h, p = host_port(item)
+            h, _port = host_port(item)
             hosts.append(h)
         env = tuple(
             x for x in (normalize_env(v) for v in _seq(data.get("environment_variables", ()))) if x
         )
+        complete = data.get("complete") is True
         return _grant(
             SourceKind.REGISTRY,
             hosts=hosts,
             env=env,
-            authority=Authority.AUTHORITATIVE,
-            complete=True,
+            authority=Authority.AUTHORITATIVE if complete else Authority.PARTIAL,
+            complete=complete,
+            maintainer=True,
         )
 
 
@@ -184,6 +203,7 @@ class SelfDeclExtractor:
             if bad
             else ()
         )
+        complete = data.get("complete") is True and not bad
         return _grant(
             SourceKind.SELF_DECL,
             paths=paths,
@@ -192,6 +212,6 @@ class SelfDeclExtractor:
             processes=proc,
             maintainer=True,
             authority=Authority.AUTHORITATIVE,
-            complete=not bad,
+            complete=complete,
             diagnostics=diagnostics,
         )

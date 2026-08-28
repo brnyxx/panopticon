@@ -66,8 +66,21 @@ def watch(
     png: bool = typer.Option(False, help="Render a shareable PNG card."),
 ) -> None:
     """Run an MCP in the decoy sandbox and record what it does per tool call. (E05-E10, E12)"""
+    mode = (
+        engine.TargetMode.ALL
+        if target == "--all"
+        else engine.TargetMode.SELF
+        if target == "--self"
+        else engine.TargetMode.NAME
+    )
+    name = target if mode is engine.TargetMode.NAME else None
     rendered = reporters.render(
-        engine.run_watch(engine.WatchRequest(target=target, calls=calls, timeout=timeout)),
+        engine.run_watch(
+            engine.WatchRequest(
+                engine.TargetSelection(mode, name),
+                engine.WatchOptions(calls=calls, timeout=timeout),
+            )
+        ),
         json_output=json_out,
     )
     typer.echo(rendered.stdout, nl=False)

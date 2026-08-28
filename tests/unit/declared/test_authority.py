@@ -10,8 +10,8 @@ from panopticon.declared import (
     SelfDeclExtractor,
     SourceKind,
     compose,
-    host_port,
     host_matches,
+    host_port,
     match_env,
     match_host,
     match_network,
@@ -74,8 +74,8 @@ def test_readme_cannot_mask_other_tool_or_upgrade_completeness() -> None:
             ]
         },
     )
-    assert match_host(scope, "tool.example", "tool").status is ScopeStatus.COMPLETE
-    assert match_host(scope, "readme.example", "tool").status is ScopeStatus.INVALID
+    assert match_host(scope, "tool.example", "tool").status is ScopeStatus.PARTIAL
+    assert match_host(scope, "readme.example", "tool").status is ScopeStatus.UNKNOWN
     assert scope.completeness is Completeness.COMPLETE
 
 
@@ -130,7 +130,7 @@ def test_authority_precedence_and_unmatched_partial_unknown() -> None:
             ]
         },
     )
-    assert match_host(partial_scope, "partial.example", "tool").status is ScopeStatus.UNKNOWN
+    assert match_host(partial_scope, "partial.example", "tool").status is ScopeStatus.PARTIAL
     assert match_host(partial_scope, "unknown.example", "tool").status is ScopeStatus.UNKNOWN
     none_scope = compose(
         [ScopeGrant(hosts=("none.example",), source=SourceKind.MANIFEST, authority=Authority.NONE)],

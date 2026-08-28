@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
-from panopticon.models.inventory import SourceKind, Transport
+from panopticon.models.inventory import InstalledServer, SourceKind, Transport
 
 from .catalog import RULE_BY_ID
 from .entropy import high_entropy, token_classification
@@ -16,11 +16,15 @@ _BROAD_PATHS = ("~", "/", "$HOME")
 _SYSTEM_PREFIXES = ("/etc", "/var", "/usr")
 
 
-def _facts(mapping: object, key: str) -> tuple[str, ...]:
-    return tuple(mapping.get(key, ())) if hasattr(mapping, "get") else ()
+def _facts(mapping: Mapping[str, tuple[str, ...]], key: str) -> tuple[str, ...]:
+    return mapping.get(key, ())
 
 
-def _match(rule: ConfigRule, server, evidence: tuple[ConfigEvidence, ...]) -> ConfigMatch:
+def _match(
+    rule: ConfigRule,
+    server: InstalledServer,
+    evidence: tuple[ConfigEvidence, ...],
+) -> ConfigMatch:
     return ConfigMatch(
         rule.rule_id,
         rule.severity,
@@ -35,7 +39,7 @@ def _match(rule: ConfigRule, server, evidence: tuple[ConfigEvidence, ...]) -> Co
 def _per_server(
     context: ConfigInput,
     rule: ConfigRule,
-    predicate: Callable[[object], tuple[ConfigEvidence, ...]],
+    predicate: Callable[[InstalledServer], tuple[ConfigEvidence, ...]],
 ) -> list[ConfigMatch]:
     out: list[ConfigMatch] = []
     for server in context.servers:
@@ -48,14 +52,13 @@ def _per_server(
 def _rule001(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-001"]
 
-    def check(server):
-        found = tuple(
+    def check(server: InstalledServer) -> tuple[ConfigEvidence, ...]:
+        return tuple(
             ConfigEvidence(key, token_classification(value) or "token")
             for key in server.env_keys
             for value in _facts(context.env_values, str(server.installation_id))
             if token_classification(value)
         )
-        return found
 
     return _per_server(context, rule, check)
 
@@ -63,7 +66,7 @@ def _rule001(context: ConfigInput) -> list[ConfigMatch]:
 def _rule002(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-002"]
 
-    def check(server):
+    def check(server: InstalledServer) -> tuple[ConfigEvidence, ...]:
         package = server.package
         if package is not None and (package.pinned is None or package.pinned == "@latest"):
             return (ConfigEvidence("package", "unpinned"),)
@@ -75,7 +78,7 @@ def _rule002(context: ConfigInput) -> list[ConfigMatch]:
 def _rule003(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-003"]
 
-    def check(server):
+    def check(server: InstalledServer) -> tuple[ConfigEvidence, ...]:
         command = server.command or ""
         return (
             (ConfigEvidence("command", next(shape for shape in _SHELL_SHAPES if shape in command)),)
@@ -89,7 +92,7 @@ def _rule003(context: ConfigInput) -> list[ConfigMatch]:
 def _rule004(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-004"]
 
-    def check(server):
+    def check(server: InstalledServer) -> tuple[ConfigEvidence, ...]:
         if str(server.installation_id) not in context.filesystem_servers:
             return ()
         paths = _facts(context.allowed_paths, str(server.installation_id))
@@ -108,10 +111,10 @@ def _rule004(context: ConfigInput) -> list[ConfigMatch]:
 
 def _rule005(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-005"]
-    groups: dict[str, list] = defaultdict(list)
+    groups: dict[str, list[InstalledServer]] = defaultdict(list)
     for server in context.servers:
         groups[str(server.server_id)].append(server)
-    out = []
+    out: list[ConfigMatch] = []
     for servers in groups.values():
         versions = {
             s.package.resolved or s.package.pinned for s in servers if s.package is not None
@@ -139,7 +142,7 @@ def _rule006(context: ConfigInput) -> list[ConfigMatch]:
 def _rule007(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-007"]
 
-    def check(server):
+    def check(server: InstalledServer) -> tuple[ConfigEvidence, ...]:
         return tuple(
             ConfigEvidence(key, "high_entropy")
             for key in server.env_keys

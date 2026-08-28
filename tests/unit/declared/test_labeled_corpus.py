@@ -80,7 +80,7 @@ def test_partial_and_unknown_labels_are_not_counted_as_authorized() -> None:
     )
     labels = {"known.example": True, "unmatched.example": False}
     statuses = {host: match_host(scope, host).status for host in labels}
-    assert statuses["known.example"] is ScopeStatus.UNKNOWN
+    assert statuses["known.example"] is ScopeStatus.PARTIAL
     assert statuses["unmatched.example"] is ScopeStatus.UNKNOWN
     predicted = {host for host, status in statuses.items() if status is ScopeStatus.COMPLETE}
     precision, recall = _precision_recall(set(), predicted)

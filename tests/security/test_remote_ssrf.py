@@ -47,7 +47,7 @@ def test_metadata_redirect_is_blocked_without_auth_forwarding() -> None:
         "https://user:password@public.example.test/mcp",
     )
     resolver = FakeResolver({"rebind.example.test": ("93.184.216.34", "127.0.0.1")})
-    for url in blocked + ("https://rebind.example.test/mcp",):
+    for url in (*blocked, "https://rebind.example.test/mcp"):
         decision = validate_url(url, resolver)
         assert not decision.allowed, url
 

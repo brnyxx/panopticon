@@ -81,6 +81,12 @@ class ScopeGrant:
     complete: bool = False
     diagnostics: tuple[Diagnostic, ...] = ()
 
+    def __post_init__(self) -> None:
+        if not 0.0 <= self.confidence <= 1.0:
+            raise ValueError("confidence must be between zero and one")
+        if self.complete and self.authority is not Authority.AUTHORITATIVE:
+            raise ValueError("complete scope must be authoritative")
+
 
 @dataclass(frozen=True, slots=True)
 class DeclaredScope:

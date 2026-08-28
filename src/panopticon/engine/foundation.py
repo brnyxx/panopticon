@@ -13,7 +13,12 @@ from panopticon.engine.contracts import (
 from panopticon.engine.diff import DiffRequest
 from panopticon.engine.doctor import DoctorRequest
 from panopticon.engine.scan import ScanRequest
-from panopticon.engine.watch import WatchRequest
+from panopticon.engine.watch import (
+    TargetMode,
+    TargetSelection,
+    WatchOptions,
+    WatchRequest,
+)
 
 
 def _not_implemented(epic: str) -> UnsupportedResult:
@@ -50,6 +55,9 @@ __all__ = [
     "DiffRequest",
     "DoctorRequest",
     "ScanRequest",
+    "TargetMode",
+    "TargetSelection",
+    "WatchOptions",
     "WatchRequest",
     "run_diff",
     "run_doctor",
