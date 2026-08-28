@@ -40,6 +40,8 @@ class CacheEnvelope(StrictModel):
     def validate_envelope(self) -> CacheEnvelope:
         if self.fetched_at.utcoffset() != timedelta(0):
             raise ValueError("fetched_at must be UTC")
+        if not self.snapshots.snapshots:
+            raise ValueError("cache requires at least one normalized snapshot")
         if len(self.etags) > 3:
             raise ValueError("at most three resource etags are allowed")
         resources = [resource for resource, _ in self.etags]

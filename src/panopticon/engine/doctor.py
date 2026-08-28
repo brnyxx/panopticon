@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from types import MappingProxyType
 from typing import Protocol
 
 from panopticon.analyzers.config.catalog import FILESYSTEM_MCP_IDENTIFIERS
@@ -31,12 +30,12 @@ from panopticon.engine.doctor_model import (
     DoctorHistoryOutcomes,
     DoctorOutcome,
     DoctorRequest,
-    RegistryLookup,
 )
 from panopticon.inventory.normalize import normalize_entry
 from panopticon.models.inventory import InstalledServer
 from panopticon.registry.history import SnapshotSeries, append_snapshot
 from panopticon.registry.model import NormalizedHistory
+from panopticon.registry.provider import RegistryProvider, RegistryProviderResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,27 +44,21 @@ class DoctorInputs:
 
     env: DiscoveryEnv
     adapters: Sequence[ClientAdapter] = ()
-    registry_lookup: RegistryLookup | Mapping[str, NormalizedHistory] | None = None
+    registry_lookup: RegistryProvider | None = None
     alerts: tuple[str, ...] = ()
     config_diagnostics: tuple[EngineDiagnostic, ...] = ()
-    history_series: Mapping[str, SnapshotSeries] = field(default_factory=dict)
     now: datetime | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "history_series",
-            MappingProxyType(dict(self.history_series)),
-        )
         if self.now is not None and (self.now.tzinfo is None or self.now.utcoffset() is None):
             raise ValueError("doctor clock must be timezone-aware")
 
 
 class DoctorPlan(Protocol):
-    def run(self, request: DoctorRequest) -> DoctorOutcome: ...
+    async def run(self, request: DoctorRequest) -> DoctorOutcome: ...
 
 
-def run_doctor(request: DoctorRequest, inputs: DoctorInputs | None = None) -> DoctorOutcome:
+async def run_doctor(request: DoctorRequest, inputs: DoctorInputs | None = None) -> DoctorOutcome:
     deps = inputs or DoctorInputs(DiscoveryEnv(Path.home(), Path.cwd(), "darwin"), ())
     adapters = tuple(deps.adapters) or registered_adapters(deps.env)
     selected = tuple(a for a in adapters if request.client is None or a.name == request.client)
@@ -79,6 +72,7 @@ def run_doctor(request: DoctorRequest, inputs: DoctorInputs | None = None) -> Do
     filesystem_servers: set[str] = set()
     token_header_keys: dict[str, tuple[str, ...]] = {}
     history_by_installation: dict[str, NormalizedHistory] = {}
+    provider_series: dict[str, SnapshotSeries] = {}
     successes = 0
     failures = 0
     for adapter in sorted(selected, key=lambda item: item.name):
@@ -151,18 +145,18 @@ def run_doctor(request: DoctorRequest, inputs: DoctorInputs | None = None) -> Do
                             )
                         )
                 histories: dict[str, NormalizedHistory] = {}
-                for server in servers:
-                    try:
-                        if deps.registry_lookup is None:
-                            value = None
-                        elif callable(deps.registry_lookup):
-                            value = deps.registry_lookup(server)
-                        else:
-                            value = deps.registry_lookup.get(str(server.installation_id))
-                        if value is not None:
-                            histories[str(server.installation_id)] = value
-                    except (OSError, ValueError, TypeError, KeyError):
-                        diagnostics.append(EngineDiagnostic("HISTORY_FAILED", adapter.name))
+                if not request.list_clients:
+                    for server in sorted(servers, key=lambda item: str(item.installation_id)):
+                        value = (
+                            await deps.registry_lookup.lookup(server, request.offline)
+                            if deps.registry_lookup is not None
+                            else None
+                        )
+                        if isinstance(value, RegistryProviderResult):
+                            diagnostics.extend(value.diagnostics)
+                            provider_series[str(server.installation_id)] = value.series
+                            if value.history is not None:
+                                histories[str(server.installation_id)] = value.history
                 clients.append(
                     DoctorClient(
                         adapter.name, parsed.status.value, group_installations(servers, histories)
@@ -193,7 +187,7 @@ def run_doctor(request: DoctorRequest, inputs: DoctorInputs | None = None) -> Do
     history_outcomes: list[DoctorHistoryOutcomes] = []
     for server in sorted(all_servers, key=lambda item: str(item.installation_id)):
         installation_id = str(server.installation_id)
-        series = deps.history_series.get(installation_id, SnapshotSeries())
+        series = provider_series.get(installation_id, SnapshotSeries())
         current_history = history_by_installation.get(installation_id)
         if current_history is not None and (
             not series.snapshots or series.snapshots[-1].history != current_history

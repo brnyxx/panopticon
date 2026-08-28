@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from pathlib import Path
@@ -25,6 +26,11 @@ from panopticon.engine.watch import (
     WatchOptions,
     WatchRequest,
 )
+from panopticon.registry.cache import PersistentCache
+from panopticon.registry.client import HttpxRegistryHttp, RegistryClient, SystemClock
+from panopticon.registry.provider import RegistryProvider
+from panopticon.store.repository import ArtifactRepository
+from panopticon.util.leak_check import LeakContext
 
 
 def _not_implemented(epic: str) -> UnsupportedResult:
@@ -35,14 +41,25 @@ def _not_implemented(epic: str) -> UnsupportedResult:
 
 
 def run_doctor(request: DoctorRequest) -> Result:
-    return _run_doctor(request).result
+    return doctor_outcome(request).result
 
 
 def doctor_outcome(request: DoctorRequest) -> DoctorOutcome:
     """Run doctor with process runtime dependencies for the CLI boundary."""
     platform = "darwin" if sys.platform == "darwin" else "windows" if os.name == "nt" else "linux"
     env = DiscoveryEnv(Path.home(), Path.cwd(), platform, dict(os.environ))
-    return _run_doctor(request, inputs=DoctorInputs(env))
+    home = Path.home()
+    token = os.environ.get("GITHUB_TOKEN")
+    repository = ArtifactRepository(
+        home / ".panopticon",
+        LeakContext(home_paths=(str(home),), secrets=(token,) if token else ()),
+    )
+    clock = SystemClock()
+    provider = RegistryProvider(
+        PersistentCache(repository),
+        RegistryClient(HttpxRegistryHttp(), clock, github_token=token),
+    )
+    return asyncio.run(_run_doctor(request, inputs=DoctorInputs(env, registry_lookup=provider)))
 
 
 def run_watch(request: WatchRequest) -> Result:

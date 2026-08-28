@@ -11,7 +11,7 @@ from panopticon.registry.cache import (
     make_lookup,
     resolve_cached_version,
 )
-from panopticon.registry.history import SnapshotSeries
+from panopticon.registry.history import SnapshotSeries, append_snapshot
 from panopticon.registry.model import CacheRecord, HistoryReason, HistoryStatus, NormalizedHistory
 from panopticon.store import ArtifactRepository
 
@@ -83,10 +83,18 @@ def test_stale_and_future_cache_records_are_unknown() -> None:
 def test_persistent_cache_round_trips_at_exact_ttl_boundary(tmp_path) -> None:
     lookup = make_lookup("npm", "pkg", "latest")
     fetched = datetime(2025, 1, 1, tzinfo=UTC)
+    history = NormalizedHistory(
+        status=HistoryStatus.AVAILABLE,
+        reason_code=HistoryReason.OK,
+        ecosystem="npm",
+        name="pkg",
+        requested_spec="latest",
+        resolved_version="1.0.0",
+    )
     envelope = CacheEnvelope(
         ecosystem="npm",
         name="pkg",
-        snapshots=SnapshotSeries(),
+        snapshots=append_snapshot(SnapshotSeries(), history, observed_at=fetched),
         etags=(("package", '"etag"'),),
         fetched_at=fetched,
     )
