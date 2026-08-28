@@ -16,6 +16,8 @@ SECTION_IDS = (
     "How to verify",
     "Limits",
 )
+_KO_SECTION_IDS = ("문제", "영향", "근거", "권장 조치", "확인 방법", "제한")
+_KO_SECTION_MAP = dict(zip(_KO_SECTION_IDS, SECTION_IDS, strict=True))
 _HEADING = re.compile(r"^##\s+(.+?)\s*$")
 _RULE_ID = re.compile(r"^(CFG|HIST|WATCH|FIX|SENT)-\d{3}$")
 
@@ -81,6 +83,8 @@ def parse_document(text: str, rule_id: str, locale: str) -> RuleDocument:
         match = _HEADING.fullmatch(line)
         if match:
             heading = match.group(1)
+            if normalize_locale(locale) == "ko":
+                heading = _KO_SECTION_MAP.get(heading, heading)
             if heading not in SECTION_IDS:
                 current = None
                 continue

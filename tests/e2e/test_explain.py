@@ -50,6 +50,16 @@ def test_watch_001_explains_in_ko_and_en(tmp_path: Path, monkeypatch: pytest.Mon
     assert "en-WATCH-001" in en.stdout
 
 
+def test_shipped_korean_document_maps_sections_to_canonical_ids() -> None:
+    result = runner.invoke(cli.app, ["explain", "WATCH-001", "--lang", "ko", "--json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["locale"] == "ko"
+    assert set(payload["sections"]) == set(SECTION_IDS)
+    assert "미끼" in payload["sections"]["Problem"]
+
+
 def test_locale_precedence_explicit_then_environment(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
