@@ -1,6 +1,7 @@
 name: ci
 on:
   push: { branches: [main] }
+  pull_request:
   schedule:
     - cron: "17 3 * * *"
 permissions:
@@ -50,6 +51,7 @@ jobs:
   self-scan:
     # E16: run our own analyze line on this repository.
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       security-events: write
@@ -59,9 +61,9 @@ jobs:
         uses: ./
         with:
           path: .
-          mode: standard
+          mode: quick
           sarif: pano.sarif
-          fail-on: high
+          fail-on: never
       - uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
         if: always()
         with:

@@ -15,6 +15,7 @@ from typing import Protocol
 from pydantic import JsonValue, ValidationError
 
 from panopticon.models.finding import Finding
+from panopticon.util.leak_check import LeakContext, find_leaks
 
 from .cache import ReviewCache, ReviewCacheRecord
 from .context import FindingContext, build_finding_context
@@ -35,6 +36,35 @@ class SemanticTransport(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class DisclosureDecision:
+    """The immutable result of an explicit outbound-disclosure decision."""
+
+    approved_request: JsonObject | None
+    reason_code: str = "DISCLOSURE_APPROVED"
+
+    @property
+    def approved(self) -> bool:
+        return self.approved_request is not None
+
+
+class DisclosurePort(Protocol):
+    def disclose(self, request: JsonObject) -> DisclosureDecision: ...
+
+
+class _AllowDisclosure:
+    def disclose(self, request: JsonObject) -> DisclosureDecision:
+        # Copy at the boundary so callers cannot mutate the reviewed request.
+        approved = dict(request)
+        return DisclosureDecision(approved)
+
+
+def allow_disclosure() -> DisclosurePort:
+    """Return the deterministic, explicit disclosure port for CLI/tests."""
+
+    return _AllowDisclosure()
+
+
+@dataclass(frozen=True, slots=True)
 class ReviewOutcome:
     status: SemanticStatus
     reason_code: str
@@ -52,6 +82,8 @@ class SemanticReviewer:
         max_findings: int = 10,
         transport: SemanticTransport | None = None,
         cache: ReviewCache | None = None,
+        disclosure: DisclosurePort | None = None,
+        leak_context: LeakContext | None = None,
     ) -> None:
         if max_findings < 0:
             raise ValueError("max_findings must be non-negative")
@@ -59,6 +91,8 @@ class SemanticReviewer:
         self.max_findings = max_findings
         self.transport = transport
         self.cache = cache
+        self.disclosure = disclosure
+        self.leak_context = leak_context or LeakContext(home_paths=(str(Path.home()),))
 
     async def review(self, findings: tuple[Finding, ...]) -> ReviewOutcome:
         if not findings:
@@ -71,10 +105,24 @@ class SemanticReviewer:
             )
         ordered = tuple(sorted(findings, key=_sort_key))
         selected = ordered[: self.max_findings]
-        contexts = tuple(build_finding_context(self.root, finding) for finding in selected)
-        catalog = extract_tool_catalog(self.root)
-        request = build_request(selected, contexts, catalog)
-        key = request_fingerprint(request)
+        try:
+            contexts = tuple(build_finding_context(self.root, finding) for finding in selected)
+            catalog = extract_tool_catalog(self.root)
+            request = build_request(selected, contexts, catalog)
+        except (OSError, ValueError):
+            return _incomplete(findings, "DISCLOSURE_PREPARATION_FAILED")
+        if self.disclosure is None:
+            return ReviewOutcome(SemanticStatus.UNSUPPORTED, "DISCLOSURE_UNAVAILABLE", findings)
+        try:
+            decision = self.disclosure.disclose(request)
+        except (OSError, RuntimeError, ValueError):
+            return _incomplete(findings, "DISCLOSURE_PREPARATION_FAILED")
+        approved = decision.approved_request
+        if approved is None:
+            return ReviewOutcome(SemanticStatus.UNSUPPORTED, "DISCLOSURE_DENIED", findings)
+        if not _valid_approved_request(approved, self.leak_context):
+            return _incomplete(findings, "DISCLOSURE_INVALID")
+        key = request_fingerprint(approved)
         cached = self.cache.get(key) if self.cache is not None else None
         if cached is not None:
             return _validated(findings, cached.response_json, "CACHE_HIT")
@@ -84,7 +132,7 @@ class SemanticReviewer:
                 "SEMANTIC_TRANSPORT_UNAVAILABLE",
                 findings,
             )
-        raw = await self.transport.create(request)
+        raw = await self.transport.create(approved)
         response_text = raw.get("text")
         if not isinstance(response_text, str):
             return _incomplete(findings, "RESPONSE_TEXT_MISSING")
@@ -98,6 +146,32 @@ class SemanticReviewer:
             outcome.reviews,
             cache_record=ReviewCacheRecord(key, response_text),
         )
+
+
+def _valid_approved_request(request: Mapping[str, JsonValue], leak_context: LeakContext) -> bool:
+    """Enforce the narrow semantic transport contract at the disclosure boundary."""
+
+    if set(request) != {"model", "instructions", "input", "store", "tools"}:
+        return False
+    if request.get("store") is not False or request.get("tools") != []:
+        return False
+    model = request.get("model")
+    instructions = request.get("instructions")
+    input_value = request.get("input")
+    if (
+        not isinstance(model, str)
+        or not isinstance(instructions, str)
+        or not isinstance(input_value, str)
+        or len(model) > 128
+        or len(instructions) > 4096
+        or len(input_value) > 256_000
+    ):
+        return False
+    try:
+        encoded = json.dumps(request, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    except (TypeError, ValueError):
+        return False
+    return not find_leaks(encoded, leak_context)
 
 
 def build_request(

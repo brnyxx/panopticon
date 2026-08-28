@@ -13,6 +13,7 @@ import typer
 from panopticon import SCHEMA_VERSION, __version__
 from panopticon.engine import foundation as engine
 from panopticon.engine.baseline import BaselineRequest, run_baseline
+from panopticon.engine.ci import FailOn, ci_exit_code
 from panopticon.engine.diff import DiffRequest, run_diff
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
 from panopticon.engine.explain import explain_rule
@@ -27,6 +28,8 @@ from panopticon.reporters.diff import render as render_diff
 from panopticon.reporters.explain import render as render_explain
 from panopticon.reporters.fix import render as render_fix
 from panopticon.reporters.install import render as render_install
+from panopticon.reporters.scan import persist as persist_scan
+from panopticon.reporters.scan import persist_succeeded
 from panopticon.reporters.scan import render_cli as render_scan
 from panopticon.reporters.wrap import render as render_wrap
 
@@ -77,18 +80,23 @@ def doctor(
 
 @app.command()
 def watch(
-    target: str = typer.Argument(..., help="Server name, --all, or --self."),
+    target: str | None = typer.Argument(None, help="Server name."),
+    all_targets: bool = typer.Option(False, "--all"),
+    self_target: bool = typer.Option(False, "--self"),
     calls: int = typer.Option(1, help="Calls per tool."),
     timeout: int = typer.Option(20, help="Per-call timeout in seconds."),
     json_out: bool = typer.Option(False, "--json"),
     png: bool = typer.Option(False, help="Render a shareable PNG card."),
 ) -> None:
     """Run an MCP in the decoy sandbox and record what it does per tool call. (E05-E10, E12)"""
+    selected = sum((target is not None, all_targets, self_target))
+    if selected != 1:
+        raise typer.BadParameter("select one server name, --all, or --self")
     mode = (
         engine.TargetMode.ALL
-        if target == "--all"
+        if all_targets
         else engine.TargetMode.SELF
-        if target == "--self"
+        if self_target
         else engine.TargetMode.NAME
     )
     name = target if mode is engine.TargetMode.NAME else None
@@ -288,7 +296,27 @@ def ci(
     config: str = typer.Option("panopticon.toml"),
 ) -> None:
     """GitHub Action entry point: scan + SARIF + exit policy (action.yml). (E16)"""
-    raise typer.Exit(_not_implemented("ci", "E16"))
+    try:
+        selected_mode = ScanMode(mode)
+        selected_policy = FailOn(fail_on)
+    except ValueError:
+        raise typer.BadParameter("invalid mode or fail-on policy") from None
+    root = Path(path)
+    outcome = run_scan(
+        ScanRequest(
+            path=root,
+            mode=selected_mode,
+            config_path=Path(config),
+        )
+    )
+    target = Path(sarif)
+    saved = persist_succeeded(persist_scan(outcome, target))
+    rendered = render_scan(outcome)
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    if saved:
+        typer.echo(str(target))
+    raise typer.Exit(ci_exit_code(outcome, selected_policy, sarif_persisted=saved))
 
 
 @app.command()

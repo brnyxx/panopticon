@@ -3,11 +3,22 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from typer.testing import CliRunner
+
 from panopticon.analyzers.dependency.model import DependencyInput
 from panopticon.analyzers.dependency.scan import AdvisoryResult, AdvisoryStatus, DependencyFinding
 from panopticon.analyzers.static.findings import StaticFindingView
-from panopticon.engine.contracts import EngineStatus
-from panopticon.engine.scan import ScanMode, ScanRequest, run_scan
+from panopticon.cli.main import app
+from panopticon.engine.contracts import CompleteResult, EngineStatus
+from panopticon.engine.scan import (
+    DeepDimension,
+    DeepDimensionStatus,
+    ScanFinding,
+    ScanMode,
+    ScanRequest,
+    discover_config,
+    run_scan,
+)
 from panopticon.reporters.scan import render, render_cli
 
 
@@ -28,6 +39,26 @@ class FakeAdvisory:
 
     def check(self, requirements: DependencyInput) -> AdvisoryResult:
         self.calls += 1
+        return self.result
+
+
+class FakeSemantic:
+    def __init__(self, result: DeepDimension) -> None:
+        self.result = result
+        self.calls: list[tuple[Path, tuple[object, ...]]] = []
+
+    def analyze(self, root: Path, findings: tuple[ScanFinding, ...]) -> DeepDimension:
+        self.calls.append((root, findings))
+        return self.result
+
+
+class FakeDynamic:
+    def __init__(self, result: DeepDimension) -> None:
+        self.result = result
+        self.calls: list[Path] = []
+
+    def analyze(self, root: Path) -> DeepDimension:
+        self.calls.append(root)
         return self.result
 
 
@@ -134,3 +165,108 @@ def test_missing_semgrep_or_cache_is_typed_incomplete(tmp_path: Path) -> None:
     assert offline.status is EngineStatus.INCOMPLETE
     assert offline.exit_code == 3
     assert offline.result.diagnostics[0].code == "OFFLINE"
+
+
+def test_deep_runs_standard_then_semantic_and_self_with_deterministic_merge(tmp_path: Path) -> None:
+    (tmp_path / "requirements.txt").write_text("requests==2.31.0\n", encoding="utf-8")
+    (tmp_path / "server.py").write_text(
+        "@mcp.tool()\ndef search(query):\n    return query\n", encoding="utf-8"
+    )
+    semgrep = FakeSemgrep(
+        (StaticFindingView("SENT-002", "semantic", "LOW", "sem-fp", "sem.py", 3, 2),)
+    )
+    advisory = FakeAdvisory(AdvisoryResult(AdvisoryStatus.COMPLETE, "COMPLETE"))
+    semantic = FakeSemantic(
+        DeepDimension(
+            DeepDimensionStatus.COMPLETE,
+            "SEMANTIC_COMPLETE",
+            (ScanFinding("SENT-001", "deep semantic", "HIGH", "deep-fp", "a.py", 1, 1),),
+        )
+    )
+    dynamic = FakeDynamic(
+        DeepDimension(
+            DeepDimensionStatus.COMPLETE,
+            "SELF_COMPLETE",
+            (ScanFinding("WATCH-001", "self behavior", "MEDIUM", "self-fp", "b.py", 2, 1),),
+        )
+    )
+    outcome = run_scan(
+        ScanRequest(
+            tmp_path,
+            mode=ScanMode.DEEP,
+            semgrep=semgrep,
+            advisory=advisory,
+            semantic=semantic,
+            dynamic_self=dynamic,
+        )
+    )
+    assert outcome.status is EngineStatus.COMPLETE
+    assert [f.rule_id for f in outcome.findings] == [
+        "SENT-001",
+        "SENT-002",
+        "SENT-003",
+        "WATCH-001",
+    ]
+    assert semantic.calls and semantic.calls[0][1][0].rule_id == "SENT-003"
+    assert dynamic.calls == [tmp_path.resolve()]
+    assert json.loads(render(outcome)) == json.loads(render(outcome))
+
+
+def test_deep_missing_or_unsupported_dimensions_are_visible_incomplete(tmp_path: Path) -> None:
+    (tmp_path / "requirements.txt").write_text("requests==2.31.0\n", encoding="utf-8")
+    advisory = FakeAdvisory(AdvisoryResult(AdvisoryStatus.COMPLETE, "COMPLETE"))
+    semgrep = FakeSemgrep(())
+    base = {
+        "path": tmp_path,
+        "mode": ScanMode.DEEP,
+        "semgrep": semgrep,
+        "advisory": advisory,
+    }
+    missing = run_scan(ScanRequest(**base))
+    assert missing.exit_code == 3
+    assert missing.result.diagnostics[0].code == "SEMANTIC_ANALYZER_UNAVAILABLE"
+    unsupported = run_scan(
+        ScanRequest(
+            **base,
+            semantic=FakeSemantic(
+                DeepDimension(DeepDimensionStatus.UNSUPPORTED, "SEMANTIC_UNSUPPORTED")
+            ),
+            dynamic_self=FakeDynamic(DeepDimension(DeepDimensionStatus.COMPLETE, "SELF_COMPLETE")),
+        )
+    )
+    assert unsupported.exit_code == 3
+    assert unsupported.result.diagnostics[0].code == "SEMANTIC_UNSUPPORTED"
+    assert unsupported.result.diagnostics[0].code == "SEMANTIC_UNSUPPORTED"
+
+
+def test_explicit_config_path_is_honored_and_traversal_rejected(tmp_path: Path) -> None:
+    config = tmp_path / "custom.toml"
+    config.write_text('[scan]\nmode = "standard"\nexclude = ["server.py"]\n', encoding="utf-8")
+    (tmp_path / "server.py").write_text(
+        "@mcp.tool()\ndef search(q):\n return q\n", encoding="utf-8"
+    )
+    selected = discover_config(tmp_path, config)
+    assert selected.mode is ScanMode.STANDARD
+    assert selected.scanner.ignore_paths == ("server.py",)
+    try:
+        discover_config(tmp_path, Path("../outside.toml"))
+    except ValueError as error:
+        assert str(error) == "SCAN_CONFIG_OUT_OF_SCOPE"
+    else:
+        raise AssertionError("config traversal must be rejected")
+
+
+def test_watch_self_selection_and_conflicts(monkeypatch) -> None:
+    from panopticon.cli import main
+
+    seen = []
+
+    def fake_watch(request):
+        seen.append(request)
+        return CompleteResult()
+
+    monkeypatch.setattr(main.engine, "run_watch", fake_watch)
+    runner = CliRunner()
+    assert runner.invoke(app, ["watch", "--self"]).exit_code == 0
+    assert seen[0].selection.mode.value == "self"
+    assert runner.invoke(app, ["watch", "named", "--self"]).exit_code == 2

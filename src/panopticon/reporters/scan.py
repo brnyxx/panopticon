@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from panopticon.engine.scan import ScanFinding, ScanOutcome
-from panopticon.store.contracts import PersistResult
+from panopticon.store.contracts import PersistResult, PersistSuccess
 from panopticon.util.leak_check import LeakContext
 
 from .model import from_result
@@ -63,14 +63,25 @@ def render_cli(outcome: ScanOutcome, *, sarif: bool = False) -> RenderedScan:
 def persist(
     outcome: ScanOutcome,
     target: Path,
-    leak_context: LeakContext,
+    leak_context: LeakContext | None = None,
 ) -> PersistResult:
     return persist_report(
         target,
         make_bundle(outcome),
         ReportFormat.SARIF,
-        leak_context,
+        leak_context or LeakContext(home_paths=(str(Path.home()),)),
     )
 
 
-__all__ = ["RenderedScan", "make_bundle", "persist", "render", "render_cli"]
+def persist_succeeded(result: PersistResult) -> bool:
+    return isinstance(result, PersistSuccess)
+
+
+__all__ = [
+    "RenderedScan",
+    "make_bundle",
+    "persist",
+    "persist_succeeded",
+    "render",
+    "render_cli",
+]

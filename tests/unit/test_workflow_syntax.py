@@ -49,9 +49,10 @@ def test_ci_self_scan_uses_trusted_local_action_and_pinned_upload() -> None:
     assert isinstance(document, dict)
     trigger = document["on"]
     assert isinstance(trigger, dict)
-    assert "pull_request" not in trigger
+    assert "pull_request" in trigger
     assert "schedule" in trigger
     self_scan = document["jobs"]["self-scan"]
+    assert self_scan["if"] == "github.event_name != 'pull_request'"
     assert self_scan["permissions"] == {
         "contents": "read",
         "security-events": "write",

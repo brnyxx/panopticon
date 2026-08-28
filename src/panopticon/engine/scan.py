@@ -33,10 +33,36 @@ _AST_RULES = ("SENT-001", "SENT-003", "SENT-004", "SENT-006", "SENT-007")
 class ScanMode(StrEnum):
     QUICK = "quick"
     STANDARD = "standard"
+    DEEP = "deep"
 
 
 class SemgrepPort(Protocol):
     def scan(self, root: Path) -> tuple[StaticFindingView, ...]: ...
+
+
+class DeepDimensionStatus(StrEnum):
+    COMPLETE = "COMPLETE"
+    INCOMPLETE = "INCOMPLETE"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+@dataclass(frozen=True, slots=True)
+class DeepDimension:
+    status: DeepDimensionStatus
+    reason_code: str
+    findings: tuple[ScanFinding, ...] = ()
+
+
+class SemanticScanPort(Protocol):
+    def analyze(
+        self,
+        root: Path,
+        findings: tuple[ScanFinding, ...],
+    ) -> DeepDimension: ...
+
+
+class DynamicSelfPort(Protocol):
+    def analyze(self, root: Path) -> DeepDimension: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +79,9 @@ class ScanRequest:
     advisory: AdvisoryPort | None = None
     offline: bool = False
     cache_available: bool = True
+    config_path: Path | None = None
+    semantic: SemanticScanPort | None = None
+    dynamic_self: DynamicSelfPort | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,8 +112,12 @@ class ScanPlan(Protocol):
     def run(self, request: ScanRequest) -> ScanOutcome: ...
 
 
-def discover_config(root: Path) -> ScanConfig:
-    path = root / "panopticon.toml"
+def discover_config(root: Path, config_path: Path | None = None) -> ScanConfig:
+    path = config_path or Path("panopticon.toml")
+    path = path if path.is_absolute() else root / path
+    path = path.resolve()
+    if not path.is_relative_to(root):
+        raise ValueError("SCAN_CONFIG_OUT_OF_SCOPE")
     if not path.is_file():
         return ScanConfig(ScanMode.QUICK, ScannerConfig(selected_rule_ids=_AST_RULES))
     try:
@@ -186,7 +219,7 @@ def run_scan(request: ScanRequest) -> ScanOutcome:
     if not root.is_dir() or root.is_symlink():
         return _incomplete(ScanMode.QUICK, (), "SCAN_ROOT_INVALID")
     try:
-        config = discover_config(root)
+        config = discover_config(root, request.config_path)
         mode = request.mode or config.mode
         static = run_static_scan(StaticConfiguration(root, config.scanner))
     except (OSError, SyntaxError, TimeoutError, ValueError):
@@ -216,16 +249,42 @@ def run_scan(request: ScanRequest) -> ScanOutcome:
     findings += _dependency_findings(dependencies.advisory.findings)
     if dependencies.advisory.status is not AdvisoryStatus.COMPLETE:
         return _incomplete(mode, findings, dependencies.advisory.reason_code)
+    if mode is ScanMode.STANDARD:
+        return _outcome(CompleteResult(), findings, mode)
+    semantic = request.semantic
+    dynamic = request.dynamic_self
+    if semantic is None:
+        return _incomplete(mode, findings, "SEMANTIC_ANALYZER_UNAVAILABLE")
+    if dynamic is None:
+        return _incomplete(mode, findings, "DYNAMIC_SELF_UNAVAILABLE")
+    try:
+        semantic_result = semantic.analyze(root, findings)
+        dynamic_result = dynamic.analyze(root)
+    except (OSError, RuntimeError, TimeoutError, ValueError):
+        return _incomplete(mode, findings, "DEEP_SCAN_INCOMPLETE")
+    findings += semantic_result.findings
+    findings += dynamic_result.findings
+    incomplete = tuple(
+        result.reason_code
+        for result in (semantic_result, dynamic_result)
+        if result.status is not DeepDimensionStatus.COMPLETE
+    )
+    if incomplete:
+        return _incomplete(mode, findings, *incomplete)
     return _outcome(CompleteResult(), findings, mode)
 
 
 __all__ = [
+    "DeepDimension",
+    "DeepDimensionStatus",
+    "DynamicSelfPort",
     "ScanConfig",
     "ScanFinding",
     "ScanMode",
     "ScanOutcome",
     "ScanPlan",
     "ScanRequest",
+    "SemanticScanPort",
     "SemgrepPort",
     "discover_config",
     "run_scan",
