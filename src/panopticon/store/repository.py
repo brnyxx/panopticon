@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from panopticon.store.contracts import (
     PersistFailure,
     PersistRequest,
     PersistResult,
+    PersistSuccess,
     SinkKind,
 )
 from panopticon.store.gateway import persist
@@ -129,10 +131,38 @@ class ArtifactRepository:
         failure = self._prepare(target, SinkKind.WRAP_RECORD)
         if failure is not None:
             return failure
-        return persist(
+        result = persist(
             PersistRequest(target, ModelArtifact(SinkKind.WRAP_RECORD, record)),
             self.context,
         )
+        if isinstance(result, PersistSuccess):
+            self._prune_wrap_records(record)
+        return result
+
+    def _prune_wrap_records(self, current: WrapRecord, keep_days: int = 30) -> None:
+        cutoff = current.ts.date() - timedelta(days=keep_days - 1)
+        installation = self.root / "wrap" / str(current.installation_id)
+        try:
+            if installation.is_symlink():
+                return
+            days = tuple(installation.iterdir())
+        except OSError:
+            return
+        for day_path in days:
+            try:
+                day = date.fromisoformat(day_path.name)
+            except ValueError:
+                continue
+            if day >= cutoff or day_path.is_symlink() or not day_path.is_dir():
+                continue
+            try:
+                entries = tuple(day_path.iterdir())
+                for entry in entries:
+                    if entry.suffix == ".json" and not entry.is_symlink() and entry.is_file():
+                        entry.unlink()
+                day_path.rmdir()
+            except OSError:
+                continue
 
     def load_baseline(self, baseline_id: BaselineId | str) -> BaselineLoad:
         path = self.root / "baselines" / f"{baseline_id}.json"

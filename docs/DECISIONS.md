@@ -90,3 +90,15 @@ Numbered, append-only. Format: context / options / chosen / why.
 - Context: the local scaffold and the one-commit remote `main` share no merge base.
 - Chosen: **push the immutable tag `archive/pre-normalization-main-20260826` at the old remote root, then replace `origin/main` once with `--force-with-lease`.** Tag names in this family are normalized as `archive/<reason>-<YYYYMMDD>`. No later force push is authorized.
 - Why: the old history stays recoverable by ref, and the lease makes the one-time replacement fail closed if the remote moved.
+
+## 17. Wrap records are immutable per installation and tool span
+- Context: an append-only daily NDJSON file requires a cross-process lock around read, leak scan,
+  canonicalization, replace, and retention. A crash or uncooperative writer can corrupt the whole
+  day, and a `server_id` directory conflates separate client installations.
+- Chosen: **persist one canonical `WrapRecord` JSON artifact per `installation_id`, UTC day, and
+  stable `span_id` through `store/`**. Daily directories are the rotation boundary; retention removes
+  expired day directories. Atomic per-record replacement makes concurrent identical writes
+  deterministic without an append lock.
+- Why: the runtime schema already models one wrap record, `installation_id` is the addressable
+  config identity (DECISIONS #7), and immutable artifacts retain the store's leak and crash-safety
+  guarantees without a shared mutable log.

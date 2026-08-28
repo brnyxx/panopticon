@@ -1,7 +1,8 @@
 import asyncio
 import os
 import sys
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -198,9 +199,18 @@ def test_concurrent_out_of_order_ids_and_recorder_failure_are_partial(tmp_path: 
     recorder = IsolatedRecorder(Sink(fail=True))
     assert not recorder.record(records[0])
     assert recorder.failures == 1
-    persisted = persist_record(ArtifactRepository(tmp_path), records[0])
+    repository = ArtifactRepository(tmp_path)
+    old_span = replace(
+        records[0].span,
+        started_at=records[0].span.started_at - timedelta(days=31),
+        finished_at=records[0].span.finished_at - timedelta(days=31),
+    )
+    old = persist_record(repository, replace(records[0], span=old_span))
+    assert isinstance(old, PersistSuccess)
+    persisted = persist_record(repository, records[0])
     assert isinstance(persisted, PersistSuccess)
     assert persisted.target.is_file()
+    assert not old.target.exists()
 
 
 def test_json_rpc_batches_correlate_out_of_order_responses() -> None:

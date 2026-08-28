@@ -519,7 +519,8 @@ Implement all of §20: CFG-001..012, HIST-001..004, WATCH-001..014. Each rule ha
 - FIX-002: pin version.
 - FIX-004: narrow filesystem path (prompt).
 - FIX-005: unify duplicates (prompt).
-- FIX-008: `http` → `https` for remote URLs (only after HEAD confirms https responds).
+- FIX-008: `http` → `https` for remote URLs only after a bounded `POST` returns a
+  protocol-valid MCP `initialize` result. `HEAD` or generic HTTP success is insufficient.
 - FIX-010: remove disabled entries (prompt).
 
 ### Definition of done
@@ -558,7 +559,10 @@ Implement all of §20: CFG-001..012, HIST-001..004, WATCH-001..014. Each rule ha
 - JSON-RPC framing (newline-delimited). Match `tools/call` request ids to responses to form spans. On parse failure stop recording but keep relaying.
 - Observation: Linux with `strace` → file+network; otherwise `/proc/<pid>/net/tcp` polling for connect targets. macOS: `nettop`/`lsof` polling (1 s) for connect targets; file observation `UNSUPPORTED`.
 - Env injection: resolve the values from `SecretStore` at launch and pass them to the child in memory (the FIX-001 fallback path). Panopticon never writes a plaintext env file, and injected values are registered for leak detection so they cannot reach a wrap record (DECISIONS #10).
-- Records: `~/.panopticon/wrap/<server_id>/<date>.ndjson`, daily rotation, 30-day retention (`config.toml`).
+- Records: immutable `~/.panopticon/wrap/<installation_id>/<date>/<span_id>.json`
+  artifacts through `store/`, partitioned by UTC day with 30-day retention (`config.toml`).
+  Immutable per-call files avoid cross-process append corruption and preserve installation identity
+  (DECISIONS #17).
 - Alerts: first-seen host/process appended to `~/.panopticon/alerts.ndjson`; `pano doctor` shows them at the top. `--notify` for OS notifications (macOS `osascript`, Linux `notify-send`).
 - Self-protection: if wrap crashes the child must survive (detach option); crash log recorded.
 

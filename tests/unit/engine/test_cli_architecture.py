@@ -28,10 +28,8 @@ FORBIDDEN_IMPORTS = (
 )
 STUB_INVOCATIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("watch", ("watch", "target")),
-    ("wrap", ("wrap", "--", "echo", "ok")),
     ("install", ("install", "claude")),
     ("uninstall", ("uninstall", "claude")),
-    ("fix", ("fix",)),
     ("explain", ("explain", "WATCH-001")),
     ("scan", ("scan", ".")),
     ("ci", ("ci",)),
@@ -87,7 +85,7 @@ def test_cli_imports_only_engine_and_reporter_boundaries() -> None:
 def test_cli_commands_delegate_without_domain_control_flow() -> None:
     # Given: the four foundation pipeline wrappers.
     tree = _cli_tree()
-    for name in ("doctor", "watch", "diff", "scan"):
+    for name in ("doctor", "watch", "wrap", "fix", "diff", "scan"):
         command = _command(tree, name)
         calls = tuple(node for node in ast.walk(command) if isinstance(node, ast.Call))
         roots = {_call_root(call) for call in calls}
@@ -100,6 +98,10 @@ def test_cli_commands_delegate_without_domain_control_flow() -> None:
             "render",
             "run_diff",
             "render_diff",
+            "run_fix",
+            "render_fix",
+            "run_wrap",
+            "render_wrap",
         }, name
         assert not any(
             isinstance(node, (ast.For, ast.While, ast.Match, ast.Try)) for node in ast.walk(command)
