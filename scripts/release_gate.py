@@ -9,46 +9,21 @@ import os
 import platform
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
+from typing import TypedDict
+
+from release_evidence import (
+    CommandReceipt,
+    CommandSpec,
+    command,
+    git_command,
+    image_digests,
+    run_argv,
+    sha256,
+    tree_digest,
+    validate_inputs,
+)
 
 from panopticon.util.leak_check import LeakContext, find_leaks
-
-if TYPE_CHECKING:
-    from scripts.release_evidence import (
-        CommandReceipt,
-        CommandSpec,
-        command,
-        git_command,
-        image_digests,
-        run_argv,
-        sha256,
-        tree_digest,
-        validate_inputs,
-    )
-elif __package__:
-    from .release_evidence import (
-        CommandReceipt,
-        CommandSpec,
-        command,
-        git_command,
-        image_digests,
-        run_argv,
-        sha256,
-        tree_digest,
-        validate_inputs,
-    )
-else:
-    from release_evidence import (
-        CommandReceipt,
-        CommandSpec,
-        command,
-        git_command,
-        image_digests,
-        run_argv,
-        sha256,
-        tree_digest,
-        validate_inputs,
-    )
 
 
 class ReleaseManifest(TypedDict):

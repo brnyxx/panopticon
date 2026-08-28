@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parents[2]))
-release_gate = importlib.import_module("scripts.release_gate")
+sys.path.insert(0, str(Path(__file__).parents[2] / "scripts"))
+release_gate = importlib.import_module("release_gate")
 run_argv = release_gate.run_argv
 validate_inputs = release_gate.validate_inputs
 

@@ -7,8 +7,8 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[2]))
-performance_gate = importlib.import_module("scripts.performance_gate")
+sys.path.insert(0, str(Path(__file__).parents[2] / "scripts"))
+performance_gate = importlib.import_module("performance_gate")
 FIXTURE_VERSION = performance_gate.FIXTURE_VERSION
 SAMPLES = performance_gate.SAMPLES
 deterministic_decoys = performance_gate.deterministic_decoys
