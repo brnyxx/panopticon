@@ -214,3 +214,6 @@ def attribute_span(
     if not matches:
         return None
     return min(matches, key=lambda span: (span.end - span.start, span.span_id)).span_id
+
+
+collect = collect_behavior
