@@ -41,10 +41,12 @@ set -euo pipefail
 workspace="$1"
 commit="$2"
 cd "$workspace"
+export UV_PROJECT_ENVIRONMENT=/tmp/pano-venv
+export UV_CACHE_DIR=/tmp/pano-uv-cache
 rm -rf .pano-wsl-uv
 mkdir .pano-wsl-uv
 tar -xzf .pano-wsl-uv.tar.gz -C .pano-wsl-uv --strip-components=1
-./.pano-wsl-uv/uv sync --all-extras
+./.pano-wsl-uv/uv sync --extra dev
 ./.pano-wsl-uv/uv run python scripts/platform_probe.py \
   --label wsl2-x64 \
   --commit "$commit" \

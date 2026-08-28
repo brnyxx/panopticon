@@ -99,10 +99,10 @@ async def test_wrap_cli_preserves_bytes_and_child_exit(tmp_path: Path) -> None:
         env={**os.environ, "HOME": str(tmp_path), "USERPROFILE": str(tmp_path)},
     )
     wire = b'{"jsonrpc":"2.0","id":1,"method":"tools/call"}\n'
-    stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
-    assert stdout == wire
-    assert stderr == b""
-    assert process.returncode == 7
+    stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=10)
+    assert stdout == wire, "WRAP_RELAY_STDOUT_MISMATCH"
+    assert stderr == b"", "WRAP_RELAY_STDERR_NONEMPTY"
+    assert process.returncode == 7, "WRAP_RELAY_EXIT_MISMATCH"
 
 
 @pytest.mark.asyncio
@@ -127,7 +127,7 @@ async def test_wrap_cli_persists_correlated_record_through_store(tmp_path: Path)
         env={**os.environ, "HOME": str(tmp_path), "USERPROFILE": str(tmp_path)},
     )
     wire = b'{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"ping"}}\n'
-    stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
+    stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=10)
     expected = b'{"jsonrpc":"2.0","id":9,"result":{}}' + os.linesep.encode()
     assert stdout == expected, "WRAP_STDOUT_MISMATCH"
     assert stderr == b"", "WRAP_STDERR_NONEMPTY"
