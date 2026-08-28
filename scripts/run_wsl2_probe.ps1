@@ -51,6 +51,7 @@ tar -xzf .pano-wsl-uv.tar.gz -C .pano-wsl-uv --strip-components=1
   --output evidence/wsl2-x64.json
 rm -rf .pano-wsl-uv .pano-wsl-uv.tar.gz
 '@
+$probe = $probe.Replace("`r", "")
 $probe | & wsl.exe --distribution Ubuntu-24.04 -- bash -s -- $wslWorkspace $Commit
 if ($LASTEXITCODE -ne 0) {
     throw "WSL2_PROBE_FAILED"
