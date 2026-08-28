@@ -29,10 +29,26 @@ def doctor_mapping(data: DoctorData) -> dict[str, object]:
 def render_outcome(outcome: DoctorOutcome) -> dict[str, object]:
     """Render status metadata alongside sanitized doctor values."""
     result = outcome.result
+    coverage = {
+        name: {
+            "status": stage.status.value,
+            "reason_code": stage.reason_code.value,
+            "diagnostics": [{"code": d.code, "detail": d.detail} for d in stage.diagnostics],
+        }
+        for name, stage in (
+            ("file", result.coverage.file),
+            ("net", result.coverage.net),
+            ("process", result.coverage.process),
+            ("dns", result.coverage.dns),
+            ("proxy", result.coverage.proxy),
+            ("snapshot", result.coverage.snapshot),
+            ("stdio", result.coverage.stdio),
+        )
+    }
     return {
         "status": result.status.value,
         "reason_code": result.reason_code.value,
-        "coverage": result.coverage,
+        "coverage": coverage,
         "diagnostics": [{"code": d.code, "detail": d.detail} for d in result.diagnostics],
         "doctor": doctor_mapping(outcome.data),
     }

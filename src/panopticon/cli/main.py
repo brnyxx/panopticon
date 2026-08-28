@@ -11,6 +11,7 @@ import typer
 from panopticon import SCHEMA_VERSION, __version__
 from panopticon.engine import foundation as engine
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
+from panopticon.reporters import doctor as doctor_reporter
 from panopticon.reporters import foundation as reporters
 
 __all__ = ["NOT_IMPLEMENTED_EXIT"]
@@ -44,11 +45,12 @@ def doctor(
     json_out: bool = typer.Option(False, "--json", help="Emit JSON to stdout."),
     fix: bool = typer.Option(False, help="Run `pano fix` after checks."),
     list_clients: bool = typer.Option(False, "--list-clients", help="Discovery status only."),
+    offline: bool = typer.Option(False, "--offline", help="Do not query remote history sources."),
 ) -> None:
     """Discover installed MCPs, check configs, report changes since last look. (E02-E04, E12)"""
-    rendered = reporters.render(
-        engine.run_doctor(
-            engine.DoctorRequest(client=client, list_clients=list_clients, fix=fix),
+    rendered = doctor_reporter.render(
+        engine.doctor_outcome(
+            engine.DoctorRequest(client=client, list_clients=list_clients, fix=fix, offline=offline)
         ),
         json_output=json_out,
     )

@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import os
+import sys
+from pathlib import Path
+
+from panopticon.discovery.base import DiscoveryEnv
 from panopticon.engine.contracts import (
-    CompleteResult,
     EngineDiagnostic,
     EngineReason,
-    IncompleteResult,
     Result,
     UnsupportedResult,
 )
 from panopticon.engine.diff import DiffRequest
-from panopticon.engine.doctor import DoctorRequest
+from panopticon.engine.doctor import DoctorInputs, DoctorRequest
+from panopticon.engine.doctor import run_doctor as _run_doctor
+from panopticon.engine.doctor_model import DoctorOutcome
 from panopticon.engine.scan import ScanRequest
 from panopticon.engine.watch import (
     TargetMode,
@@ -29,14 +34,14 @@ def _not_implemented(epic: str) -> UnsupportedResult:
 
 
 def run_doctor(request: DoctorRequest) -> Result:
-    if request.list_clients and request.client is None and not request.fix:
-        return CompleteResult(reason_code=EngineReason.COMPLETED)
-    if request.client is not None:
-        return IncompleteResult(
-            reason_code=EngineReason.DISCOVERY_FAILED,
-            diagnostics=(EngineDiagnostic("DISCOVERY_FAILED", "DISCOVERY_FAILED"),),
-        )
-    return _not_implemented("E02")
+    return _run_doctor(request).result
+
+
+def doctor_outcome(request: DoctorRequest) -> DoctorOutcome:
+    """Run doctor with process runtime dependencies for the CLI boundary."""
+    platform = "darwin" if sys.platform == "darwin" else "windows" if os.name == "nt" else "linux"
+    env = DiscoveryEnv(Path.home(), Path.cwd(), platform, dict(os.environ))
+    return _run_doctor(request, inputs=DoctorInputs(env))
 
 
 def run_watch(request: WatchRequest) -> Result:
@@ -59,6 +64,7 @@ __all__ = [
     "TargetSelection",
     "WatchOptions",
     "WatchRequest",
+    "doctor_outcome",
     "run_diff",
     "run_doctor",
     "run_scan",
