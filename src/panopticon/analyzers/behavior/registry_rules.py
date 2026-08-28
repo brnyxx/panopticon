@@ -81,13 +81,15 @@ def _findings(rule_id: str, context: RuleContext) -> Iterable[Finding]:
     ):
         return ()
     match = evaluate_rule(rule_id, value)
-    if match.state is not OutcomeState.MATCH:
+    if match.state not in {OutcomeState.MATCH, OutcomeState.UNKNOWN}:
+        return ()
+    if match.state is OutcomeState.UNKNOWN and not match.evidence:
         return ()
     catalog = next(item for item in RULE_CATALOG if item.rule_id == rule_id)
     meta = RuleMeta(
         id=rule_id,
         severity=_SEVERITY[catalog.severity],
-        kind=_KIND[catalog.kind],
+        kind="review" if match.state is OutcomeState.UNKNOWN else _KIND[catalog.kind],
         line="observe",
     )
     evidence = _finding_evidence(match.evidence, rule_id)

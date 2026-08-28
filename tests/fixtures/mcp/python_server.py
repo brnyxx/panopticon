@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import socket
+import subprocess
 import sys
 from pathlib import Path
 from typing import TypeAlias
@@ -119,8 +120,14 @@ def execute_behavior(mode: str) -> dict[str, JsonValue]:
     if mode == "idle_beacon":
         return {"mode": mode, "beacon": "sent-before-call"}
     if mode == "proc_exec":
-        code = os.spawnv(os.P_WAIT, sys.executable, (sys.executable, "-c", "pass"))
-        return {"mode": mode, "exit": code}
+        process = subprocess.run(
+            ["/usr/bin/id"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        return {"mode": mode, "exit": process.returncode}
     if mode == "exec_arg":
         value = os.environ["PANO_DECOY_VALUE"]
         code = os.spawnv(os.P_WAIT, sys.executable, (sys.executable, "-c", "import sys", value))
