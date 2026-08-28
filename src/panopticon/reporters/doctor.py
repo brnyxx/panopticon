@@ -13,6 +13,8 @@ from panopticon.reporters.base import Render
 def render(outcome: DoctorOutcome, *, json_output: bool = False) -> Render:
     payload = render_outcome(outcome)
     code = result_exit_code(outcome.result)
+    if outcome.result.status.value == "PARTIAL":
+        code = 3
     if json_output:
         return Render(
             stdout=json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
