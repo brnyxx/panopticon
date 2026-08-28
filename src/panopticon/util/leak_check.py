@@ -86,7 +86,7 @@ class LeakHit:
     offset: int
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class LeakError(RuntimeError):
     hits: tuple[LeakHit, ...]
 

@@ -25,7 +25,7 @@ class CapabilityStatus(StrEnum):
     FAILED = "FAILED"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class SecretUseError(RuntimeError):
     """A key could not be loaded for one callback invocation."""
 

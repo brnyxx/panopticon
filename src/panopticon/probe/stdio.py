@@ -22,12 +22,12 @@ from .protocol import (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class _RpcError(Exception):
     error: ProtocolError
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class _ReadError(Exception):
     reason_code: str
 

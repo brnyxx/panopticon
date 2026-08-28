@@ -23,7 +23,7 @@ GCM_TAG_BYTES: Final = 16
 _JSON_VALUE: Final[TypeAdapter[JsonValue]] = TypeAdapter(JsonValue)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class EnvelopeError(ValueError):
     """Typed parse or encoding rejection without retaining input bytes."""
 
@@ -33,7 +33,7 @@ class EnvelopeError(ValueError):
         return self.code
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class InvalidTagError(RuntimeError):
     """Authenticated decryption rejected the ciphertext or associated data."""
 

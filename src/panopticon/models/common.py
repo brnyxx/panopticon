@@ -15,7 +15,7 @@ PersistedPath = NewType("PersistedPath", str)
 Host = NewType("Host", str)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ContractViolationError(ValueError):
     """A machine-consumed persistence contract was violated."""
 

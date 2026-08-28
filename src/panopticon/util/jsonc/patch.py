@@ -50,7 +50,7 @@ class _PlannedEdit:
     parent_pointer: str
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class JsoncPatchError(Exception):
     """A patch addressing, value, or overlap error."""
 

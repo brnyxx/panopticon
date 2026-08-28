@@ -57,7 +57,7 @@ class AtomicFailure:
 AtomicResult: TypeAlias = AtomicSuccess | AtomicRejected | AtomicFailure | AtomicConflict
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class UnsafePathError(Exception):
     code: RejectionCode
 

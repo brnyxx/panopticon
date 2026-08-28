@@ -22,7 +22,7 @@ from .document import (
 from .tokenizer import Token, TokenizeError, TokenKind, tokenize
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class JsoncParseError(Exception):
     """A JSONC syntax or encoding error with a byte location."""
 

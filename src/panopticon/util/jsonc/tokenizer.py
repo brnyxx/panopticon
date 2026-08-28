@@ -35,7 +35,7 @@ class Token:
     raw: bytes
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class TokenizeError(Exception):
     """A lexical error identified by its source byte offset."""
 
