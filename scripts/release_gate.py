@@ -132,13 +132,14 @@ def gate(root: Path, output: Path, *, clean_checkout: bool) -> ReleaseManifest:
     commit_hash = revision.stdout.strip()
     if revision.returncode != 0 or len(commit_hash) != 40:
         raise ValueError("COMMIT_UNAVAILABLE")
-    temporary = root / ".pano-release-tmp"
+    temporary_name = Path(".pano-release-tmp")
+    temporary = root / temporary_name
     if temporary.exists():
         raise ValueError("TEMPORARY_PATH_EXISTS")
     temporary.mkdir()
     receipts: list[CommandReceipt] = []
     try:
-        for spec in build_commands(temporary):
+        for spec in build_commands(temporary_name):
             receipt = run_argv(spec["argv"], name=spec["name"], cwd=root)
             receipts.append(receipt)
             if receipt["status"] != "PASS":
