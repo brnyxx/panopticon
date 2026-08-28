@@ -1,0 +1,37 @@
+{
+  "coverage": {
+    "positive": ["CFG-001","CFG-002","CFG-003","CFG-004","CFG-005","CFG-006","CFG-007","CFG-008","CFG-009","CFG-010","CFG-011","CFG-012"],
+    "negative": ["CFG-001","CFG-002","CFG-003","CFG-004","CFG-005","CFG-006","CFG-007","CFG-008","CFG-009","CFG-010","CFG-011","CFG-012"]
+  },
+  "positive": {
+    "servers": [
+      {"schema_version":"0.1","server_id":"cfg-token","installation_id":"i-token","name":"token","client":"claude","config_path":"/cfg/token","config_pointer":"/servers/token","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":["API_KEY"],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-unpinned","installation_id":"i-unpinned","name":"unpinned","client":"claude","config_path":"/cfg/unpinned","config_pointer":"/servers/unpinned","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":{"ecosystem":"npm","name":"pkg","pinned":null,"resolved":null},"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-command","installation_id":"i-command","name":"command","client":"claude","config_path":"/cfg/command","config_pointer":"/servers/command","scope":"global","transport":"stdio","command":"bash -c 'echo hi'","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"filesystem","installation_id":"i-path","name":"filesystem","client":"claude","config_path":"/cfg/path","config_pointer":"/servers/path","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-dup","installation_id":"i-dup-a","name":"dup-a","client":"claude","config_path":"/cfg/dup-a","config_pointer":"/servers/dup-a","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":{"ecosystem":"npm","name":"pkg","pinned":"1","resolved":"1"},"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-dup","installation_id":"i-dup-b","name":"dup-b","client":"claude","config_path":"/cfg/dup-b","config_pointer":"/servers/dup-b","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":{"ecosystem":"npm","name":"pkg","pinned":"2","resolved":"2"},"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-source","installation_id":"i-source","name":"source","client":"claude","config_path":"/cfg/source","config_pointer":"/servers/source","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":null,"source":{"kind":"local","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-entropy","installation_id":"i-entropy","name":"entropy","client":"claude","config_path":"/cfg/entropy","config_pointer":"/servers/entropy","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":["SECRET"],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-http","installation_id":"i-http","name":"http","client":"claude","config_path":"/cfg/http","config_pointer":"/servers/http","scope":"global","transport":"http","command":null,"args":[],"env_keys":[],"url":"http://example.com/api","headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-disabled","installation_id":"i-disabled","name":"disabled","client":"claude","config_path":"/cfg/disabled","config_pointer":"/servers/disabled","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":true,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-arg","installation_id":"i-arg","name":"arg","client":"claude","config_path":"/cfg/arg","config_pointer":"/servers/arg","scope":"global","transport":"stdio","command":"run","args":["/etc/config"],"env_keys":[],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-header","installation_id":"i-header","name":"header","client":"claude","config_path":"/cfg/header","config_pointer":"/servers/header","scope":"global","transport":"http","command":null,"args":[],"env_keys":[],"url":"https://example.com/api","headers_keys":["Authorization"],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"cfg-wrap","installation_id":"i-wrap","name":"wrap","client":"claude","config_path":"/cfg/wrap","config_pointer":"/servers/wrap","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":false}
+    ],
+    "env_values":{"i-token":["ghp_TEST_TOKEN_VALUE"],"i-entropy":["Ab3$xY7!qP9@Lm2#Rt5%Uv8^"]},
+    "allowed_paths":{"i-path":["/"]},
+    "filesystem_servers":["i-path"],
+    "token_header_keys":{"i-header":["Authorization"]}
+  },
+  "near_miss": {
+    "servers": [
+      {"schema_version":"0.1","server_id":"safe","installation_id":"i-safe","name":"safe","client":"claude","config_path":"/cfg/safe","config_pointer":"/servers/safe","scope":"global","transport":"stdio","command":"echo hi","args":["/opt/app"],"env_keys":["KEY"],"url":null,"headers_keys":[],"package":{"ecosystem":"npm","name":"pkg","pinned":"1","resolved":"1"},"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true},
+      {"schema_version":"0.1","server_id":"safe-fs","installation_id":"i-fs","name":"safe-fs","client":"claude","config_path":"/cfg/fs","config_pointer":"/servers/fs","scope":"global","transport":"stdio","command":"run","args":[],"env_keys":[],"url":null,"headers_keys":[],"package":null,"source":{"kind":"registry","url":null},"identity_confidence":"high","disabled":false,"wrapped":true}
+    ],
+    "env_values":{"i-safe":["ordinary-value"]},
+    "allowed_paths":{"i-fs":["/srv/app"]},
+    "filesystem_servers":["i-fs"],
+    "token_header_keys":{"i-safe":[]}
+  }
+}
