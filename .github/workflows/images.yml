@@ -82,10 +82,10 @@ jobs:
           docker buildx imagetools inspect "ghcr.io/brnyxx/pano-sandbox-node@$NODE20_DIGEST"
           docker buildx imagetools inspect "ghcr.io/brnyxx/pano-sandbox-node@$NODE22_DIGEST"
           docker buildx imagetools inspect "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST"
-          docker run --rm --platform linux/amd64 "ghcr.io/brnyxx/pano-sandbox-node@$NODE20_DIGEST" node --version
-          docker run --rm --platform linux/arm64 "ghcr.io/brnyxx/pano-sandbox-node@$NODE22_DIGEST" node --version
-          docker run --rm --platform linux/amd64 "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST" python --version
-          docker run --rm --platform linux/arm64 "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST" uv --version
+          docker run --rm --platform linux/amd64 --entrypoint node "ghcr.io/brnyxx/pano-sandbox-node@$NODE20_DIGEST" --version
+          docker run --rm --platform linux/arm64 --entrypoint node "ghcr.io/brnyxx/pano-sandbox-node@$NODE22_DIGEST" --version
+          docker run --rm --platform linux/amd64 --entrypoint python "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST" --version
+          docker run --rm --platform linux/arm64 --entrypoint uv "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST" --version
       - name: Record immutable publication digests
         shell: bash
         env:
