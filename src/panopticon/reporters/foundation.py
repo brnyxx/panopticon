@@ -1,24 +1,15 @@
-"""Small sanitized JSON/text renderer used until the reporter epic lands."""
+"""Foundation engine-result adapter into sanitized reporters."""
 
 from __future__ import annotations
 
-import json
+from dataclasses import replace
 
 from panopticon.engine.contracts import Result
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT, result_exit_code
 from panopticon.reporters.base import Render
-
-
-def _payload(result: Result) -> dict[str, object]:
-    diagnostics = tuple(
-        {"code": diagnostic.code, "detail": diagnostic.code} for diagnostic in result.diagnostics
-    )
-    return {
-        "classification": result.status.value,
-        "diagnostics": diagnostics,
-        "reason_code": result.reason_code.value,
-        "status": result.status.value,
-    }
+from panopticon.reporters.json import JsonReporter
+from panopticon.reporters.model import from_result
+from panopticon.reporters.terminal import TerminalReporter
 
 
 def _is_stub(result: Result) -> bool:
@@ -26,16 +17,17 @@ def _is_stub(result: Result) -> bool:
 
 
 def render(result: Result, *, json_output: bool) -> Render:
-    payload = _payload(result)
-    if json_output:
-        stdout = json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
-        stdout += "\n"
-    else:
-        stdout = f"{payload['status']} {payload['reason_code']}\n"
+    try:
+        model = from_result(result)
+    except ValueError:
+        return Render(stdout="", stderr="", exit_code=1)
     stub = _is_stub(result)
-    stderr = "NOT_IMPLEMENTED\n" if stub else ""
     exit_code = NOT_IMPLEMENTED_EXIT if stub else result_exit_code(result)
-    return Render(stdout=stdout, stderr=stderr, exit_code=exit_code)
+    reporter = (
+        JsonReporter(exit_code=exit_code) if json_output else TerminalReporter(exit_code=exit_code)
+    )
+    output = reporter.render(model)
+    return replace(output, stderr="NOT_IMPLEMENTED\n") if stub else output
 
 
 __all__ = ["render"]

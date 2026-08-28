@@ -13,11 +13,12 @@ from .model import HistoryReason, HistoryStatus, NormalizedHistory, ReleaseRecor
 _VERSION = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?$")
 
 
-def _safe_url(value: Any) -> str | None:
+def _safe_url(value: object) -> str | None:
     if not isinstance(value, str):
         return None
+    raw = value.removeprefix("git+")
     try:
-        p = urlsplit(value)
+        p = urlsplit(raw)
         if p.scheme.casefold() not in {"http", "https"} or not p.hostname:
             return None
         host = p.hostname.encode("idna").decode().casefold()
@@ -27,7 +28,11 @@ def _safe_url(value: Any) -> str | None:
         return None
 
 
-def parse_timestamp(value: Any) -> tuple[datetime | None, HistoryReason | None]:
+def parse_timestamp(
+    value: Any,
+    *,
+    now: datetime | None = None,
+) -> tuple[datetime | None, HistoryReason | None]:
     if value is None:
         return None, HistoryReason.MISSING_TIMESTAMP
     if not isinstance(value, str):
@@ -40,7 +45,7 @@ def parse_timestamp(value: Any) -> tuple[datetime | None, HistoryReason | None]:
         return None, HistoryReason.INVALID_TIMESTAMP
     parsed = parsed.astimezone(UTC)
     # Guard against absurd dates that can overflow age calculations.
-    if parsed.year < 1970 or parsed > datetime.now(UTC):
+    if parsed.year < 1970 or parsed > (now or datetime.now(UTC)):
         return None, HistoryReason.TIMESTAMP_TOO_LARGE
     return parsed, None
 
@@ -54,6 +59,14 @@ def _age(timestamp: datetime, now: datetime) -> int | None:
 
 def _version(value: Any) -> str | None:
     return value if isinstance(value, str) and _VERSION.fullmatch(value) else None
+
+
+def _semver_key(value: str) -> tuple[int, int, int, str]:
+    matched = _VERSION.fullmatch(value)
+    if matched is None:
+        return (0, 0, 0, value)
+    major, minor, patch = matched.groups()[:3]
+    return (int(major), int(minor), int(patch), value)
 
 
 def _select(spec: str, versions: list[str]) -> str | None:
@@ -95,8 +108,39 @@ def _select(spec: str, versions: list[str]) -> str | None:
                 return False
         return True
 
-    matched = [v for v, t in candidates if okay(t)]
+    matched = [v for v, t in sorted(candidates, key=lambda item: item[1]) if okay(t)]
     return matched[-1] if matched else None
+
+
+def _resolve(
+    spec: str,
+    records: list[ReleaseRecord],
+    tags: Mapping[str, object] | None = None,
+) -> tuple[str | None, HistoryReason]:
+    effective_spec = tags.get(spec, spec) if tags is not None else spec
+    if not isinstance(effective_spec, str):
+        return None, HistoryReason.UNRESOLVED_SPEC
+    exact = _version(effective_spec)
+    if exact is not None:
+        selected = next(
+            (
+                record
+                for record in records
+                if record.version == exact
+                or record.version.removeprefix("v") == exact.removeprefix("v")
+            ),
+            None,
+        )
+        if selected is None:
+            return None, HistoryReason.UNRESOLVED_SPEC
+        if selected.yanked:
+            return selected.version, HistoryReason.YANKED
+        if selected.deprecated:
+            return selected.version, HistoryReason.DEPRECATED
+        return selected.version, HistoryReason.OK
+    usable = [record.version for record in records if not record.yanked and not record.deprecated]
+    resolved = _select(effective_spec, usable)
+    return resolved, HistoryReason.OK if resolved else HistoryReason.UNRESOLVED_SPEC
 
 
 def _result(ecosystem: str, name: str, spec: str, **kwargs: Any) -> NormalizedHistory:
@@ -134,7 +178,7 @@ def normalize_github(
         ver = _version(item.get("tag_name") or item.get("name"))
         if not ver:
             continue
-        ts, reason = parse_timestamp(item.get("published_at"))
+        ts, reason = parse_timestamp(item.get("published_at"), now=now)
         if reason:
             return _result(
                 "github", name, spec, status=HistoryStatus.INCOMPLETE, reason_code=reason
@@ -148,16 +192,17 @@ def normalize_github(
                 deprecated=False,
             )
         )
-    records.sort(key=lambda r: r.version)
-    resolved = _select(spec, [r.version for r in records])
+    records.sort(key=lambda record: _semver_key(record.version))
+    resolved, resolved_reason = _resolve(spec, records)
     return _result(
         "github",
         name,
         spec,
         status=HistoryStatus.AVAILABLE if resolved else HistoryStatus.UNKNOWN,
-        reason_code=HistoryReason.OK if resolved else HistoryReason.UNRESOLVED_SPEC,
+        reason_code=resolved_reason,
         resolved_version=resolved,
         source_url=_safe_url(payload.get("html_url") or payload.get("url")),
+        archived=payload.get("archived") if isinstance(payload.get("archived"), bool) else None,
         releases=tuple(records),
     )
 
@@ -213,6 +258,7 @@ def _normalize_registry(
     latest: str | None = None
     maintainers: tuple[str, ...] = ()
     archived: bool | None = None
+    tags: Mapping[str, object] | None = None
     if ecosystem == "npm":
         versions = payload.get("versions")
         times = payload.get("time", {})
@@ -220,12 +266,10 @@ def _normalize_registry(
         source = payload.get("homepage")
         if not source and isinstance(repository, Mapping):
             source = repository.get("url")
-        tags = payload.get("dist-tags")
-        latest = (
-            tags.get("latest")
-            if isinstance(tags, Mapping) and isinstance(tags.get("latest"), str)
-            else None
-        )
+        raw_tags = payload.get("dist-tags")
+        tags = raw_tags if isinstance(raw_tags, Mapping) else None
+        latest_value = tags.get("latest") if tags is not None else None
+        latest = latest_value if isinstance(latest_value, str) else None
         raw = payload.get("maintainers")
         if isinstance(raw, list):
             maintainers = tuple(
@@ -238,13 +282,14 @@ def _normalize_registry(
     else:
         info = payload.get("info", {})
         versions = payload.get("releases")
+        release_mapping = versions if isinstance(versions, Mapping) else {}
         times = {
             v: (
                 items[0].get("upload_time_iso_8601")
                 if items and isinstance(items[0], Mapping)
                 else None
             )
-            for v, items in (versions or {}).items()
+            for v, items in release_mapping.items()
         }
         source = info.get("project_url") if isinstance(info, Mapping) else None
         latest = (
@@ -264,13 +309,25 @@ def _normalize_registry(
     for ver in sorted(versions):
         if not _version(ver):
             continue
-        ts, reason = parse_timestamp(times.get(ver) if isinstance(times, Mapping) else None)
+        ts, reason = parse_timestamp(
+            times.get(ver) if isinstance(times, Mapping) else None,
+            now=now,
+        )
         if reason:
             return _result(
                 ecosystem, name, spec, status=HistoryStatus.INCOMPLETE, reason_code=reason
             )
-        meta = versions[ver] if isinstance(versions[ver], Mapping) else {}
-        yanked = bool(meta.get("yanked")) if ecosystem == "pypi" else False
+        raw_meta = versions[ver]
+        meta = raw_meta if isinstance(raw_meta, Mapping) else {}
+        release_files = raw_meta if isinstance(raw_meta, list) else ()
+        yanked = (
+            any(
+                isinstance(release_file, Mapping) and bool(release_file.get("yanked"))
+                for release_file in release_files
+            )
+            if ecosystem == "pypi"
+            else False
+        )
         dep = bool(meta.get("deprecated")) if ecosystem == "npm" else False
         records.append(
             ReleaseRecord(
@@ -281,13 +338,18 @@ def _normalize_registry(
                 deprecated=dep,
             )
         )
-    resolved = _select(spec, [r.version for r in records if not r.yanked and not r.deprecated])
+    records.sort(key=lambda record: _semver_key(record.version))
+    resolved, resolved_reason = _resolve(
+        spec,
+        records,
+        tags if ecosystem == "npm" else None,
+    )
     return _result(
         ecosystem,
         name,
         spec,
         status=HistoryStatus.AVAILABLE if resolved else HistoryStatus.UNKNOWN,
-        reason_code=HistoryReason.OK if resolved else HistoryReason.UNRESOLVED_SPEC,
+        reason_code=resolved_reason,
         resolved_version=resolved,
         latest=latest,
         maintainers=maintainers,

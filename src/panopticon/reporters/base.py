@@ -18,7 +18,7 @@ class Render:
 
 
 class Reporter(Protocol):
-    def render(self, model: SanitizedRenderModel, *, json_output: bool) -> Render: ...
+    def render(self, model: SanitizedRenderModel) -> Render: ...
 
 
 __all__ = ["Render", "Reporter"]

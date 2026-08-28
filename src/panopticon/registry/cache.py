@@ -31,8 +31,7 @@ def cache_key(lookup: CacheLookup) -> str:
 
 def cache_path(lookup: CacheLookup) -> str:
     """Return the ``~``-relative store destination; this function never writes."""
-    safe_name = lookup.name.replace("/", "__").replace("\\", "__")
-    return f"~/.panopticon/cache/registry/{lookup.ecosystem.casefold()}/{safe_name}.json"
+    return f"~/.panopticon/cache/registry/{lookup.ecosystem.casefold()}/{cache_key(lookup)}.json"
 
 
 def make_lookup(ecosystem: str, name: str, spec: str) -> CacheLookup:
@@ -75,13 +74,3 @@ def resolve_cached_version(lookup: CacheLookup, cache: Cache) -> str | None:
     """Resolve only a normalized exact/tag/range result from cache."""
     history = lookup_history(cache, lookup)
     return history.resolved_version if history.status is HistoryStatus.AVAILABLE else None
-
-
-# Compatibility helper for callers that pass the inventory PackageIdentity.
-def resolve_package_version(package: object, cache: Cache) -> str | None:
-    ecosystem = getattr(
-        getattr(package, "ecosystem", None), "value", getattr(package, "ecosystem", "")
-    )
-    name = getattr(package, "name", "")
-    spec = getattr(package, "pinned", None) or "latest"
-    return resolve_cached_version(make_lookup(str(ecosystem), str(name), str(spec)), cache)

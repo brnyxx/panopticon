@@ -3,32 +3,27 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
-from panopticon.engine.contracts import Result
-from panopticon.engine.exit_codes import result_exit_code
 from panopticon.reporters.base import Render
-from panopticon.reporters.model import SanitizedRenderModel, from_result
+from panopticon.reporters.model import SanitizedRenderModel
 
 
-def payload(model: SanitizedRenderModel) -> dict[str, Any]:
+def payload(model: SanitizedRenderModel) -> dict[str, object]:
     return {
         "coverage": [
             {
-                "name": s.name,
-                "status": s.status,
-                "reason_code": s.reason_code,
-                "diagnostics": list(s.diagnostics),
+                "name": stage.name,
+                "status": stage.status,
+                "reason_code": stage.reason_code,
+                "diagnostics": list(stage.diagnostics),
             }
-            for s in sorted(model.stages, key=lambda item: item.name)
+            for stage in sorted(model.stages, key=lambda item: item.name)
         ],
         "diagnostics": list(model.diagnostics),
         "evidence_count": model.evidence_count,
-        "excluded_count": model.excluded_count,
         "excluded_allowlist_count": model.excluded_allowlist_count,
         "reason_code": model.reason_code,
         "status": model.status,
-        "suppressed_count": model.suppressed_count,
         "suppression_count": model.suppression_count,
     }
 
@@ -40,19 +35,12 @@ def render_model(model: SanitizedRenderModel, *, exit_code: int = 0) -> Render:
     return Render(stdout=text, stderr="", exit_code=exit_code)
 
 
-def render(result: Result | SanitizedRenderModel, *, json_output: bool = True) -> Render:
-    if isinstance(result, SanitizedRenderModel):
-        return render_model(result)
-    try:
-        model = from_result(result)
-    except ValueError:
-        return Render(stdout="", stderr="", exit_code=1)
-    return render_model(model, exit_code=result_exit_code(result))
-
-
 class JsonReporter:
-    def render(self, result: Result, *, json_output: bool = True) -> Render:
-        return render(result)
+    def __init__(self, *, exit_code: int = 0) -> None:
+        self.exit_code = exit_code
+
+    def render(self, model: SanitizedRenderModel) -> Render:
+        return render_model(model, exit_code=self.exit_code)
 
 
-__all__ = ["JsonReporter", "payload", "render", "render_model"]
+__all__ = ["JsonReporter", "payload", "render_model"]

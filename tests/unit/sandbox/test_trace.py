@@ -31,10 +31,10 @@ def test_parse_filesystem_process_and_network_syscalls() -> None:
 
     assert result.status is TraceStatus.COMPLETE
     assert [event.operation for event in result.events] == [
-        "read",
-        "write",
+        "open",
+        "open",
         "stat",
-        "read",
+        "stat",
         "exec",
         "connect",
         "send",
@@ -43,6 +43,8 @@ def test_parse_filesystem_process_and_network_syscalls() -> None:
     ]
     assert result.events[0].path == "/home/pano/read.txt"
     assert result.events[1].path == "/home/pano/write.txt"
+    assert not result.events[0].confirmed
+    assert not result.events[1].confirmed
     assert result.events[2].path == "/home/pano/meta"
     assert "sin_addr" in (result.events[5].peer or "")
     assert result.events[-1].result == 202
@@ -70,6 +72,34 @@ def test_escaped_path_is_decoded_without_losing_unicode() -> None:
     assert result.events[0].path == "/home/pano/a\n☃"
 
 
+def test_fd_cwd_fork_and_mmap_state_prove_actual_access() -> None:
+    result = parse_strace(
+        "\n".join(
+            (
+                '10 1700000002.100 chdir("/home/pano/work") = 0',
+                '10 1700000002.200 openat(AT_FDCWD, "data.bin", O_RDONLY) = 4',
+                '10 1700000002.300 read(4, "x", 1) = 1',
+                "10 1700000002.400 clone(child_stack=NULL, flags=CLONE_VM) = 11",
+                "11 1700000002.500 mmap(NULL, 4096, PROT_READ, MAP_PRIVATE, 4, 0) = 0x7f00",
+                '11 1700000002.600 write(4, "y", 1) = 1',
+            )
+        )
+    )
+
+    read_event = result.events[2]
+    child_read = result.events[4]
+    child_write = result.events[5]
+    assert result.status is TraceStatus.COMPLETE
+    assert read_event.operation == "read"
+    assert read_event.path == "/home/pano/work/data.bin"
+    assert read_event.confirmed
+    assert child_read.operation == "read"
+    assert child_read.path == "/home/pano/work/data.bin"
+    assert child_write.operation == "write"
+    assert child_write.path == "/home/pano/work/data.bin"
+    assert result.events[3].child_pid == 11
+
+
 def test_malformed_unsupported_and_truncated_coverage_stays_visible() -> None:
     mixed = parse_strace(
         "\n".join(
@@ -90,3 +120,19 @@ def test_malformed_unsupported_and_truncated_coverage_stays_visible() -> None:
     assert truncated.reason is TraceReason.TRUNCATED
     assert failed.status is TraceStatus.FAILED
     assert failed.events == ()
+
+
+def test_event_overflow_marks_only_retained_trace_partial() -> None:
+    text = "\n".join(
+        (
+            '1 1700000005.000 open("/a", O_RDONLY) = 3',
+            '1 1700000005.100 read(3, "x", 1) = 1',
+        )
+    )
+
+    result = parse_strace(text, max_events=1)
+
+    assert result.status is TraceStatus.PARTIAL
+    assert result.reason is TraceReason.OVERFLOW
+    assert result.diagnostics == ("OVERFLOW",)
+    assert len(result.events) == 1

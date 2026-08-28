@@ -5,9 +5,8 @@ from __future__ import annotations
 import ipaddress
 import posixpath
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from enum import StrEnum
 
 from panopticon.sandbox.trace import TraceEvent
@@ -20,19 +19,18 @@ class EvidenceSource(StrEnum):
     DNS = "dns"
 
 
+class CoverageState(StrEnum):
+    COMPLETE = "COMPLETE"
+    PARTIAL = "PARTIAL"
+    NOT_REQUESTED = "NOT_REQUESTED"
+
+
 class AccessSemantics(StrEnum):
     READ = "read"
     WRITE = "write"
     METADATA = "metadata"
     EXECUTE = "execute"
     UNKNOWN = "unknown"
-
-
-class SpanKind(StrEnum):
-    CALL = "call"
-    STARTUP = "startup"
-    IDLE = "idle"
-    POST_CALL = "post_call"
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,39 +41,32 @@ class Evidence:
     source: EvidenceSource
     pid: int | None = None
     timestamp: float | None = None
+    child_pid: int | None = None
     certainty: bool = True
 
 
 @dataclass(frozen=True, slots=True)
-class Coverage:
-    trace: bool = False
-    snapshot: bool = False
-    proxy: bool = False
-    dns: bool = False
-    partial: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class SpanBoundary:
-    span_id: str
-    start: datetime
-    end: datetime
-    kind: SpanKind = SpanKind.CALL
-    root_pid: int | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class AttributionContext:
-    spans: tuple[SpanBoundary, ...]
-    process_parents: tuple[tuple[int, int], ...]
-    skew: float = 0.0
-
-
-@dataclass(frozen=True, slots=True)
-class SpanAttribution:
-    span_id: str | None
-    ambiguous: bool
+class SourceCoverage:
+    status: CoverageState
     reason_code: str
+
+
+_NOT_REQUESTED = SourceCoverage(CoverageState.NOT_REQUESTED, "NOT_REQUESTED")
+
+
+@dataclass(frozen=True, slots=True)
+class Coverage:
+    trace: SourceCoverage = _NOT_REQUESTED
+    snapshot: SourceCoverage = _NOT_REQUESTED
+    proxy: SourceCoverage = _NOT_REQUESTED
+    dns: SourceCoverage = _NOT_REQUESTED
+
+    @property
+    def partial(self) -> bool:
+        return any(
+            source.status is CoverageState.PARTIAL
+            for source in (self.trace, self.snapshot, self.proxy, self.dns)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,6 +143,8 @@ def _trace_items(events: Iterable[TraceEvent]) -> list[Evidence]:
                     EvidenceSource.TRACE,
                     event.pid,
                     event.timestamp,
+                    event.child_pid,
+                    event.confirmed,
                 )
             )
         elif event.peer is not None:
@@ -163,6 +156,8 @@ def _trace_items(events: Iterable[TraceEvent]) -> list[Evidence]:
                     EvidenceSource.TRACE,
                     event.pid,
                     event.timestamp,
+                    event.child_pid,
+                    event.confirmed,
                 )
             )
         elif event.operation in {"clone", "fork"}:
@@ -174,24 +169,26 @@ def _trace_items(events: Iterable[TraceEvent]) -> list[Evidence]:
                     EvidenceSource.TRACE,
                     event.pid,
                     event.timestamp,
+                    event.child_pid,
+                    event.confirmed,
                 )
             )
     return out
 
 
 def collect_behavior(
-    trace: Iterable[TraceEvent] = (),
-    snapshot: Iterable[str] = (),
-    proxy: Iterable[str] = (),
-    dns: Iterable[str] = (),
+    trace: Iterable[TraceEvent] | None = None,
+    snapshot: Iterable[str] | None = None,
+    proxy: Iterable[str] | None = None,
+    dns: Iterable[str] | None = None,
     *,
-    truncated: bool = False,
+    truncated_sources: frozenset[EvidenceSource] = frozenset(),
 ) -> CollectionResult:
     """Merge heterogeneous evidence by stable semantic keys; never infer absent data."""
-    trace_items = tuple(trace)
-    snapshot_items = tuple(snapshot)
-    proxy_items = tuple(proxy)
-    dns_items = tuple(dns)
+    trace_items = tuple(trace or ())
+    snapshot_items = tuple(snapshot or ())
+    proxy_items = tuple(proxy or ())
+    dns_items = tuple(dns or ())
     items = _trace_items(trace_items)
     items.extend(
         Evidence(
@@ -209,9 +206,21 @@ def collect_behavior(
     items.extend(
         Evidence("network", normalize_host(h), "dns", EvidenceSource.DNS) for h in dns_items
     )
-    unique: dict[tuple[str, str, str, str, int | None, float | None], Evidence] = {}
+    unique: dict[
+        tuple[str, str, str, str, int | None, float | None, int | None, bool],
+        Evidence,
+    ] = {}
     for item in items:
-        key = (item.kind, item.value, item.operation, item.source.value, item.pid, item.timestamp)
+        key = (
+            item.kind,
+            item.value,
+            item.operation,
+            item.source.value,
+            item.pid,
+            item.timestamp,
+            item.child_pid,
+            item.certainty,
+        )
         unique[key] = item
     ordered = tuple(
         sorted(
@@ -223,64 +232,39 @@ def collect_behavior(
                 x.source.value,
                 x.pid or 0,
                 x.timestamp or 0.0,
+                x.child_pid or 0,
+                x.certainty,
             ),
         )
     )
     return CollectionResult(
         ordered,
         Coverage(
-            bool(trace_items), bool(snapshot_items), bool(proxy_items), bool(dns_items), truncated
+            _coverage(EvidenceSource.TRACE, trace is not None, truncated_sources),
+            _coverage(EvidenceSource.SNAPSHOT, snapshot is not None, truncated_sources),
+            _coverage(EvidenceSource.PROXY, proxy is not None, truncated_sources),
+            _coverage(EvidenceSource.DNS, dns is not None, truncated_sources),
         ),
-        ("TRUNCATED",) if truncated else (),
+        tuple(
+            f"{source.value.upper()}_OVERFLOW"
+            for source in sorted(
+                truncated_sources,
+                key=lambda item: item.value,
+            )
+        ),
     )
 
 
-def attribute_span(
-    timestamp: float, spans: Iterable[SpanBoundary], skew: float = 0.0
-) -> str | None:
-    """Assign only events inside a span after injected clock correction."""
-    context = AttributionContext(tuple(spans), (), skew)
-    return attribute_event(timestamp, None, context).span_id
-
-
-def attribute_event(
-    timestamp: float,
-    pid: int | None,
-    context: AttributionContext,
-) -> SpanAttribution:
-    """Attribute by corrected time and process ancestry without guessing ties."""
-    instant = datetime.fromtimestamp(timestamp + context.skew, tz=UTC)
-    parents = dict(context.process_parents)
-    matches = [
-        span
-        for span in context.spans
-        if span.start <= instant <= span.end
-        and (
-            span.root_pid is None
-            or (pid is not None and _descends_from(pid, span.root_pid, parents))
-        )
-    ]
-    if not matches:
-        return SpanAttribution(None, False, "NO_MATCHING_SPAN")
-    shortest = min(span.end - span.start for span in matches)
-    candidates = [span for span in matches if span.end - span.start == shortest]
-    if len(candidates) != 1:
-        return SpanAttribution(None, True, "AMBIGUOUS_SPAN")
-    return SpanAttribution(candidates[0].span_id, False, "ATTRIBUTED")
-
-
-def _descends_from(pid: int, root_pid: int, parents: Mapping[int, int]) -> bool:
-    current = pid
-    visited: set[int] = set()
-    while current not in visited:
-        if current == root_pid:
-            return True
-        visited.add(current)
-        parent = parents.get(current)
-        if parent is None:
-            return False
-        current = parent
-    return False
+def _coverage(
+    source: EvidenceSource,
+    requested: bool,
+    truncated_sources: frozenset[EvidenceSource],
+) -> SourceCoverage:
+    if not requested:
+        return _NOT_REQUESTED
+    if source in truncated_sources:
+        return SourceCoverage(CoverageState.PARTIAL, "BUFFER_OVERFLOW")
+    return SourceCoverage(CoverageState.COMPLETE, "COMPLETED")
 
 
 collect = collect_behavior

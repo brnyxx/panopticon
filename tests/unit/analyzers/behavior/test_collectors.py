@@ -4,16 +4,19 @@ from datetime import UTC, datetime, timedelta
 
 from panopticon.analyzers.behavior.collectors import (
     AccessSemantics,
-    AttributionContext,
+    CoverageState,
     EvidenceSource,
-    SpanBoundary,
-    SpanKind,
-    attribute_event,
-    attribute_span,
     classify_access,
     collect_behavior,
     normalize_host,
     normalize_path,
+)
+from panopticon.analyzers.behavior.spans import (
+    AttributionContext,
+    SpanBoundary,
+    SpanKind,
+    attribute_event,
+    attribute_span,
 )
 from panopticon.sandbox.trace import TraceEvent
 
@@ -62,26 +65,34 @@ def test_collectors_merge_sources_deterministically_and_retain_coverage() -> Non
         snapshot=("/home/pano/new",),
         proxy=("Example.COM:443",),
         dns=("EXAMPLE.com.",),
-        truncated=True,
+        truncated_sources=frozenset({EvidenceSource.TRACE}),
     )
     second = collect_behavior(
         reversed(trace),
         snapshot=("/home/pano/new",),
         proxy=("Example.COM:443",),
         dns=("EXAMPLE.com.",),
-        truncated=True,
+        truncated_sources=frozenset({EvidenceSource.TRACE}),
     )
 
     assert first == second
-    assert first.coverage.trace
-    assert first.coverage.snapshot
-    assert first.coverage.proxy
-    assert first.coverage.dns
+    assert first.coverage.trace.status is CoverageState.PARTIAL
+    assert first.coverage.snapshot.status is CoverageState.COMPLETE
+    assert first.coverage.proxy.status is CoverageState.COMPLETE
+    assert first.coverage.dns.status is CoverageState.COMPLETE
     assert first.coverage.partial
-    assert first.diagnostics == ("TRUNCATED",)
+    assert first.diagnostics == ("TRACE_OVERFLOW",)
     assert len([item for item in first.evidence if item.value == "~/a"]) == 1
     snapshot = next(item for item in first.evidence if item.source is EvidenceSource.SNAPSHOT)
     assert not snapshot.certainty
+
+
+def test_unrequested_sources_do_not_look_complete() -> None:
+    result = collect_behavior(trace=())
+
+    assert result.coverage.trace.status is CoverageState.COMPLETE
+    assert result.coverage.dns.status is CoverageState.NOT_REQUESTED
+    assert result.coverage.proxy.reason_code == "NOT_REQUESTED"
 
 
 def test_span_attribution_uses_skew_process_tree_and_reserved_spans() -> None:
@@ -103,7 +114,7 @@ def test_span_attribution_uses_skew_process_tree_and_reserved_spans() -> None:
 
     child = attribute_event(start.timestamp(), 11, context)
     unrelated = attribute_event(start.timestamp(), 99, context)
-    reserved = attribute_event((start - timedelta(seconds=2)).timestamp(), 99, context)
+    reserved = attribute_event((start - timedelta(seconds=2.5)).timestamp(), 99, context)
 
     assert child.span_id == "call-1"
     assert child.reason_code == "ATTRIBUTED"

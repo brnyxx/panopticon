@@ -2,119 +2,231 @@
 
 from __future__ import annotations
 
+import hashlib
+import re
 from dataclasses import dataclass
-from typing import Any
+
+from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema.exceptions import SchemaError, ValidationError
+
+from .argument_schema import (
+    KNOWN_DIALECTS,
+    JsonValue,
+    Schema,
+    UnsupportedSchemaError,
+    formatted_string,
+    json_value,
+    merge_all_of,
+    non_negative_int,
+    number,
+    schema_type,
+)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ArgumentResult:
-    value: Any = None
+    value: JsonValue = None
     reason_code: str = "OK"
     supported: bool = True
 
 
 class ArgumentGenerator:
-    def __init__(self, seed: str = "panopticon-probe") -> None:
+    def __init__(self, seed: str = "panopticon-probe", *, max_depth: int = 32) -> None:
+        if not seed or max_depth < 1:
+            raise ValueError("argument generation requires a seed and positive depth")
         self.seed = seed
+        self.max_depth = max_depth
 
-    def generate(self, schema: dict[str, Any] | None, *, call_index: int = 1) -> ArgumentResult:
+    def generate(self, schema: Schema | None, *, call_index: int = 1) -> ArgumentResult:
+        root: Schema = schema if schema is not None else {}
+        if isinstance(root, dict):
+            dialect = root.get("$schema")
+            if isinstance(dialect, str) and dialect not in KNOWN_DIALECTS:
+                return ArgumentResult({}, "UNSUPPORTED_DIALECT", False)
         try:
-            return ArgumentResult(self._gen(schema or {}, call_index, ()))
-        except _UnsupportedSchemaError as exc:
-            return ArgumentResult({}, str(exc), False)
+            Draft202012Validator.check_schema(root)
+            value = self._generate(root, root, call_index, (), 0)
+            Draft202012Validator(root, format_checker=FormatChecker()).validate(value)
+        except UnsupportedSchemaError as error:
+            return ArgumentResult({}, str(error), False)
+        except RecursionError:
+            return ArgumentResult({}, "UNSUPPORTED_RECURSION", False)
+        except SchemaError:
+            return ArgumentResult({}, "INVALID_SCHEMA", False)
+        except ValidationError:
+            return ArgumentResult({}, "UNPROBEABLE_SCHEMA", False)
+        return ArgumentResult(value)
 
-    def _gen(self, s: dict[str, Any], idx: int, stack: tuple[int, ...]) -> Any:
-        sid = id(s)
-        if sid in stack:
-            raise _UnsupportedSchemaError("UNSUPPORTED_RECURSION")
-        if "const" in s:
-            return s["const"]
-        if "enum" in s:
-            vals = s["enum"]
-            if not vals:
-                raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
-            return vals[0]
-        for comb in ("oneOf", "anyOf"):
-            if comb in s:
-                branches = s[comb]
-                if not branches:
-                    raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
-                return self._gen(branches[0], idx, stack)
-        if "default" in s:
-            return s["default"]
-        typ = s.get("type")
-        if isinstance(typ, list):
-            typ = next((x for x in typ if x != "null"), typ[0] if typ else None)
-        if typ == "object" or "properties" in s:
-            props = s.get("properties", {})
-            required = s.get("required", [])
-            if not isinstance(props, dict) or not isinstance(required, list):
-                return {}
-            out = {}
-            for name in required:
-                if name not in props:
-                    raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
-                out[name] = self._gen(props[name], idx, (*stack, sid))
-            return out
-        if typ == "array":
-            if s.get("maxItems", 1) < 1:
-                raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
-            prefix_items = s.get("prefixItems")
-            if isinstance(prefix_items, list):
-                return [
-                    self._gen(item, idx, (*stack, sid))
-                    for item in prefix_items
-                    if isinstance(item, dict)
-                ]
-            item = self._gen(s.get("items", {}), idx, (*stack, sid))
-            return [item]
-        if typ in ("integer", "number"):
-            value = s.get("minimum", s.get("exclusiveMinimum", 1))
-            if s.get("maximum") is not None and value > s["maximum"]:
-                raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
-            return value
-        if typ == "boolean":
+    def _generate(
+        self,
+        schema: Schema,
+        root: Schema,
+        call_index: int,
+        stack: tuple[int, ...],
+        depth: int,
+    ) -> JsonValue:
+        if schema is False:
+            raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+        if schema is True:
+            return {}
+        if depth >= self.max_depth or id(schema) in stack:
+            raise UnsupportedSchemaError("UNSUPPORTED_RECURSION")
+        next_stack = (*stack, id(schema))
+        if "$ref" in schema:
+            target = self._resolve_ref(schema["$ref"], root)
+            return self._generate(target, root, call_index, next_stack, depth + 1)
+        if "const" in schema:
+            return json_value(schema["const"])
+        if "enum" in schema:
+            values = schema["enum"]
+            if not isinstance(values, list) or not values:
+                raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+            return json_value(values[0])
+        if "default" in schema:
+            return json_value(schema["default"])
+        for combinator in ("oneOf", "anyOf"):
+            branches = schema.get(combinator)
+            if isinstance(branches, list):
+                return self._combinator(schema, branches, root, call_index, next_stack, depth)
+        if isinstance(schema.get("allOf"), list):
+            merged = merge_all_of(schema)
+            return self._generate(merged, root, call_index, next_stack, depth + 1)
+        kind = schema_type(schema)
+        if kind == "object":
+            return self._object(schema, root, call_index, next_stack, depth)
+        if kind == "array":
+            return self._array(schema, root, call_index, next_stack, depth)
+        if kind in {"integer", "number"}:
+            return number(schema, integer=kind == "integer")
+        if kind == "boolean":
             return False
-        if typ == "null":
+        if kind == "null":
             return None
-        if typ == "string" or "format" in s:
-            fmt = s.get("format")
-            if fmt == "uri" or fmt == "url":
-                value = "https://example.com/pano"
-            elif fmt == "email":
-                value = "probe@example.com"
-            elif fmt == "date":
-                value = "2026-01-01"
-            else:
-                name = str(s.get("title", "") + " " + s.get("description", "")).lower()
-                value = (
-                    "~/project/README.md"
-                    if any(x in name for x in ("path", "file", "dir"))
-                    else (
-                        "https://example.com/pano"
-                        if "url" in name
-                        else (
-                            "panopticon"
-                            if any(x in name for x in ("query", "search", " q "))
-                            else "panopticon-probe"
-                        )
-                    )
-                )
-            if idx > 1:
-                value += f"-{idx}"
-            if s.get("minLength", 0) > len(value):
-                value += "x" * (s["minLength"] - len(value))
-            if s.get("maxLength") is not None and s["maxLength"] < len(value):
-                value = value[: s["maxLength"]]
-            return value
+        if kind == "string" or "format" in schema or "pattern" in schema:
+            return self._string(schema, call_index)
         return {}
 
+    def _combinator(
+        self,
+        schema: dict[str, object],
+        branches: list[object],
+        root: Schema,
+        call_index: int,
+        stack: tuple[int, ...],
+        depth: int,
+    ) -> JsonValue:
+        for branch in branches:
+            if not isinstance(branch, (bool, dict)):
+                continue
+            try:
+                candidate = self._generate(branch, root, call_index, stack, depth + 1)
+                Draft202012Validator(schema).validate(candidate)
+            except (ValidationError, UnsupportedSchemaError):
+                continue
+            return candidate
+        raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
 
-class _UnsupportedSchemaError(Exception):
-    pass
+    def _object(
+        self,
+        schema: dict[str, object],
+        root: Schema,
+        call_index: int,
+        stack: tuple[int, ...],
+        depth: int,
+    ) -> dict[str, JsonValue]:
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        if not isinstance(properties, dict) or not isinstance(required, list):
+            raise UnsupportedSchemaError("INVALID_SCHEMA")
+        output: dict[str, JsonValue] = {}
+        for raw_name in required:
+            if not isinstance(raw_name, str) or raw_name not in properties:
+                raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+            child = properties[raw_name]
+            if not isinstance(child, (bool, dict)):
+                raise UnsupportedSchemaError("INVALID_SCHEMA")
+            output[raw_name] = self._generate(child, root, call_index, stack, depth + 1)
+        return output
+
+    def _array(
+        self,
+        schema: dict[str, object],
+        root: Schema,
+        call_index: int,
+        stack: tuple[int, ...],
+        depth: int,
+    ) -> list[JsonValue]:
+        minimum = non_negative_int(schema.get("minItems"), default=0)
+        prefix = schema.get("prefixItems", [])
+        prefix_items = prefix if isinstance(prefix, list) else []
+        items = schema.get("items", {})
+        maximum = non_negative_int(
+            schema.get("maxItems"),
+            default=max(1, minimum, len(prefix_items)),
+        )
+        target = max(minimum, len(prefix_items))
+        if target == 0 and items is not False and maximum > 0:
+            target = 1
+        if target > maximum:
+            raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+        output: list[JsonValue] = []
+        for index in range(target):
+            child = prefix_items[index] if index < len(prefix_items) else items
+            if not isinstance(child, (bool, dict)):
+                raise UnsupportedSchemaError("INVALID_SCHEMA")
+            output.append(self._generate(child, root, call_index + index, stack, depth + 1))
+        return output
+
+    def _string(self, schema: dict[str, object], call_index: int) -> str:
+        minimum = non_negative_int(schema.get("minLength"), default=0)
+        maximum = non_negative_int(schema.get("maxLength"), default=max(64, minimum))
+        if minimum > maximum:
+            raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+        value = formatted_string(schema.get("format")) or self._seeded_text(call_index)
+        pattern = schema.get("pattern")
+        candidates = (
+            value,
+            "x" * max(1, minimum),
+            "a" * max(1, minimum),
+            "0" * max(1, minimum),
+        )
+        if isinstance(pattern, str):
+            value = next(
+                (candidate for candidate in candidates if re.search(pattern, candidate)), ""
+            )
+            if not value:
+                raise UnsupportedSchemaError("UNPROBEABLE_SCHEMA")
+        if len(value) < minimum:
+            value += "x" * (minimum - len(value))
+        return value[:maximum]
+
+    def _seeded_text(self, call_index: int) -> str:
+        if self.seed == "panopticon-probe":
+            base = self.seed
+        else:
+            digest = hashlib.sha256(self.seed.encode()).hexdigest()[:12]
+            base = f"panopticon-{digest}"
+        return base if call_index == 1 else f"{base}-{call_index}"
+
+    @staticmethod
+    def _resolve_ref(reference: object, root: Schema) -> Schema:
+        if not isinstance(reference, str) or not reference.startswith("#/"):
+            raise UnsupportedSchemaError("UNSUPPORTED_REFERENCE")
+        current: object = root
+        for token in reference[2:].split("/"):
+            token = token.replace("~1", "/").replace("~0", "~")
+            if not isinstance(current, dict) or token not in current:
+                raise UnsupportedSchemaError("UNRESOLVED_REFERENCE")
+            current = current[token]
+        if not isinstance(current, (bool, dict)):
+            raise UnsupportedSchemaError("INVALID_SCHEMA")
+        return current
 
 
 def generate_arguments(
-    schema: dict[str, Any] | None, seed: str = "panopticon-probe", *, call_index: int = 1
+    schema: Schema | None,
+    seed: str = "panopticon-probe",
+    *,
+    call_index: int = 1,
 ) -> ArgumentResult:
     return ArgumentGenerator(seed).generate(schema, call_index=call_index)

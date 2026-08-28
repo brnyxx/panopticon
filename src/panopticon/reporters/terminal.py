@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from panopticon.engine.contracts import Result
-from panopticon.engine.exit_codes import result_exit_code
 from panopticon.reporters.base import Render
-from panopticon.reporters.model import SanitizedRenderModel, from_result
+from panopticon.reporters.model import SanitizedRenderModel
 
 _LABELS = {
     "en": {
@@ -30,7 +28,11 @@ _LABELS = {
 
 
 def render_model(
-    model: SanitizedRenderModel, *, tty: bool = False, locale: str = "en", exit_code: int = 0
+    model: SanitizedRenderModel,
+    *,
+    tty: bool = False,
+    locale: str = "en",
+    exit_code: int = 0,
 ) -> Render:
     labels = _LABELS.get(locale, _LABELS["en"])
     lines = [f"{labels['status']}: {model.status}", f"{labels['reason']}: {model.reason_code}"]
@@ -52,25 +54,19 @@ def render_model(
     return Render(stdout=text, stderr="", exit_code=exit_code)
 
 
-def render(
-    result: Result, *, tty: bool = False, locale: str = "en", json_output: bool = False
-) -> Render:
-    if json_output:
-        from panopticon.reporters.json import render as json_render
-
-        return json_render(result)
-    try:
-        model = from_result(result)
-    except ValueError:
-        return Render(stdout="", stderr="", exit_code=1)
-    return render_model(model, tty=tty, locale=locale, exit_code=result_exit_code(result))
-
-
 class TerminalReporter:
-    def render(
-        self, result: Result, *, tty: bool = False, locale: str = "en", json_output: bool = False
-    ) -> Render:
-        return render(result, tty=tty, locale=locale, json_output=json_output)
+    def __init__(self, *, tty: bool = False, locale: str = "en", exit_code: int = 0) -> None:
+        self.tty = tty
+        self.locale = locale
+        self.exit_code = exit_code
+
+    def render(self, model: SanitizedRenderModel) -> Render:
+        return render_model(
+            model,
+            tty=self.tty,
+            locale=self.locale,
+            exit_code=self.exit_code,
+        )
 
 
-__all__ = ["TerminalReporter", "render", "render_model"]
+__all__ = ["TerminalReporter", "render_model"]

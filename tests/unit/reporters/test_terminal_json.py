@@ -4,9 +4,12 @@ import json
 from pathlib import Path
 
 from panopticon.engine.contracts import EngineDiagnostic, FailedResult
+from panopticon.reporters.base import Reporter
+from panopticon.reporters.foundation import render as render_result
+from panopticon.reporters.json import JsonReporter
 from panopticon.reporters.json import render_model as render_json
 from panopticon.reporters.model import SanitizedRenderModel, StageView
-from panopticon.reporters.terminal import render
+from panopticon.reporters.terminal import TerminalReporter
 from panopticon.reporters.terminal import render_model as render_terminal
 
 
@@ -21,8 +24,6 @@ def mixed_model() -> SanitizedRenderModel:
         ),
         diagnostics=("PIPELINE_PARTIAL",),
         evidence_count=4,
-        excluded_count=2,
-        suppressed_count=1,
         excluded_allowlist_count=2,
         suppression_count=1,
     )
@@ -85,8 +86,15 @@ def test_secret_or_home_evidence_is_rejected_before_emission() -> None:
         )
     )
 
-    output = render(result)
+    output = render_result(result, json_output=False)
 
     assert output.stdout == ""
     assert output.stderr == ""
     assert output.exit_code != 0
+
+
+def test_reporter_protocol_accepts_only_sanitized_models() -> None:
+    reporters: tuple[Reporter, ...] = (JsonReporter(), TerminalReporter())
+
+    for reporter in reporters:
+        assert reporter.render(mixed_model()).stdout

@@ -21,12 +21,14 @@ class Stream:
         self.writes: list[bytes] = []
         self.closed = False
         self.write_event = asyncio.Event()
+        self.write_queue: asyncio.Queue[bytes] = asyncio.Queue()
 
     async def read(self, _n: int) -> bytes:
         return await self.chunks.get()
 
     def write(self, data: bytes) -> None:
         self.writes.append(data)
+        self.write_queue.put_nowait(data)
         self.write_event.set()
 
     async def drain(self) -> None:
@@ -59,6 +61,8 @@ async def test_modern_initialize_records_metadata_and_sends_initialized() -> Non
     assert result.status is ProbeStatus.COMPLETE
     assert client.era is ProtocolEra.MODERN
     assert client.server_info == {"name": "srv", "version": "9"}
+    initialize = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
+    assert initialize["params"]["_meta"]["protocolVersion"] == "2026-07-28"
     assert b"notifications/initialized" in stream.writes[-1]
 
 
@@ -74,11 +78,38 @@ async def test_initialize_retries_legacy_version_after_modern_error() -> None:
     await stream.respond_to(1, {"capabilities": {}})
     result = await task
     assert result.status is ProbeStatus.COMPLETE
+    assert result.reason_code == "LEGACY_FALLBACK"
     assert client.era is ProtocolEra.LEGACY
     assert (
         json.loads(stream.writes[1].split(b"\r\n\r\n", 1)[1])["params"]["protocolVersion"]
         == "2024-11-05"
     )
+    assert "_meta" not in json.loads(stream.writes[1].split(b"\r\n\r\n", 1)[1])["params"]
+
+
+@pytest.mark.asyncio
+async def test_advertised_server_discovery_is_capability_gated() -> None:
+    stream = Stream()
+    client = McpClient(stream, stream)
+    task = asyncio.create_task(client.initialize())
+    initialize = await stream.write_queue.get()
+    initialize_id = json.loads(initialize.split(b"\r\n\r\n", 1)[1])["id"]
+    await stream.chunks.put(
+        frame(
+            {
+                "id": initialize_id,
+                "result": {"capabilities": {"serverDiscovery": {}}},
+            }
+        )
+    )
+    initialized_notification = await stream.write_queue.get()
+    discover_request = await stream.write_queue.get()
+    assert b"notifications/initialized" in initialized_notification
+    discover_payload = json.loads(discover_request.split(b"\r\n\r\n", 1)[1])
+    assert discover_payload["method"] == "server/discover"
+    await stream.chunks.put(frame({"id": discover_payload["id"], "result": {"transports": []}}))
+
+    assert (await task).status is ProbeStatus.COMPLETE
 
 
 @pytest.mark.asyncio
@@ -104,14 +135,30 @@ async def test_malformed_batch_oversized_timeout_cancellation_and_early_exit() -
     await stream.write_event.wait()
     req = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
     await stream.chunks.put(frame([{"id": req["id"], "result": 1}]))
-    assert (await malformed).reason_code == "MALFORMED_FRAME"
-    assert (await client.notify("x", {"value": "x" * 1000})).reason_code == "REQUEST_TOO_LARGE"
-    assert (await client.request("never")).reason_code == "TIMEOUT"
-    stream.write_event.clear()
-    pending = asyncio.create_task(client.request("cancel"))
-    await stream.write_event.wait()
+    assert (await malformed).reason_code == "BATCH_UNSUPPORTED"
+    assert (await client.request("after-batch")).reason_code == "STREAM_DESYNCHRONIZED"
+    await client.close()
+
+    oversized_stream = Stream()
+    oversized = McpClient(oversized_stream, oversized_stream, max_frame=256)
+    assert (await oversized.notify("x", {"value": "x" * 1000})).reason_code == ("REQUEST_TOO_LARGE")
+    await oversized.close()
+
+    timeout_stream = Stream()
+    timeout_client = McpClient(timeout_stream, timeout_stream, timeout=0.01)
+    assert (await timeout_client.request("never")).reason_code == "TIMEOUT"
+    assert timeout_stream.closed
+    assert (await timeout_client.request("after-timeout")).reason_code == ("STREAM_DESYNCHRONIZED")
+
+    cancel_stream = Stream()
+    cancel_client = McpClient(cancel_stream, cancel_stream)
+    pending = asyncio.create_task(cancel_client.request("cancel"))
+    await cancel_stream.write_event.wait()
     pending.cancel()
     assert (await pending).status is ProbeStatus.CANCELLED
+    assert b"notifications/cancelled" in cancel_stream.writes[-1]
+    await cancel_client.close()
+
     early_stream = Stream()
     early = McpClient(early_stream, early_stream)
     early_task = asyncio.create_task(early.request("early"))
@@ -119,8 +166,6 @@ async def test_malformed_batch_oversized_timeout_cancellation_and_early_exit() -
     await early_stream.chunks.put(b"")
     assert (await early_task).reason_code == "EARLY_EXIT"
     await early.close()
-    await client.close()
-    assert stream.closed
 
 
 @pytest.mark.asyncio
