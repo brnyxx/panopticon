@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from panopticon.engine.contracts import Result
+from panopticon.reporters.model import SanitizedRenderModel
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,7 +18,7 @@ class Render:
 
 
 class Reporter(Protocol):
-    def render(self, result: Result, *, json_output: bool) -> Render: ...
+    def render(self, model: SanitizedRenderModel, *, json_output: bool) -> Render: ...
 
 
 __all__ = ["Render", "Reporter"]
