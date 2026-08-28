@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "generic-duplicate-primary": {
+      "command": "synthetic-duplicate-server",
+      "args": ["--fixture", "duplicate", "primary"]
+    },
+    "generic-duplicate-secondary": {
+      "command": "synthetic-duplicate-server",
+      "args": ["--fixture", "duplicate", "secondary"]
+    }
+  },
+  "servers": {
+    "generic-duplicate-servers-root": {
+      "command": "synthetic-duplicate-server",
+      "args": ["--fixture", "duplicate", "servers-root"]
+    }
+  }
+}

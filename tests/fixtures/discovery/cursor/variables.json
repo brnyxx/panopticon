@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fixture-unresolved-variables": {
+      "command": "${CURSOR_FIXTURE_BIN}",
+      "args": ["--config", "${CURSOR_FIXTURE_CONFIG}"],
+      "env": {
+        "CURSOR_FIXTURE_TOKEN": "${CURSOR_FIXTURE_TOKEN}",
+        "CURSOR_FIXTURE_HOME": "${CURSOR_FIXTURE_HOME}"
+      }
+    }
+  }
+}

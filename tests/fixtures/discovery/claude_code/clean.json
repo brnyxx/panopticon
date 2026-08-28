@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "fixture-echo": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@example/mcp-echo"],
+      "env": {}
+    }
+  }
+}

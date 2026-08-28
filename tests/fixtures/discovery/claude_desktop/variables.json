@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fixture-unresolved-variables": {
+      "command": "${CLAUDE_FIXTURE_BIN}",
+      "args": ["--config", "${CLAUDE_FIXTURE_CONFIG}"],
+      "env": {
+        "CLAUDE_FIXTURE_TOKEN": "${CLAUDE_FIXTURE_TOKEN}",
+        "CLAUDE_FIXTURE_HOME": "${CLAUDE_FIXTURE_HOME}"
+      }
+    }
+  }
+}

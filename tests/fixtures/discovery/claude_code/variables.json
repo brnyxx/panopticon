@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "code-global-variable": {
+      "command": "${CLAUDE_FIXTURE_BIN}/mcp-server",
+      "args": ["--workspace", "${CLAUDE_FIXTURE_WORKSPACE}"],
+      "env": {
+        "FIXTURE_TOKEN": "${CLAUDE_FIXTURE_TOKEN}"
+      }
+    },
+    "code-global-literal": {
+      "type": "http",
+      "url": "${CLAUDE_FIXTURE_URL}",
+      "headers": {
+        "Authorization": "Bearer ${CLAUDE_FIXTURE_TOKEN}"
+      }
+    }
+  },
+  "projects": {
+    "/workspace/panopticon-fixture": {
+      "mcpServers": {
+        "code-project-variable": {
+          "command": "synthetic-project-server",
+          "args": ["--config", "${CLAUDE_FIXTURE_CONFIG}"],
+          "env": {
+            "PROJECT_ROOT": "${CLAUDE_FIXTURE_PROJECT_ROOT}"
+          }
+        }
+      }
+    }
+  }
+}

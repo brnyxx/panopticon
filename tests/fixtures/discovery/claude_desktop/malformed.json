@@ -1,0 +1,13 @@
+{
+  // JSONC fixture with a deliberate missing comma between members.
+  "mcpServers": {
+    "fixture-malformed": {
+      "command": "synthetic-malformed-server",
+      "args": ["--mode", "parse-error"],
+      "env": {
+        "SYNTHETIC_MODE": "malformed"
+      }
+      "note": "missing comma above triggers a deterministic parse error"
+    }
+  }
+}

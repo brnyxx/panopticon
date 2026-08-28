@@ -1,0 +1,13 @@
+{
+  // Deliberately malformed JSONC: missing comma after env member.
+  "mcpServers": {
+    "fixture-malformed": {
+      "command": "synthetic-malformed-server",
+      "args": ["--mode", "parse-error"],
+      "env": {
+        "SYNTHETIC_MODE": "malformed"
+      }
+      "note": "missing comma above triggers a deterministic parse error"
+    }
+  }
+}

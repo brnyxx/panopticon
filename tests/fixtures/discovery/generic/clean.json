@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "generic-stdio": {
+      "command": "synthetic-generic-server",
+      "args": ["--fixture", "clean"]
+    }
+  },
+  "servers": {
+    "generic-stdio-servers-root": {
+      "command": "synthetic-generic-server",
+      "args": ["--fixture", "clean-servers-root"]
+    }
+  }
+}

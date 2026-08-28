@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "broad-filesystem": {
+      "command": "npx",
+      "args": ["-y", "@example/mcp-filesystem", "/"],
+      "env": {}
+    }
+  }
+}

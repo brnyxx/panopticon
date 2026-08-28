@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "code-disabled-flag": {
+      "command": "synthetic-claude-code-server",
+      "args": ["--fixture", "disabled-flag"],
+      "disabled": true
+    },
+    "code-disabled-enabled": {
+      "command": "synthetic-claude-code-server",
+      "args": ["--fixture", "disabled-enabled"],
+      "enabled": false
+    },
+    "code-enabled": {
+      "command": "synthetic-claude-code-server",
+      "args": ["--fixture", "enabled"],
+      "enabled": true
+    }
+  },
+  "projects": {
+    "/workspace/panopticon-fixture": {
+      "mcpServers": {
+        "code-project-disabled": {
+          "command": "synthetic-project-server",
+          "args": ["--fixture", "project-disabled"],
+          "disabled": true
+        }
+      }
+    }
+  }
+}

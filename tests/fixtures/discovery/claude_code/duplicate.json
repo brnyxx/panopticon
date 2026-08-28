@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "shared-tools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@example/mcp-shared"],
+      "env": {}
+    }
+  },
+  "projects": {
+    "/workspace/claude-code-fixture": {
+      "mcpServers": {
+        "shared-tools": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["-y", "@example/mcp-shared"],
+          "env": {}
+        }
+      }
+    }
+  }
+}

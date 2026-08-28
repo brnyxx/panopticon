@@ -43,9 +43,10 @@ persistence:
 ci: lint type foundation schemas i18n rules persistence test
 
 images:
-	docker build -t pano-sandbox-base -f src/panopticon/sandbox/images/base.Dockerfile src/panopticon/sandbox/images
-	docker build -t pano-sandbox-node:20 --build-arg NODE=20 -f src/panopticon/sandbox/images/node.Dockerfile src/panopticon/sandbox/images
-	docker build -t pano-sandbox-python:3.12 -f src/panopticon/sandbox/images/python.Dockerfile src/panopticon/sandbox/images
+	docker build -t pano-sandbox-base:ultragoal -f src/panopticon/sandbox/images/base.Dockerfile src/panopticon/sandbox/images
+	docker build -t pano-sandbox-node:20-ultragoal --build-arg BASE_IMAGE=pano-sandbox-base:ultragoal -f src/panopticon/sandbox/images/node.Dockerfile src/panopticon/sandbox/images
+	docker build -t pano-sandbox-node:22-ultragoal --build-arg BASE_IMAGE=pano-sandbox-base:ultragoal --build-arg NODE_IMAGE=node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 -f src/panopticon/sandbox/images/node.Dockerfile src/panopticon/sandbox/images
+	docker build -t pano-sandbox-python:3.12-ultragoal -f src/panopticon/sandbox/images/python.Dockerfile src/panopticon/sandbox/images
 
 clean:
 	rm -rf .venv .mypy_cache .ruff_cache .pytest_cache htmlcov coverage.xml dist build

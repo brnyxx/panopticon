@@ -1,0 +1,9 @@
+{
+  // Deliberate parse error: missing comma after command.
+  "mcpServers": {
+    "generic-malformed": {
+      "command": "synthetic-generic-server"
+      "args": ["--fixture", "malformed"]
+    }
+  }
+}

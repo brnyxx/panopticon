@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "generic-filesystem-root": {
+      "command": "synthetic-filesystem-server",
+      "args": ["--fixture", "broad-filesystem", "/"]
+    }
+  },
+  "servers": {
+    "generic-filesystem-workspace": {
+      "command": "synthetic-filesystem-server",
+      "args": ["--fixture", "broad-filesystem", "/workspace"]
+    }
+  }
+}

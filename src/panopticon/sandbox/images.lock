@@ -1,5 +1,11 @@
-# image_ref = digest — pinned by `pano sandbox update`. Placeholder until E05 builds images.
-ghcr.io/OWNER/pano-sandbox-base:1 = sha256:TODO
-ghcr.io/OWNER/pano-sandbox-node:20 = sha256:TODO
-ghcr.io/OWNER/pano-sandbox-node:22 = sha256:TODO
-ghcr.io/OWNER/pano-sandbox-python:3.12 = sha256:TODO
+# Output digests are published only after multi-architecture verification in the release gate.
+version = 1
+source.debian-bookworm-slim = sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171
+source.node20-bookworm-slim = sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+source.node22-bookworm-slim = sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5
+source.python3.12-slim-bookworm = sha256:0f5b26b9518d002b6173fd61daad821fa340635ebfec5bba471013f9ca114579
+source.uv-0.8.13 = sha256:4de5495181a281bc744845b9579acf7b221d6791f99bcc211b9ec13f417c2853
+ghcr.io/brnyxx/pano-sandbox-base:0.1 = UNBUILT
+ghcr.io/brnyxx/pano-sandbox-node:20 = UNBUILT
+ghcr.io/brnyxx/pano-sandbox-node:22 = UNBUILT
+ghcr.io/brnyxx/pano-sandbox-python:3.12 = UNBUILT

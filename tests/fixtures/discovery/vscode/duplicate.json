@@ -1,0 +1,20 @@
+{
+  "servers": {
+    "fixture-vscode-duplicate": {
+      "type": "stdio",
+      "command": "synthetic-vscode-duplicate-server",
+      "args": ["--fixture", "project-installation"],
+      "env": {}
+    }
+  },
+  "mcp": {
+    "servers": {
+      "fixture-vscode-duplicate": {
+        "type": "stdio",
+        "command": "synthetic-vscode-duplicate-server",
+        "args": ["--fixture", "user-installation"],
+        "env": {}
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
-ARG NODE=20
-FROM node:${NODE}-bookworm-slim AS node
-FROM pano-sandbox-base
+ARG NODE_IMAGE=node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0
+ARG BASE_IMAGE
+FROM ${NODE_IMAGE} AS node
+FROM ${BASE_IMAGE}
 USER root
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules

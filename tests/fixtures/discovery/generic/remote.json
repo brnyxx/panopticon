@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "generic-http": {
+      "type": "http",
+      "url": "https://mcp.synthetic.example.test/generic-http",
+      "headers": {
+        "X-Fixture-Transport": "http"
+      }
+    }
+  },
+  "servers": {
+    "generic-sse": {
+      "type": "sse",
+      "url": "https://mcp.synthetic.example.test/generic-sse",
+      "headers": {
+        "X-Fixture-Transport": "sse"
+      }
+    }
+  }
+}

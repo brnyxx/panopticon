@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "generic-disabled": {
+      "command": "synthetic-generic-server",
+      "args": ["--fixture", "disabled"],
+      "disabled": true
+    },
+    "generic-enabled-false": {
+      "command": "synthetic-generic-server",
+      "args": ["--fixture", "enabled-false"],
+      "enabled": false
+    }
+  },
+  "servers": {
+    "generic-enabled": {
+      "command": "synthetic-generic-server",
+      "args": ["--fixture", "enabled"],
+      "enabled": true
+    },
+    "generic-servers-disabled": {
+      "command": "synthetic-generic-server",
+      "args": ["--fixture", "servers-disabled"],
+      "disabled": true
+    }
+  }
+}

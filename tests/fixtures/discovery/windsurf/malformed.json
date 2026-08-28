@@ -1,0 +1,9 @@
+{
+  // Deliberate JSONC parse error: missing comma between command and args.
+  "mcpServers": {
+    "windsurf-malformed": {
+      "command": "synthetic-windsurf-server"
+      "args": ["--fixture", "malformed"]
+    }
+  }
+}

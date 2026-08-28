@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "local-echo": {
+      "command": "node",
+      "args": ["echo-mcp.js"]
+    }
+  }
+}

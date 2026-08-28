@@ -7,16 +7,16 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | Epic | State | Remaining |
 |---|---|---|
 | E01 Foundation | CLOSED | typed persisted contracts, schema lifecycle, canonical leak-checked `store/` gateway, direct-write checker, credential-backed `SecretStore`/encrypted backups, engine pipelines, and the exit-code table are complete |
-| E02 Discovery | IN PROGRESS | Tasks 8-9 remaining |
-| E03 Inventory | TODO | needs `installation_id` from E01 |
+| E02 Discovery | IN PROGRESS | six adapters and the 48-file fixture matrix pass; doctor rendering closes in Task 24 |
+| E03 Inventory | IN PROGRESS | normalization, stable installation identity, cache version lookup, and 30 command fixtures pass; doctor integration closes in Task 24 |
 | E04 Registry | TODO | |
-| E05 Sandbox | TODO | image namespace decided: `ghcr.io/brnyxx` (DECISIONS #1) |
+| E05 Sandbox | IN PROGRESS | Docker and rootless Podman runtime/isolation/proxy/DNS tests pass; release image digests and platform matrix remain |
 | E06 Decoy | TODO | |
 | E07 Events | TODO | |
 | E08 Probe | TODO | dual-era client, modern 2026-07-28 plus legacy fallback (DECISIONS #11) |
 | E09 Remote | TODO | |
 | E10 Declared | TODO | |
-| E11 Findings/Rules | TODO | registry stub exists; needs `logical_key` separate from the occurrence id |
+| E11 Findings/Rules | IN PROGRESS | typed finding construction, logical/occurrence keys, source states, suppressions, and rule failure diagnostics pass; rule sets remain |
 | E12 Rules | TODO | 30 observe rules (§20.6); WATCH-001 docs exist as the template example |
 | E13 Fix | TODO | secret-bearing fixes go through `SecretStore`, guidance-only fallback (DECISIONS #10) |
 | E14 Baseline/Diff | TODO | |

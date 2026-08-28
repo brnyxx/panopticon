@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "windsurf-http": {
+      "serverUrl": "https://mcp.synthetic.example.test/http",
+      "headers": {
+        "X-Fixture-Transport": "http"
+      }
+    },
+    "windsurf-sse": {
+      "type": "sse",
+      "serverUrl": "https://mcp.synthetic.example.test/sse",
+      "headers": {
+        "X-Fixture-Transport": "sse"
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "/workspace/claude-code-fixture": {
+      "mcpServers": {
+        "broad-filesystem": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["-y", "@example/mcp-filesystem", "/"],
+          "env": {}
+        }
+      }
+    }
+  }
+}

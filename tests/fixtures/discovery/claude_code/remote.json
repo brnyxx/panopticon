@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "code-http-modern": {
+      "type": "http",
+      "url": "https://mcp.synthetic.example.test/http",
+      "headers": {
+        "X-Fixture-Transport": "http"
+      }
+    },
+    "code-sse-legacy": {
+      "type": "sse",
+      "url": "https://mcp.synthetic.example.test/sse",
+      "headers": {
+        "X-Fixture-Transport": "sse"
+      }
+    }
+  },
+  "projects": {
+    "/workspace/panopticon-fixture": {
+      "mcpServers": {
+        "code-project-http": {
+          "type": "http",
+          "url": "http://127.0.0.1:48123/mcp"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  // Deliberate JSONC parse error: the comma between command and args is missing.
+  "mcpServers": {
+    "code-malformed": {
+      "command": "synthetic-claude-code-server"
+      "args": ["--fixture", "malformed"]
+    }
+  }
+}

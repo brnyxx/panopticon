@@ -1,0 +1,23 @@
+{
+  "servers": {
+    "fixture-vscode-project-disabled": {
+      "type": "stdio",
+      "command": "synthetic-vscode-disabled",
+      "disabled": true
+    },
+    "fixture-vscode-project-disabled-enabled": {
+      "type": "stdio",
+      "command": "synthetic-vscode-disabled",
+      "enabled": false
+    }
+  },
+  "mcp": {
+    "servers": {
+      "fixture-vscode-user-enabled": {
+        "type": "stdio",
+        "command": "synthetic-vscode-disabled",
+        "enabled": true
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "fixture-vscode-project-http": {
+      "type": "http",
+      "url": "http://mcp.synthetic.invalid/vscode/http"
+    }
+  },
+  "mcp": {
+    "servers": {
+      "fixture-vscode-user-sse": {
+        "type": "sse",
+        "url": "https://mcp.synthetic.invalid/vscode/events"
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "shared-tools-primary": {
+      "command": "npx",
+      "args": ["-y", "@example/mcp-shared"],
+      "env": {}
+    },
+    "shared-tools-secondary": {
+      "command": "npx",
+      "args": ["-y", "@example/mcp-shared"],
+      "env": {}
+    }
+  }
+}

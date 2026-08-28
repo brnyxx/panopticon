@@ -1,0 +1,25 @@
+{
+  "servers": {
+    "fixture-vscode-project-variables": {
+      "type": "stdio",
+      "command": "${input:vscodeCommand}",
+      "args": ["--workspace", "${workspaceFolder}"],
+      "env": {
+        "SYNTHETIC_CONFIG": "${env:VSCODE_FIXTURE_CONFIG}"
+      }
+    }
+  },
+  "mcp": {
+    "servers": {
+      "fixture-vscode-user-variables": {
+        "type": "stdio",
+        "command": "synthetic-vscode-variable-server",
+        "args": ["--token", "${input:vscodeToken}"],
+        "env": {
+          "SYNTHETIC_HOME": "${workspaceFolder}",
+          "SYNTHETIC_SECRET": "${env:VSCODE_FIXTURE_SECRET}"
+        }
+      }
+    }
+  }
+}

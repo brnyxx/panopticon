@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fixture-remote-http": {
+      "type": "http",
+      "url": "http://mcp.synthetic.invalid/fixture/http"
+    },
+    "fixture-remote-sse": {
+      "type": "sse",
+      "url": "https://mcp.synthetic.invalid/fixture/events"
+    }
+  }
+}

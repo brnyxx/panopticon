@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "windsurf-disabled-flag": {
+      "command": "synthetic-windsurf-server",
+      "args": ["--fixture", "disabled-flag"],
+      "disabled": true
+    },
+    "windsurf-disabled-enabled": {
+      "command": "synthetic-windsurf-server",
+      "args": ["--fixture", "disabled-enabled"],
+      "enabled": false
+    },
+    "windsurf-enabled": {
+      "command": "synthetic-windsurf-server",
+      "args": ["--fixture", "enabled"],
+      "enabled": true
+    }
+  }
+}

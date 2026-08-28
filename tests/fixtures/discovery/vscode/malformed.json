@@ -1,0 +1,19 @@
+{
+  // Deliberate JSONC syntax error: missing comma before "args".
+  "servers": {
+    "fixture-vscode-malformed": {
+      "type": "stdio",
+      "command": "synthetic-vscode-malformed"
+      "args": ["--fixture", "parse-error"]
+    }
+  },
+  "mcp": {
+    "servers": {
+      "fixture-vscode-user-malformed": {
+        "type": "stdio",
+        "command": "synthetic-vscode-malformed",
+        "args": ["--fixture", "user-parse-error"]
+      }
+    }
+  }
+}

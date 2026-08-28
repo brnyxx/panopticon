@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "generic-variable-stdio": {
+      "command": "${GENERIC_FIXTURE_BIN}/server",
+      "args": ["--workspace", "${GENERIC_FIXTURE_WORKSPACE}"],
+      "env": {
+        "FIXTURE_TOKEN": "${GENERIC_FIXTURE_TOKEN}"
+      }
+    }
+  },
+  "servers": {
+    "generic-variable-http": {
+      "type": "http",
+      "url": "${GENERIC_FIXTURE_URL}",
+      "headers": {
+        "Authorization": "Bearer ${GENERIC_FIXTURE_TOKEN}"
+      }
+    }
+  }
+}

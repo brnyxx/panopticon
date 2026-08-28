@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "fixture-echo": {
+      "command": "npx",
+      "args": ["-y", "@example/mcp-echo"],
+      "env": {}
+    }
+  }
+}

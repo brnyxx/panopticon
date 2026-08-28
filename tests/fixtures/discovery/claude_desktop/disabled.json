@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "fixture-disabled-flag": {
+      "command": "synthetic-disabled-server",
+      "args": ["--fixture", "disabled-flag"],
+      "disabled": true
+    },
+    "fixture-disabled-enabled": {
+      "command": "synthetic-disabled-server",
+      "args": ["--fixture", "disabled-enabled"],
+      "enabled": false
+    },
+    "fixture-enabled": {
+      "command": "synthetic-disabled-server",
+      "args": ["--fixture", "enabled"],
+      "enabled": true
+    }
+  }
+}
