@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
-import json
 from dataclasses import dataclass
+from urllib.parse import urljoin
 
 import httpx
 
 from .argument_schema import JsonValue, UnsupportedSchemaError, json_value
+from .http_redirect import post_with_redirects, response_payload, sse_endpoint
 from .pagination import list_paginated
 from .protocol import (
     LEGACY_PROTOCOL,
@@ -19,6 +19,7 @@ from .protocol import (
     ProtocolEra,
     ProtocolError,
 )
+from .remote_security import Resolver, validate_url
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,10 +45,12 @@ class StreamableHttpClient:
         max_response: int = MAX_FRAME,
         era_cache: TransportEraCache | None = None,
         headers: tuple[tuple[str, str], ...] = (),
+        resolver: Resolver | None = None,
+        max_redirects: int = 5,
     ) -> None:
         if not endpoint.startswith(("http://", "https://")):
             raise ValueError("MCP HTTP endpoint must be HTTP(S)")
-        if timeout <= 0 or max_response < 1:
+        if timeout <= 0 or max_response < 1 or max_redirects < 0:
             raise ValueError("HTTP transport bounds must be positive")
         self.endpoint = endpoint
         self.client = client
@@ -55,6 +58,8 @@ class StreamableHttpClient:
         self.max_response = max_response
         self.era_cache = era_cache or TransportEraCache()
         self._headers = dict(headers)
+        self._resolver = resolver
+        self._max_redirects = max_redirects
         self.era: ProtocolEra | None = self.era_cache.get(endpoint)
         self.session_id: str | None = None
         self.capabilities: dict[str, JsonValue] = {}
@@ -94,19 +99,18 @@ class StreamableHttpClient:
         }
         if self.session_id is not None:
             headers["Mcp-Session-Id"] = self.session_id
-        try:
-            response = await self.client.post(
-                self.endpoint,
-                json=message,
-                headers=headers,
-                timeout=self.timeout if timeout is None else timeout,
-            )
-        except httpx.TimeoutException:
-            return ProbeResult(ProbeStatus.INCOMPLETE, "TIMEOUT")
-        except httpx.TransportError:
-            return ProbeResult(ProbeStatus.INCOMPLETE, "TRANSPORT_ERROR")
-        except asyncio.CancelledError:
-            return ProbeResult(ProbeStatus.CANCELLED, "CANCELLED")
+        result = await post_with_redirects(
+            self.client,
+            self.endpoint,
+            message,
+            headers,
+            timeout=self.timeout if timeout is None else timeout,
+            resolver=self._resolver,
+            max_redirects=self._max_redirects,
+        )
+        if isinstance(result, ProbeResult):
+            return result
+        response, endpoint, _ = result
         if len(response.content) > self.max_response:
             return ProbeResult(ProbeStatus.ERROR, "RESPONSE_TOO_LARGE")
         if response.status_code >= 500:
@@ -116,9 +120,10 @@ class StreamableHttpClient:
         session = response.headers.get("Mcp-Session-Id")
         if session:
             self.session_id = session
+        self.endpoint = endpoint
         try:
-            payload = _response_payload(response)
-        except (json.JSONDecodeError, UnicodeDecodeError, UnsupportedSchemaError):
+            payload = response_payload(response)
+        except (ValueError, UnicodeDecodeError, UnsupportedSchemaError):
             return ProbeResult(ProbeStatus.ERROR, "MALFORMED_RESPONSE")
         if not isinstance(payload, dict) or payload.get("id") != identifier:
             return ProbeResult(ProbeStatus.ERROR, "MALFORMED_RESPONSE")
@@ -182,6 +187,36 @@ class StreamableHttpClient:
                 },
                 modern_metadata=era is ProtocolEra.MODERN,
             )
+            if result.reason_code == "HTTP_ERROR" and era is ProtocolEra.MODERN:
+                # Deprecated SSE servers expose a GET stream first and accept
+                # JSON-RPC messages at the endpoint announced by its `endpoint`
+                # event. Keep this fallback bounded and use the same instrumented
+                # client so the handshake remains observable.
+                try:
+                    stream = await self.client.get(
+                        self.endpoint,
+                        headers={**self._headers, "Accept": "text/event-stream"},
+                        timeout=self.timeout,
+                    )
+                    if stream.status_code < 400:
+                        endpoint = sse_endpoint(stream.text)
+                        if endpoint is not None:
+                            decision = validate_url(
+                                urljoin(self.endpoint, endpoint), self._resolver
+                            )
+                            if decision.allowed:
+                                self.endpoint = decision.transport_url
+                                result = await self.request(
+                                    "initialize",
+                                    {
+                                        "protocolVersion": version,
+                                        "capabilities": {},
+                                        "clientInfo": {"name": "panopticon", "version": "0"},
+                                    },
+                                    modern_metadata=False,
+                                )
+                except (httpx.TimeoutException, httpx.TransportError):
+                    pass
             if result.status is not ProbeStatus.COMPLETE:
                 continue
             self.era = era
@@ -216,15 +251,3 @@ class StreamableHttpClient:
                 )
             except (httpx.TimeoutException, httpx.TransportError):
                 self.close_reason = "SESSION_DELETE_FAILED"
-
-
-def _response_payload(response: httpx.Response) -> object:
-    media_type = response.headers.get("content-type", "").partition(";")[0].strip().casefold()
-    if media_type == "text/event-stream":
-        data = "\n".join(
-            line.removeprefix("data:").lstrip()
-            for line in response.text.splitlines()
-            if line.startswith("data:")
-        )
-        return json.loads(data)
-    return response.json()

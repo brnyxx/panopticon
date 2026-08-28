@@ -76,6 +76,7 @@ async def run_remote_production(
             http,
             timeout=options.timeout,
             headers=headers,
+            resolver=resolver or SystemResolver(),
         )
         clock = SystemClock()
         session_started = clock.now()

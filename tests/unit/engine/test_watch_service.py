@@ -7,6 +7,7 @@ from typing import cast
 import pytest
 
 import panopticon.engine.watch_service as service_module
+import panopticon.engine.watch_service_targets as targets_module
 from panopticon.discovery.base import DiscoveryEnv
 from panopticon.engine.watch_behavior import BehaviorBuild
 from panopticon.engine.watch_inventory import WatchTargetContext
@@ -83,7 +84,7 @@ async def test_service_persists_remote_without_selecting_local_runtime(
             ("authorized-secret",),
         )
 
-    monkeypatch.setattr(service_module, "run_remote_production", remote)
+    monkeypatch.setattr(targets_module, "run_remote_production", remote)
     outcome = await run_watch_service(
         WatchRequest(TargetSelection(TargetMode.NAME, "target")),
         WatchInputs(
@@ -119,7 +120,7 @@ async def test_service_preserves_remote_failure_state(
     ) -> RemoteWatchResult:
         return RemoteWatchResult(status, reason)
 
-    monkeypatch.setattr(service_module, "run_remote_production", remote)
+    monkeypatch.setattr(targets_module, "run_remote_production", remote)
     outcome = await run_watch_service(
         WatchRequest(TargetSelection(TargetMode.NAME, "target")),
         WatchInputs(
@@ -152,8 +153,8 @@ async def test_service_reports_png_persistence_failure(
             RejectionCode.LEAK_DETECTED,
         )
 
-    monkeypatch.setattr(service_module, "run_remote_production", remote)
-    monkeypatch.setattr(service_module, "persist_observation_png", reject)
+    monkeypatch.setattr(targets_module, "run_remote_production", remote)
+    monkeypatch.setattr(targets_module, "persist_observation_png", reject)
     outcome = await run_watch_service(
         WatchRequest(
             TargetSelection(TargetMode.NAME, "target"),
@@ -192,9 +193,9 @@ async def test_service_persists_local_composed_observation(
     ) -> BehaviorBuild:
         return BehaviorBuild(observation)
 
-    monkeypatch.setattr(service_module, "run_local_production", local)
-    monkeypatch.setattr(service_module, "build_watch_observation", build)
-    monkeypatch.setattr(service_module, "apply_behavior_rules", behavior)
+    monkeypatch.setattr(targets_module, "run_local_production", local)
+    monkeypatch.setattr(targets_module, "build_watch_observation", build)
+    monkeypatch.setattr(targets_module, "apply_behavior_rules", behavior)
     outcome = await run_watch_service(
         WatchRequest(TargetSelection(TargetMode.NAME, "target")),
         WatchInputs(
@@ -213,7 +214,7 @@ async def test_service_persists_local_composed_observation(
     ) -> LocalWatchResult:
         return LocalWatchResult(context, LocalWatchStatus.INCOMPLETE, "TIMEOUT")
 
-    monkeypatch.setattr(service_module, "run_local_production", incomplete_local)
+    monkeypatch.setattr(targets_module, "run_local_production", incomplete_local)
     incomplete = await run_watch_service(
         WatchRequest(TargetSelection(TargetMode.NAME, "target")),
         WatchInputs(
@@ -230,8 +231,8 @@ async def test_service_persists_local_composed_observation(
     ) -> None:
         return None
 
-    monkeypatch.setattr(service_module, "run_local_production", local)
-    monkeypatch.setattr(service_module, "apply_behavior_rules", no_behavior)
+    monkeypatch.setattr(targets_module, "run_local_production", local)
+    monkeypatch.setattr(targets_module, "apply_behavior_rules", no_behavior)
     missing_behavior = await run_watch_service(
         WatchRequest(TargetSelection(TargetMode.NAME, "target")),
         WatchInputs(

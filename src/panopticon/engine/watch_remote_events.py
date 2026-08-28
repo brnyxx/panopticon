@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 import socket
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -35,6 +36,11 @@ class Exchange:
     status: int
     request: bytes = field(repr=False)
     response: bytes = field(repr=False)
+    request_headers: tuple[str, ...] = ()
+    response_headers: tuple[str, ...] = ()
+    request_size: int = 0
+    response_size: int = 0
+    external_urls: tuple[str, ...] = ()
 
 
 class ExchangeRecorder:
@@ -56,8 +62,41 @@ class ExchangeRecorder:
                 response.status_code,
                 request,
                 response.content[:4_194_304],
+                tuple(sorted({name.casefold() for name in response.request.headers})),
+                tuple(sorted({name.casefold() for name in response.headers})),
+                len(response.request.content),
+                len(response.content),
+                tuple(
+                    sorted(
+                        {
+                            sanitized
+                            for match in re.finditer(
+                                rb"https?://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+",
+                                response.content[:4_194_304],
+                            )
+                            if (
+                                sanitized := _sanitize_external_url(
+                                    match.group(0)[:2048].decode("utf-8", "replace")
+                                )
+                            )
+                        }
+                    )
+                ),
             )
         )
+
+
+def _sanitize_external_url(value: str) -> str:
+    parsed = urlsplit(value)
+    host = parsed.hostname or ""
+    if not host:
+        return ""
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    netloc = host if port is None else f"{host}:{port}"
+    return urlunsplit((parsed.scheme.casefold(), netloc, parsed.path or "/", "", ""))
 
 
 def request_headers(

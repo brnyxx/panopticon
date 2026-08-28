@@ -258,12 +258,13 @@ def test_explicit_config_path_is_honored_and_traversal_rejected(tmp_path: Path) 
 
 def test_watch_self_selection_and_conflicts(monkeypatch) -> None:
     from panopticon.cli import main
+    from panopticon.engine.watch_service import WatchServiceOutcome
 
     seen = []
 
     def fake_watch(request):
         seen.append(request)
-        return CompleteResult()
+        return WatchServiceOutcome(CompleteResult())
 
     monkeypatch.setattr(main.engine, "run_watch", fake_watch)
     runner = CliRunner()

@@ -6,38 +6,25 @@ import asyncio
 from collections.abc import Mapping
 from pathlib import Path
 
-from panopticon.analyzers.behavior.spans import SpanKind
 from panopticon.models.inventory import Transport
 from panopticon.probe.client import McpClient
-from panopticon.probe.driver import CallDriver, DriverStatus
-from panopticon.probe.protocol import ProbeStatus
-from panopticon.sandbox.base import (
-    Container,
-    ContainerSpec,
-    InteractiveSession,
-    SandboxError,
-)
+from panopticon.sandbox.base import Container, ContainerSpec, InteractiveSession, SandboxError
 from panopticon.sandbox.decoy import decoy_archive, generate_decoy_home
 from panopticon.sandbox.image_catalog import DEFAULT_IMAGE_CATALOG, ImageCatalog
 from panopticon.sandbox.network import NetworkController, NetworkServices, NetworkSession
-from panopticon.sandbox.trace import parse_strace
-from panopticon.sandbox.trace_model import TraceStatus
 
 from .watch_inventory import WatchTargetContext
+from .watch_local_collect import collect_local_session
 from .watch_local_evidence import (
     Clock,
-    SpanRecorder,
     SystemClock,
     argument_overrides,
     image_reference,
-    local_protocol,
-    normalize_tools,
-    reserved_span,
     target_environment,
 )
-from .watch_local_model import LocalSpan, LocalWatchResult, LocalWatchStatus
-from .watch_local_runtime import LocalRuntime, bounded_stderr, cleanup_local, unsupported
-from .watch_model import Coverage, WatchOptions
+from .watch_local_model import LocalWatchResult, LocalWatchStatus
+from .watch_local_runtime import LocalRuntime, cleanup_local, unsupported
+from .watch_model import WatchOptions
 
 
 async def run_local_production(
@@ -83,7 +70,6 @@ async def run_local_production(
     container: Container | None = None
     session: InteractiveSession | None = None
     client: McpClient | None = None
-    result: LocalWatchResult
     try:
         if not options.offline:
             await runtime.pull(image)
@@ -103,118 +89,19 @@ async def run_local_production(
         container = await runtime.run(spec)
         session = await container.open_stdio()
         client = McpClient(session.reader, session.writer, timeout=options.timeout)
-        initialized = await client.initialize(timeout=options.timeout)
-        if initialized.status is not ProbeStatus.COMPLETE:
-            status = (
-                LocalWatchStatus.UNSUPPORTED
-                if initialized.status is ProbeStatus.UNSUPPORTED
-                else LocalWatchStatus.INCOMPLETE
-            )
-            result = LocalWatchResult(
-                context,
-                status,
-                initialized.reason_code,
-                image=image,
-                runtime=runtime.name,
-                offline=options.offline,
-            )
-        else:
-            listed = await client.list_paginated("tools/list", timeout=options.timeout)
-            if listed.status not in {ProbeStatus.COMPLETE, ProbeStatus.UNSUPPORTED}:
-                result = LocalWatchResult(
-                    context,
-                    LocalWatchStatus.INCOMPLETE,
-                    listed.reason_code,
-                    image=image,
-                    runtime=runtime.name,
-                    offline=options.offline,
-                )
-            else:
-                values = listed.result.get("tools", []) if isinstance(listed.result, dict) else []
-                raw_tools, tools = normalize_tools(values)
-                startup = reserved_span(
-                    "startup",
-                    SpanKind.STARTUP,
-                    startup_started,
-                    session_clock.now(),
-                )
-                recorder = SpanRecorder(session_clock)
-                calls = await CallDriver(
-                    client,
-                    calls=options.calls,
-                    stage_timeout=options.timeout,
-                    total_timeout=max(options.timeout, options.timeout * max(1, options.calls)),
-                    allow_destructive=options.allow_destructive,
-                    observer=recorder,
-                ).run(raw_tools, overrides=overrides)
-                idle_span: tuple[LocalSpan, ...] = ()
-                if options.idle:
-                    idle_started = session_clock.now()
-                    await asyncio.sleep(options.idle)
-                    idle_span = (
-                        reserved_span(
-                            "idle",
-                            SpanKind.IDLE,
-                            idle_started,
-                            session_clock.now(),
-                        ),
-                    )
-                trace = parse_strace((await container.trace()).data.decode(errors="replace"))
-                stderr = await bounded_stderr(session)
-                session_span = reserved_span(
-                    "session",
-                    SpanKind.SESSION,
-                    startup_started,
-                    session_clock.now(),
-                )
-                complete = (
-                    calls.status is DriverStatus.COMPLETE
-                    and trace.status is TraceStatus.COMPLETE
-                    and not client.notifications_truncated
-                )
-                status = LocalWatchStatus.COMPLETE if complete else LocalWatchStatus.PARTIAL
-                coverage = {
-                    "file": (
-                        Coverage.COMPLETE
-                        if trace.status is TraceStatus.COMPLETE
-                        else Coverage.UNKNOWN
-                    ),
-                    "process": (
-                        Coverage.COMPLETE
-                        if trace.status is TraceStatus.COMPLETE
-                        else Coverage.UNKNOWN
-                    ),
-                    "net": (
-                        Coverage.COMPLETE
-                        if trace.status is TraceStatus.COMPLETE
-                        else Coverage.UNKNOWN
-                    ),
-                    "stdio": (
-                        Coverage.UNKNOWN if client.notifications_truncated else Coverage.COMPLETE
-                    ),
-                    "dns": Coverage.UNSUPPORTED if options.offline else Coverage.UNKNOWN,
-                    "proxy": Coverage.UNSUPPORTED if options.offline else Coverage.UNKNOWN,
-                    "snapshot": Coverage.UNKNOWN,
-                }
-                result = LocalWatchResult(
-                    context=context,
-                    status=status,
-                    reason_code=calls.reason_code if complete else "PARTIAL_COVERAGE",
-                    image=image,
-                    runtime=runtime.name,
-                    offline=options.offline,
-                    protocol=local_protocol(client),
-                    tools=tools,
-                    raw_tools=raw_tools,
-                    calls=calls,
-                    spans=(session_span, startup, *recorder.spans, *idle_span),
-                    trace=trace,
-                    stderr=stderr,
-                    notifications=client.notifications,
-                    manifest=manifest,
-                    coverage=coverage,
-                    diagnostics=trace.diagnostics,
-                )
+        result = await collect_local_session(
+            context,
+            options,
+            runtime_name=runtime.name,
+            image=image,
+            manifest=manifest,
+            client=client,
+            container=container,
+            session=session,
+            startup_started=startup_started,
+            clock=session_clock,
+            overrides=overrides,
+        )
     except asyncio.CancelledError:
         cleanup = asyncio.create_task(
             cleanup_local(client, session, container, controller, network_session)

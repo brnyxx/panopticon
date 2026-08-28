@@ -20,7 +20,7 @@ from panopticon.engine.fix import FixCommandRequest, run_fix
 from panopticon.engine.install import InstallAction, InstallRequest, run_install, run_uninstall
 from panopticon.engine.wrap import WrapRequest, run_wrap
 from panopticon.reporters import doctor as doctor_reporter
-from panopticon.reporters import foundation as reporters
+from panopticon.reporters import watch as watch_reporter
 from panopticon.reporters.fix import render as render_fix
 from panopticon.reporters.install import render as render_install
 from panopticon.reporters.wrap import render as render_wrap
@@ -103,7 +103,7 @@ def watch(
         else engine.TargetMode.NAME
     )
     name = target if mode is engine.TargetMode.NAME else None
-    rendered = reporters.render(
+    rendered = watch_reporter.render(
         engine.run_watch(
             engine.WatchRequest(
                 engine.TargetSelection(mode, name),

@@ -65,8 +65,8 @@ def doctor_outcome(request: DoctorRequest) -> DoctorOutcome:
     return asyncio.run(_run_doctor(request, inputs=DoctorInputs(env, registry_lookup=provider)))
 
 
-def run_watch(request: WatchRequest) -> Result:
-    return watch_outcome(request).result
+def run_watch(request: WatchRequest) -> WatchServiceOutcome:
+    return watch_outcome(request)
 
 
 def watch_outcome(request: WatchRequest) -> WatchServiceOutcome:

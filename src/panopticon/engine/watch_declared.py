@@ -6,8 +6,15 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from panopticon.declared.authority import compose
-from panopticon.declared.extract import ConfigExtractor, SelfDeclExtractor, ToolDescExtractor
-from panopticon.declared.model import Authority, DeclaredScope, ScopeGrant
+from panopticon.declared.extract import (
+    ConfigExtractor,
+    ManifestExtractor,
+    ReadmeExtractor,
+    RegistryExtractor,
+    SelfDeclExtractor,
+    ToolDescExtractor,
+)
+from panopticon.declared.model import Authority, DeclaredScope, Diagnostic, ScopeGrant, SourceKind
 from panopticon.models.common import Host, PersistedPath
 from panopticon.models.observation import (
     Declared,
@@ -32,9 +39,66 @@ def _mapping(value: JsonValue | object) -> Mapping[str, object] | None:
 
 def build_declared(result: LocalWatchResult) -> DeclaredBuild:
     target = result.context.target
-    server_grants = (ConfigExtractor().extract({"env_keys": target.env_keys, "args": target.args}),)
+    raw = result.context.raw_entry.raw
+
+    # Discovery adapters are the sole boundary for repository/config reads.  They
+    # may provide typed metadata under these keys; this function only consumes it.
+    def value(*keys: str) -> object:
+        for key in keys:
+            if key in raw:
+                return raw[key]
+        return None
+
+    server_grants: list[ScopeGrant] = [
+        ConfigExtractor().extract({"env_keys": target.env_keys, "args": target.args})
+    ]
+    config = _mapping(value("config", "panopticon_config"))
+    if config is not None:
+        server_grants.append(ConfigExtractor().extract(config))
+    elif value("config", "panopticon_config") is not None:
+        server_grants.append(
+            ScopeGrant(
+                source=SourceKind.CONFIG,
+                diagnostics=(
+                    Diagnostic("MALFORMED_VALUE", "config must be an object", SourceKind.CONFIG),
+                ),
+            )
+        )
+    readme = value("readme", "readme_text", "README")
+    if isinstance(readme, str):
+        server_grants.append(ReadmeExtractor().extract(readme))
+    elif readme is not None:
+        server_grants.append(
+            ScopeGrant(
+                source=SourceKind.README,
+                diagnostics=(
+                    Diagnostic("MALFORMED_VALUE", "readme must be text", SourceKind.README),
+                ),
+            )
+        )
+    manifest = value("manifest", "package_manifest")
+    if isinstance(manifest, (Mapping, str)):
+        server_grants.append(ManifestExtractor().extract(manifest))
+    registry = _mapping(value("registry", "registry_metadata"))
+    # A supplied registry value is already acquired evidence (for example a
+    # cache entry), so offline mode may consume it without performing I/O.
+    if registry is not None:
+        server_grants.append(RegistryExtractor().extract(registry))
+    elif value("registry", "registry_metadata") is not None:
+        server_grants.append(
+            ScopeGrant(
+                source=SourceKind.REGISTRY,
+                diagnostics=(
+                    Diagnostic(
+                        "MALFORMED_VALUE", "registry must be an object", SourceKind.REGISTRY
+                    ),
+                ),
+            )
+        )
+    self_decl = _mapping(value("self_decl", "panopticon", "declaration"))
+    if self_decl is not None:
+        server_grants.append(SelfDeclExtractor().extract(self_decl))
     tool_grants: dict[str, tuple[ScopeGrant, ...]] = {}
-    self_complete: list[bool] = []
     for raw in result.raw_tools:
         name = raw.get("name")
         if not isinstance(name, str) or not name:
@@ -52,15 +116,19 @@ def build_declared(result: LocalWatchResult) -> DeclaredBuild:
         if declaration is not None:
             grant = SelfDeclExtractor().extract(declaration)
             grants.insert(0, grant)
-            self_complete.append(grant.authority is Authority.AUTHORITATIVE and grant.complete)
-        else:
-            self_complete.append(False)
         tool_grants[name] = tuple(grants)
     scope = compose(server_grants, tool_grants)
     all_grants = (scope.server, *scope.tools.values())
+    # `sources` records acquisition provenance, not only the winning
+    # precedence tier. This keeps lower-priority evidence visible when a
+    # maintainer declaration masks it.
+    acquired_grants = (
+        *server_grants,
+        *(grant for grants in tool_grants.values() for grant in grants),
+    )
     sources = tuple(
         sorted(
-            {DeclaredSource(grant.source.value) for grant in all_grants},
+            {DeclaredSource(grant.source.value) for grant in acquired_grants},
             key=lambda source: source.value,
         )
     )
@@ -74,7 +142,9 @@ def build_declared(result: LocalWatchResult) -> DeclaredBuild:
             key=lambda capability: capability.value,
         )
     )
-    complete = bool(self_complete) and all(self_complete)
+    complete = any(
+        grant.authority is Authority.AUTHORITATIVE and grant.complete for grant in acquired_grants
+    )
     partial = any(
         grant.paths or grant.hosts or grant.env or grant.processes or grant.capabilities
         for grant in all_grants

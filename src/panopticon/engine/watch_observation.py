@@ -11,6 +11,8 @@ from typing import Literal, cast
 from panopticon import __version__
 from panopticon.analyzers.behavior.spans import AttributionContext, SpanBoundary, attribute_event
 from panopticon.declared.model import DeclaredScope
+from panopticon.models.common import PersistedPath
+from panopticon.models.event import Event, FileEvent
 from panopticon.models.ids import ObservationId, SpanId
 from panopticon.models.observation import (
     DiscoveryReason,
@@ -30,7 +32,7 @@ from panopticon.sandbox.decoy_specs import FILE_SPECS
 from panopticon.sandbox.trace_model import TraceEvent
 
 from .watch_declared import build_declared
-from .watch_events import convert_events
+from .watch_events import convert_events, persisted_path
 from .watch_leaks import leak_events_by_span
 from .watch_local_model import LocalSpan, LocalWatchResult
 from .watch_state import build_state
@@ -168,6 +170,20 @@ def build_watch_observation(
     assigned, uncovered = _assigned_events(result)
     decoy_paths = _decoy_paths(result)
     leak_events = leak_events_by_span(result)
+    snapshot_events = tuple(
+        Event(
+            FileEvent(
+                schema_version="1.0",
+                kind="file",
+                op=operation,
+                path=PersistedPath(persisted_path(path)),
+                decoy=persisted_path(path) in decoy_paths,
+                decoy_key=decoy_paths.get(persisted_path(path)),
+                count=1,
+            )
+        )
+        for operation, path in (result.snapshot.paths if result.snapshot else ())
+    )
     spans = tuple(
         Span(
             span_id=SpanId(span.span_id),
@@ -178,6 +194,7 @@ def build_watch_observation(
             duration_ms=max(0, int((span.ended_at - span.started_at).total_seconds() * 1000)),
             events=(
                 *convert_events(assigned.get(span.span_id, ()), decoy_paths=decoy_paths),
+                *(snapshot_events if span.kind.value == "session" else ()),
                 *leak_events.get(span.span_id, ()),
             ),
         )

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 
 import httpx
 import pytest
 
 from panopticon.probe.http import StreamableHttpClient
+from panopticon.probe.http_redirect import response_payload, sse_endpoint
 from panopticon.probe.protocol import ProbeStatus, ProtocolEra
 
 
@@ -116,3 +118,132 @@ async def test_http_timeout_is_incomplete() -> None:
 
     assert result.status is ProbeStatus.INCOMPLETE
     assert result.reason_code == "TIMEOUT"
+
+
+@pytest.mark.asyncio
+async def test_redirects_preserve_same_origin_and_strip_cross_origin_credentials() -> None:
+    seen: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if len(seen) == 1:
+            return httpx.Response(307, headers={"location": "/same"}, request=request)
+        if len(seen) == 2:
+            return httpx.Response(
+                307, headers={"location": "https://other.example/rpc"}, request=request
+            )
+        return httpx.Response(200, json={"jsonrpc": "2.0", "id": 1, "result": {}}, request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as transport:
+        client = StreamableHttpClient(
+            "https://mcp.example/rpc",
+            transport,
+            headers=(("Authorization", "Bearer secret"), ("Cookie", "sid=1")),
+        )
+        client.session_id = "session-1"
+        result = await client.request("tools/list")
+
+    assert result.status is ProbeStatus.COMPLETE
+    assert seen[1].headers["authorization"] == "Bearer secret"
+    assert seen[1].headers["cookie"] == "sid=1"
+    assert "authorization" not in seen[2].headers
+    assert "cookie" not in seen[2].headers
+    assert "mcp-session-id" not in seen[2].headers
+
+
+@pytest.mark.asyncio
+async def test_redirect_limit_and_missing_location_are_bounded() -> None:
+    async def looping(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(302, headers={"location": "/again"}, request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(looping)) as transport:
+        limited = StreamableHttpClient("https://mcp.example/rpc", transport, max_redirects=1)
+        result = await limited.request("x")
+    assert result.reason_code == "REDIRECT_LIMIT"
+
+    async def missing(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(302, request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(missing)) as transport:
+        result = await StreamableHttpClient("https://mcp.example/rpc", transport).request("x")
+    assert result.reason_code == "REDIRECT_LIMIT"
+
+
+@pytest.mark.asyncio
+async def test_redirect_blocked_resolver_and_transport_cancel_paths() -> None:
+    class BlockedResolver:
+        def resolve(self, _host: str) -> tuple[str, ...]:
+            return ("10.0.0.1",)
+
+    async def redirect(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            302, headers={"location": "https://other.example/rpc"}, request=request
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(redirect)) as transport:
+        blocked = StreamableHttpClient(
+            "https://mcp.example/rpc", transport, resolver=BlockedResolver()
+        )
+        result = await blocked.request("x")
+    assert result.status is ProbeStatus.UNSUPPORTED
+    assert result.reason_code == "REDIRECT_ADDRESS_BLOCKED"
+
+    async def transport_error(_request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("down")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport_error)) as transport:
+        result = await StreamableHttpClient("https://mcp.example/rpc", transport).request("x")
+    assert result.reason_code == "TRANSPORT_ERROR"
+
+    async def cancelled(_request: httpx.Request) -> httpx.Response:
+        raise asyncio.CancelledError
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(cancelled)) as transport:
+        result = await StreamableHttpClient("https://mcp.example/rpc", transport).request("x")
+    assert result.reason_code == "CANCELLED"
+
+
+def test_sse_response_payload_and_endpoint_parsing() -> None:
+    payload = {"jsonrpc": "2.0", "id": 7, "result": {"ok": True}}
+    response = httpx.Response(
+        200,
+        headers={"content-type": "text/event-stream; charset=utf-8"},
+        text=f"event: message\ndata: {json.dumps(payload)}\n\n",
+    )
+    assert response_payload(response) == payload
+    assert sse_endpoint("retry: 1\ndata: /messages\n\n") == "/messages"
+    assert sse_endpoint("data: https://mcp.example/messages\n") == "https://mcp.example/messages"
+    assert sse_endpoint("event: endpoint\ndata: not-a-url\n") is None
+
+
+@pytest.mark.asyncio
+async def test_legacy_sse_endpoint_redirects_initialize_over_mock_transport() -> None:
+    requests: list[httpx.Request] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.method == "GET":
+            return httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                text="event: endpoint\ndata: /messages\n\n",
+                request=request,
+            )
+        payload = json.loads(request.content)
+        if len(requests) == 1:
+            return httpx.Response(400, request=request)
+        if payload.get("method") == "initialize":
+            return httpx.Response(
+                200,
+                json={"jsonrpc": "2.0", "id": payload["id"], "result": {"capabilities": {}}},
+                request=request,
+            )
+        return httpx.Response(202, request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport)
+        result = await client.initialize()
+
+    assert result.status is ProbeStatus.COMPLETE
+    assert client.endpoint == "https://mcp.example/messages"
+    assert [request.method for request in requests[:3]] == ["POST", "GET", "POST"]

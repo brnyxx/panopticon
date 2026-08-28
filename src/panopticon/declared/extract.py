@@ -147,7 +147,18 @@ class ConfigExtractor:
     def extract(self, config: Mapping[str, object]) -> ScopeGrant:
         env = tuple(x for x in (normalize_env(v) for v in _seq(config.get("env_keys", ()))) if x)
         paths = tuple(x for x in (normalize_path(v) for v in _seq(config.get("args", ()))) if x)
-        return _grant(SourceKind.CONFIG, env=env, paths=paths, authority=Authority.PARTIAL)
+        hosts = tuple(normalize_host(v) for v in _seq(config.get("hosts", ())))
+        processes = tuple(
+            x for x in (normalize_process(v) for v in _seq(config.get("processes", ()))) if x
+        )
+        return _grant(
+            SourceKind.CONFIG,
+            env=env,
+            paths=paths,
+            hosts=hosts,
+            processes=processes,
+            authority=Authority.PARTIAL,
+        )
 
 
 class RegistryExtractor:

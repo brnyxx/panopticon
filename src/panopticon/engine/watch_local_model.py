@@ -14,6 +14,7 @@ from panopticon.probe.driver import DriverResult
 from panopticon.probe.protocol import ProtocolEra
 from panopticon.sandbox.base import StreamResult
 from panopticon.sandbox.decoy import DecoyManifest
+from panopticon.sandbox.snapshot import SnapshotDiff
 from panopticon.sandbox.trace_model import TraceResult
 
 from .watch_inventory import WatchTargetContext
@@ -78,6 +79,7 @@ class LocalWatchResult:
     manifest: DecoyManifest | None = field(default=None, repr=False)
     coverage: Mapping[str, Coverage] = field(default_factory=dict)
     diagnostics: tuple[str, ...] = ()
+    snapshot: SnapshotDiff | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "coverage", MappingProxyType(dict(self.coverage)))
