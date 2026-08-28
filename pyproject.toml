@@ -47,6 +47,16 @@ dev = [
 ]
 semantic = ["openai>=1.30"]
 static = ["semgrep>=1.75"]
+upstream = [
+  "mcp==1.23.3",
+  "openai==2.46.0",
+  "packaging>=25,<26",
+  "pathspec>=1.1.1,<2",
+  "platformdirs>=4.10,<5",
+  "sarif-om>=1.0.4,<2",
+  "semgrep==1.170.0",
+  "tiktoken>=0.12,<1",
+]
 
 [project.scripts]
 pano = "panopticon.cli.main:app"
@@ -70,7 +80,7 @@ packages = ["src/panopticon"]
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
-extend-exclude = [".gjc", ".omo"]
+extend-exclude = [".gjc", ".omo", "tests/upstream"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RET", "PTH", "RUF", "S", "T20"]
