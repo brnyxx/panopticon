@@ -20,7 +20,7 @@ def test_every_github_workflow_is_valid_yaml(workflow: Path) -> None:
     assert isinstance(document, dict)
 
 
-def test_release_workflow_is_tag_only_with_build_and_publish_jobs() -> None:
+def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     # Given: the release workflow parsed without YAML 1.1 coercion of the on key
     document = yaml.load(
         (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8"),
@@ -29,16 +29,32 @@ def test_release_workflow_is_tag_only_with_build_and_publish_jobs() -> None:
     assert isinstance(document, dict)
     trigger = document["on"]
     assert isinstance(trigger, dict)
-    push = trigger["push"]
-    assert isinstance(push, dict)
-    # When: its trigger and job structure are inspected
-    # Then: only v* tags trigger the workflow, with both release jobs present
-    assert set(trigger) == {"push"}
-    assert set(push) == {"tags"}
-    assert push["tags"] == ["v*"]
+    dispatch = trigger["workflow_dispatch"]
+    assert isinstance(dispatch, dict)
+    assert set(trigger) == {"workflow_dispatch"}
+    assert dispatch["inputs"]["channel"]["options"] == ["build", "rehearsal", "production"]
     jobs = document["jobs"]
     assert isinstance(jobs, dict)
-    assert {"build", "publish"}.issubset(jobs)
+    assert {
+        "quality",
+        "python-package",
+        "binary",
+        "assemble",
+        "draft",
+        "verify-images",
+        "testpypi",
+        "pypi",
+        "publish-github",
+    } == set(jobs)
+    assert jobs["testpypi"]["environment"] == "testpypi"
+    assert jobs["pypi"]["environment"] == "pypi"
+    assert jobs["publish-github"]["environment"] == "release"
+    text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "TODO" not in text
+    for job in jobs.values():
+        for step in job.get("steps", []):
+            if "uses" in step:
+                assert len(step["uses"].rsplit("@", 1)[1]) == 40
 
 
 def test_ci_self_scan_uses_trusted_local_action_and_pinned_upload() -> None:
