@@ -26,7 +26,7 @@ Declared   repo read/write (README, tool descriptions)
 Observed   2 files · 2 hosts · 1 decoy leak
 
 Findings   2 undeclared behaviors, 1 leak
-           details: pano explain WATCH-003 WATCH-007
+           details: pano explain WATCH-003 WATCH-001
 ```
 
 <div align="center">

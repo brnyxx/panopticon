@@ -9,6 +9,7 @@ Panopticon is local-first. It has no telemetry, no crash reporting, no update pi
 | `doctor`, `diff` (HIST rules) | registry.npmjs.org, pypi.org, api.github.com | package names only; `GITHUB_TOKEN` is used if set and is leak-checked before anything is written | no |
 | `watch` / `scan --mode deep` | package registries, from inside the sandbox | package install traffic | no |
 | `watch` | wherever the *MCP under test* connects, inside the sandbox, through the logging proxy | whatever the MCP sends, with decoy values, never your real ones unless you pass `--real-env` | no |
+| remote `watch` | the configured remote MCP endpoint | bounded MCP JSON-RPC requests; configured real header values leave only when you explicitly permit them, and are never persisted | maybe |
 | `scan --mode deep` | your model provider's API | redacted source excerpts, shown to you before they are sent | yes |
 
 Nothing else.
