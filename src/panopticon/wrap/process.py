@@ -138,7 +138,14 @@ async def run_stdio_command(
 ) -> RelayResult:
     """Connect real process stdio to the cancellable event-loop pipe transports."""
     if sys.platform == "win32":
-        raise RuntimeError("WRAP_STDIO_UNSUPPORTED")
+        return await run_command(
+            command,
+            ThreadReader(sys.stdin.buffer),
+            ThreadWriter(sys.stdout.buffer),
+            recorder=recorder,
+            server_id=server_id,
+            installation_id=installation_id,
+        )
     loop = asyncio.get_running_loop()
     reader = asyncio.StreamReader()
     reader_protocol = asyncio.StreamReaderProtocol(reader)

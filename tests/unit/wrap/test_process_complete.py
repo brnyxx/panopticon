@@ -3,8 +3,9 @@ import sys
 
 import pytest
 
-from panopticon.wrap.model import Coverage
-from panopticon.wrap.process import ThreadReader, ThreadWriter, run_command
+from panopticon.wrap import process as process_module
+from panopticon.wrap.model import Coverage, RelayResult
+from panopticon.wrap.process import ThreadReader, ThreadWriter, run_command, run_stdio_command
 
 
 class Reader:
@@ -135,3 +136,18 @@ async def test_thread_stream_adapters_flush_and_close():
     reader = ThreadReader(io.BytesIO(b"abc"))
     assert await reader.read(2) == b"ab"
     await writer.wait_closed()
+
+
+@pytest.mark.asyncio
+async def test_windows_stdio_uses_binary_thread_adapters(monkeypatch):
+    expected = RelayResult(Coverage.COMPLETE, 1, 2, 7, 0, 0)
+
+    async def fake_run(command, reader, writer, **kwargs):
+        assert command == ("child",)
+        assert isinstance(reader, ThreadReader)
+        assert isinstance(writer, ThreadWriter)
+        return expected
+
+    monkeypatch.setattr(process_module.sys, "platform", "win32")
+    monkeypatch.setattr(process_module, "run_command", fake_run)
+    assert await run_stdio_command(("child",)) == expected
