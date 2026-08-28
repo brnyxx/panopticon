@@ -1,0 +1,118 @@
+name: publish-sandbox-images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish base image
+        id: base
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6
+        with:
+          context: src/panopticon/sandbox/images
+          file: src/panopticon/sandbox/images/base.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/brnyxx/pano-sandbox-base:0.1
+          provenance: mode=max
+          sbom: true
+      - name: Publish Node 20 image
+        id: node20
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6
+        with:
+          context: src/panopticon/sandbox/images
+          file: src/panopticon/sandbox/images/node.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/brnyxx/pano-sandbox-node:20
+          build-args: BASE_IMAGE=ghcr.io/brnyxx/pano-sandbox-base@${{ steps.base.outputs.digest }}
+          provenance: mode=max
+          sbom: true
+      - name: Publish Node 22 image
+        id: node22
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6
+        with:
+          context: src/panopticon/sandbox/images
+          file: src/panopticon/sandbox/images/node.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/brnyxx/pano-sandbox-node:22
+          build-args: |
+            BASE_IMAGE=ghcr.io/brnyxx/pano-sandbox-base@${{ steps.base.outputs.digest }}
+            NODE_IMAGE=node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5
+          provenance: mode=max
+          sbom: true
+      - name: Publish Python 3.12 image
+        id: python312
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6
+        with:
+          context: src/panopticon/sandbox/images
+          file: src/panopticon/sandbox/images/python.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/brnyxx/pano-sandbox-python:3.12
+          provenance: mode=max
+          sbom: true
+      - name: Verify immutable manifests and tool versions
+        shell: bash
+        env:
+          BASE_DIGEST: ${{ steps.base.outputs.digest }}
+          NODE20_DIGEST: ${{ steps.node20.outputs.digest }}
+          NODE22_DIGEST: ${{ steps.node22.outputs.digest }}
+          PYTHON312_DIGEST: ${{ steps.python312.outputs.digest }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "ghcr.io/brnyxx/pano-sandbox-base@$BASE_DIGEST"
+          docker buildx imagetools inspect "ghcr.io/brnyxx/pano-sandbox-node@$NODE20_DIGEST"
+          docker buildx imagetools inspect "ghcr.io/brnyxx/pano-sandbox-node@$NODE22_DIGEST"
+          docker buildx imagetools inspect "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST"
+          docker run --rm --platform linux/amd64 "ghcr.io/brnyxx/pano-sandbox-node@$NODE20_DIGEST" node --version
+          docker run --rm --platform linux/arm64 "ghcr.io/brnyxx/pano-sandbox-node@$NODE22_DIGEST" node --version
+          docker run --rm --platform linux/amd64 "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST" python --version
+          docker run --rm --platform linux/arm64 "ghcr.io/brnyxx/pano-sandbox-python@$PYTHON312_DIGEST" uv --version
+      - name: Record immutable publication digests
+        shell: bash
+        env:
+          BASE_DIGEST: ${{ steps.base.outputs.digest }}
+          NODE20_DIGEST: ${{ steps.node20.outputs.digest }}
+          NODE22_DIGEST: ${{ steps.node22.outputs.digest }}
+          PYTHON312_DIGEST: ${{ steps.python312.outputs.digest }}
+          PANO_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = {
+              "commit": os.environ["PANO_COMMIT"],
+              "ghcr.io/brnyxx/pano-sandbox-base:0.1": os.environ["BASE_DIGEST"],
+              "ghcr.io/brnyxx/pano-sandbox-node:20": os.environ["NODE20_DIGEST"],
+              "ghcr.io/brnyxx/pano-sandbox-node:22": os.environ["NODE22_DIGEST"],
+              "ghcr.io/brnyxx/pano-sandbox-python:3.12": os.environ["PYTHON312_DIGEST"],
+          }
+          Path("image-digests.json").write_text(
+              json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sandbox-image-digests
+          path: image-digests.json
