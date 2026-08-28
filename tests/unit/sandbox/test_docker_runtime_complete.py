@@ -16,14 +16,12 @@ def out(code: int = 0, data: bytes = b"") -> ExecResult:
 async def test_runtime_rejects_invalid_isolation_and_paths(tmp_path) -> None:
     runtime = DockerRuntime("docker")
     image = "repo@sha256:" + "a" * 64
-    with pytest.raises(SandboxError, match="DECOY_HOME_INVALID"):
-        await runtime.run(ContainerSpec(image, [], {}, tmp_path / "missing"))
-    home = tmp_path / "home"
-    home.mkdir()
+    with pytest.raises(SandboxError, match="DECOY_ARCHIVE_INVALID"):
+        await runtime.run(ContainerSpec(image, [], {}, b""))
     with pytest.raises(SandboxError, match="SELF_SOURCE_MUST_BE_ABSOLUTE"):
-        await runtime.run(ContainerSpec(image, [], {}, home, self_source=Path("relative")))
+        await runtime.run(ContainerSpec(image, [], {}, b"archive", self_source=Path("relative")))
     with pytest.raises(SandboxError, match="UNSUPPORTED_ISOLATION_OPTIONS"):
-        await runtime.run(ContainerSpec(image, [], {}, home, read_only=False))
+        await runtime.run(ContainerSpec(image, [], {}, b"archive", read_only=False))
 
 
 @pytest.mark.asyncio
@@ -47,14 +45,12 @@ async def test_runtime_network_and_start_failures(tmp_path, monkeypatch) -> None
 
 @pytest.mark.asyncio
 async def test_runtime_run_rejects_empty_id_and_cleanup_error(tmp_path, monkeypatch) -> None:
-    home = tmp_path / "home"
-    home.mkdir()
     image = "repo@sha256:" + "b" * 64
     runtime = DockerRuntime("docker")
     monkeypatch.setattr(runtime, "_ensure_network", lambda network: _done())
 
     class FakeContainer:
-        async def copy_in(self, source, destination):
+        async def copy_archive_in(self, payload, destination):
             return None
 
         async def assert_effective_options(self, expected):
@@ -91,7 +87,7 @@ async def test_runtime_run_rejects_empty_id_and_cleanup_error(tmp_path, monkeypa
     monkeypatch.setattr("panopticon.sandbox._docker_runtime.asyncio.create_subprocess_exec", _exec)
     monkeypatch.setattr(runtime, "_container", lambda cid: FakeContainer())
     with pytest.raises(SandboxError, match="CONTAINER_CLEANUP_FAILED"):
-        await runtime.run(ContainerSpec(image, [], {}, home))
+        await runtime.run(ContainerSpec(image, [], {}, b"archive"))
 
 
 async def _done():

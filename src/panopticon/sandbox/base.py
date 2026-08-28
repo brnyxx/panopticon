@@ -29,7 +29,7 @@ class ContainerSpec:
     image: str
     command: list[str]
     env: dict[str, str]
-    decoy_home: Path  # copied into tmpfs $HOME; never a bind mount of the real home
+    decoy_archive: bytes  # extracted into tmpfs $HOME; never mounted from the host
     self_source: Path | None = None  # the only permitted read-only mount (`--self`)
     network: str = "pano-net"
     dns: str | None = None
@@ -75,6 +75,8 @@ class Container(Protocol):
     async def logs(self, max_bytes: int = 1_048_576) -> StreamResult: ...
 
     async def copy_in(self, source: Path, destination: str) -> None: ...
+
+    async def copy_archive_in(self, payload: bytes, destination: str) -> None: ...
 
     async def copy_out(self, source: str, destination: Path) -> None: ...
 

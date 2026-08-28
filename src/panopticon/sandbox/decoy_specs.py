@@ -89,7 +89,7 @@ def formatted_content(spec: DecoyFileSpec, token: bytes) -> bytes:
     if spec.format == "profile":
         return f"[default]\ncredential = {text}\n".encode()
     if spec.format == "git_config":
-        return f"[user]\n\tname = {text}\n\temail = decoy@example.invalid\n".encode()
+        return f"[user]\n\tname = {json.dumps(text)}\n\temail = decoy@example.invalid\n".encode()
     if spec.format == "assignment":
         return f"token={text}\n".encode()
     if spec.format == "netrc":

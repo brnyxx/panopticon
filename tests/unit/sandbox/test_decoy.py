@@ -10,6 +10,12 @@ from panopticon.sandbox.decoy import (
 )
 
 
+def test_gitconfig_decoy_escapes_token_syntax() -> None:
+    content = generate_decoy_home("seed").files[".gitconfig"].decode()
+    assert 'name = "PANO_DECOY_' in content
+    assert '\\"' in content
+
+
 def test_same_seed_and_identity_are_byte_deterministic() -> None:
     first = generate_decoy_home("seed", "installation-a")
     second = generate_decoy_home("seed", "installation-a")

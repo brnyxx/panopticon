@@ -185,6 +185,16 @@ class DockerContainer:
         if result.returncode:
             raise SandboxError("COPY_IN_FAILED")
 
+    async def copy_archive_in(self, payload: bytes, destination: str) -> None:
+        target = PurePosixPath(destination)
+        if not target.is_absolute() or ".." in target.parts:
+            raise SandboxError("COPY_DESTINATION_INVALID")
+        if not payload or len(payload) > 32 * 1024 * 1024:
+            raise SandboxError("DECOY_ARCHIVE_INVALID")
+        result = await self.exec(["tar", "-xf", "-", "-C", destination], 30, payload)
+        if result.returncode:
+            raise SandboxError("COPY_IN_FAILED")
+
     async def copy_out(self, source: str, destination: Path) -> None:
         result = await self._command(["cp", f"{self.id}:{source}", str(destination)])
         if result.returncode:

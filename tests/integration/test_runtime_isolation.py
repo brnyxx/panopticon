@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from panopticon.sandbox.base import ContainerSpec, Runtime, SandboxError
+from panopticon.sandbox.decoy import decoy_archive, generate_decoy_home
 from panopticon.sandbox.docker import DockerRuntime
 from panopticon.sandbox.podman import PodmanRuntime
 
@@ -25,20 +26,19 @@ async def test_container_runtime_populates_only_decoy_home_and_enforces_options(
     tmp_path: Path,
     runtime: Runtime,
 ) -> None:
-    decoy_home = tmp_path / "decoy"
-    decoy_home.mkdir()
-    (decoy_home / "marker.txt").write_text("decoy-marker")
+    manifest = generate_decoy_home("runtime-isolation")
+    marker_path = sorted(manifest.files)[0]
     spec = ContainerSpec(
         image=DEBIAN_IMAGE,
         command=["sleep", "60"],
         env={"HOME": "/prohibited", "FIXTURE": "present"},
-        decoy_home=decoy_home,
+        decoy_archive=decoy_archive(manifest),
     )
     container = await runtime.run(spec)
     second = None
 
     try:
-        marker = await container.exec(["cat", "/home/pano/marker.txt"], 10)
+        marker = await container.exec(["cat", f"/home/pano/{marker_path}"], 10)
         environment = await container.exec(["env"], 10)
         await container.exec(["mkdir", "-p", "/home/pano/.cache/npm"], 10)
         await container.exec(["touch", "/home/pano/.cache/npm/private-marker"], 10)
@@ -62,7 +62,7 @@ async def test_container_runtime_populates_only_decoy_home_and_enforces_options(
         network_settings = inspection.get("NetworkSettings")
 
         assert marker.returncode == 0
-        assert marker.stdout.data == b"decoy-marker"
+        assert marker.stdout.data == manifest.files[marker_path]
         assert isolated_cache.returncode == 0
         assert b"XDG_CACHE_HOME=/home/pano/.cache" in environment.stdout.data
         assert b"npm_config_cache=/home/pano/.cache/npm" in environment.stdout.data

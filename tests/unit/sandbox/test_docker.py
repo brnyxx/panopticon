@@ -35,8 +35,6 @@ async def test_run_uses_isolation_flags_and_vector(
     tmp_path: Path,
 ) -> None:
     calls: list[tuple[str, ...]] = []
-    decoy_home = tmp_path / "decoy"
-    decoy_home.mkdir()
 
     async def fake_exec(*args: object, **kwargs: object) -> _Process:
         calls.append(tuple(str(arg) for arg in args))
@@ -67,7 +65,7 @@ async def test_run_uses_isolation_flags_and_vector(
         fake_exec,
     )
     image = "registry.example/pano@sha256:" + "a" * 64
-    await DockerRuntime("docker").run(ContainerSpec(image, ["serve"], {}, decoy_home))
+    await DockerRuntime("docker").run(ContainerSpec(image, ["serve"], {}, b"archive"))
     command = next(call for call in calls if call[1] == "run")
     assert "--read-only" in command and "--cap-drop" in command
     assert "--user" in command and "1000:1000" in command
@@ -86,7 +84,7 @@ async def test_run_uses_isolation_flags_and_vector(
 @pytest.mark.asyncio
 async def test_run_rejects_mutable_image(tmp_path: Path) -> None:
     runtime = DockerRuntime("docker")
-    spec = ContainerSpec("registry.example/pano:latest", [], {}, tmp_path)
+    spec = ContainerSpec("registry.example/pano:latest", [], {}, b"archive")
     with pytest.raises(SandboxError, match="IMAGE_NOT_PINNED"):
         await runtime.run(spec)
 
@@ -104,8 +102,8 @@ async def test_cancelled_setup_removes_created_container(
     class BlockingContainer:
         cleaned = False
 
-        async def copy_in(self, source: Path, destination: str) -> None:
-            del source, destination
+        async def copy_archive_in(self, payload: bytes, destination: str) -> None:
+            del payload, destination
             entered.set()
             await asyncio.Future()
 
@@ -137,7 +135,7 @@ async def test_cancelled_setup_removes_created_container(
                 "registry.example/pano@sha256:" + "a" * 64,
                 ["serve"],
                 {},
-                tmp_path,
+                b"archive",
             )
         )
     )

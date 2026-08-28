@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import re
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
 
-from .argument_schema import JsonValue, Schema
+from .argument_schema import JsonValue
 from .arguments import ArgumentGenerator
+from .driver_tools import ToolDefinition, tool_definition
 from .overrides import parse_overrides as parse_overrides
 from .protocol import ProbeResult, ProbeStatus
 
@@ -26,13 +26,6 @@ class CallStatus(StrEnum):
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
     UNPROBEABLE = "UNPROBEABLE"
-
-
-@dataclass(frozen=True, slots=True)
-class ToolDefinition:
-    name: str
-    schema: Schema
-    destructive: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +56,18 @@ class ProbeClient(Protocol):
     ) -> ProbeResult: ...
 
 
+class CallObserver(Protocol):
+    async def before_call(
+        self, tool: str, call_index: int, arguments: dict[str, JsonValue]
+    ) -> None: ...
+
+    async def after_call(self, tool: str, call_index: int, result: ProbeResult) -> None: ...
+
+
+class CallObserverError(RuntimeError):
+    """Expected observer boundary failure."""
+
+
 class CallDriver:
     def __init__(
         self,
@@ -72,7 +77,8 @@ class CallDriver:
         stage_timeout: float = 20.0,
         total_timeout: float = 120.0,
         seed: str = "panopticon-probe",
-        real_env: bool = False,
+        allow_destructive: bool = False,
+        observer: CallObserver | None = None,
     ) -> None:
         if calls < 0 or stage_timeout <= 0 or total_timeout <= 0:
             raise ValueError("driver bounds must be non-negative and timeouts positive")
@@ -81,7 +87,8 @@ class CallDriver:
         self.stage_timeout = stage_timeout
         self.total_timeout = total_timeout
         self.generator = ArgumentGenerator(seed)
-        self.real_env = real_env
+        self.allow_destructive = allow_destructive
+        self.observer = observer
         self._task: asyncio.Task[DriverResult] | None = None
 
     async def run(
@@ -123,7 +130,7 @@ class CallDriver:
             return DriverResult(DriverStatus.INCOMPLETE, "MALFORMED_TOOL_LIST")
         definitions: list[ToolDefinition] = []
         for raw_tool in raw_tools:
-            definition = _tool_definition(raw_tool)
+            definition = tool_definition(raw_tool)
             if definition is None:
                 return DriverResult(DriverStatus.INCOMPLETE, "MALFORMED_TOOL_DEFINITION")
             definitions.append(definition)
@@ -137,7 +144,7 @@ class CallDriver:
         outcomes: list[ToolCallResult] = []
         for call_index in range(1, self.call_count + 1):
             for tool in tools:
-                if self.real_env and tool.destructive:
+                if not self.allow_destructive and tool.destructive:
                     outcomes.append(
                         ToolCallResult(
                             tool.name,
@@ -161,6 +168,23 @@ class CallDriver:
                         )
                         continue
                     arguments = generated.value
+                if self.observer is not None:
+                    try:
+                        await self.observer.before_call(tool.name, call_index, arguments)
+                    except CallObserverError:
+                        outcomes.append(
+                            ToolCallResult(
+                                tool.name,
+                                call_index,
+                                CallStatus.FAILED,
+                                "OBSERVER_BEFORE_FAILED",
+                            )
+                        )
+                        return DriverResult(
+                            DriverStatus.INCOMPLETE,
+                            "OBSERVER_BEFORE_FAILED",
+                            tuple(outcomes),
+                        )
                 response = await self.client.request(
                     "tools/call",
                     {"name": tool.name, "arguments": arguments},
@@ -180,6 +204,15 @@ class CallDriver:
                         response,
                     )
                 )
+                if self.observer is not None:
+                    try:
+                        await self.observer.after_call(tool.name, call_index, response)
+                    except CallObserverError:
+                        return DriverResult(
+                            DriverStatus.INCOMPLETE,
+                            "OBSERVER_AFTER_FAILED",
+                            tuple(outcomes),
+                        )
                 if response.reason_code in {
                     "TIMEOUT",
                     "EARLY_EXIT",
@@ -209,19 +242,6 @@ class CallDriver:
         return DriverResult(DriverStatus.CANCELLED, "CANCELLED")
 
 
-def _tool_definition(value: object) -> ToolDefinition | None:
-    if not isinstance(value, dict):
-        return None
-    name = value.get("name")
-    raw_schema = value.get("inputSchema", {})
-    if not isinstance(name, str) or not name or not isinstance(raw_schema, (bool, dict)):
-        return None
-    annotations = value.get("annotations", {})
-    annotated = isinstance(annotations, dict) and annotations.get("destructiveHint") is True
-    inferred = re.search(r"(?:delete|remove|write|execute|shell|send|publish)", name, re.I)
-    return ToolDefinition(name, raw_schema, annotated or inferred is not None)
-
-
 async def run_calls(
     client: ProbeClient,
     tools: list[dict[str, object]],
@@ -229,12 +249,14 @@ async def run_calls(
     calls: int = 1,
     timeout: float = 20.0,
     seed: str = "panopticon-probe",
-    real_env: bool = False,
+    allow_destructive: bool = False,
+    observer: CallObserver | None = None,
 ) -> DriverResult:
     return await CallDriver(
         client,
         calls=calls,
         stage_timeout=timeout,
         seed=seed,
-        real_env=real_env,
+        allow_destructive=allow_destructive,
+        observer=observer,
     ).run(tools)

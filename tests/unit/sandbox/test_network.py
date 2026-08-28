@@ -25,7 +25,7 @@ def test_network_session_applies_proxy_and_dns_without_mutating_spec(tmp_path: P
         image="registry.example/pano@sha256:" + "a" * 64,
         command=["serve"],
         env={},
-        decoy_home=tmp_path,
+        decoy_archive=b"archive",
     )
     session = NetworkSession(
         network="pano-run-internal",

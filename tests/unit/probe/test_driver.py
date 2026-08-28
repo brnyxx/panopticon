@@ -9,6 +9,7 @@ import pytest
 from panopticon.probe.client import ProbeResult, ProbeStatus
 from panopticon.probe.driver import (
     CallDriver,
+    CallObserverError,
     CallStatus,
     DriverStatus,
     parse_overrides,
@@ -38,6 +39,22 @@ class FakeClient:
         return (
             self.responses.pop(0) if self.responses else ProbeResult(ProbeStatus.COMPLETE, "OK", {})
         )
+
+
+class Observer:
+    def __init__(self, fail: str | None = None) -> None:
+        self.fail = fail
+        self.events: list[tuple[str, str, int]] = []
+
+    async def before_call(self, tool, call_index, arguments) -> None:
+        self.events.append(("before", tool, call_index))
+        if self.fail == "before":
+            raise CallObserverError("before")
+
+    async def after_call(self, tool, call_index, result) -> None:
+        self.events.append(("after", tool, call_index))
+        if self.fail == "after":
+            raise CallObserverError("after")
 
 
 @pytest.mark.asyncio
@@ -112,14 +129,42 @@ async def test_overrides_are_passed_verbatim_and_list_failure_is_incomplete() ->
 
 
 @pytest.mark.asyncio
-async def test_real_env_destructive_calls_are_skipped_and_partial() -> None:
+async def test_call_observer_wraps_actual_calls_in_order() -> None:
+    tools = [{"name": "read_data", "inputSchema": {"type": "object"}}]
+    observer = Observer()
+
+    result = await CallDriver(FakeClient(tools), observer=observer).run(tools)
+
+    assert result.status is DriverStatus.COMPLETE
+    assert observer.events == [("before", "read_data", 1), ("after", "read_data", 1)]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("phase", "reason"),
+    (("before", "OBSERVER_BEFORE_FAILED"), ("after", "OBSERVER_AFTER_FAILED")),
+)
+async def test_expected_observer_failure_is_typed(phase: str, reason: str) -> None:
+    tools = [{"name": "read_data", "inputSchema": {"type": "object"}}]
+    client = FakeClient(tools)
+
+    result = await CallDriver(client, observer=Observer(phase)).run(tools)
+
+    assert result.status is DriverStatus.INCOMPLETE
+    assert result.reason_code == reason
+    issued = [request for request in client.requests if request[0] == "tools/call"]
+    assert len(issued) == (0 if phase == "before" else 1)
+
+
+@pytest.mark.asyncio
+async def test_destructive_calls_require_explicit_allowance() -> None:
     tools = [
         {"name": "delete_everything", "inputSchema": {"type": "object"}},
         {"name": "read_data", "inputSchema": {"type": "object"}},
     ]
     client = FakeClient(tools)
 
-    result = await CallDriver(client, real_env=True).run(tools)
+    result = await CallDriver(client).run(tools)
 
     assert result.status is DriverStatus.PARTIAL
     assert [outcome.reason_code for outcome in result.calls] == [
@@ -127,6 +172,14 @@ async def test_real_env_destructive_calls_are_skipped_and_partial() -> None:
         "OK",
     ]
     assert [request[1]["name"] for request in client.requests] == ["read_data"]
+
+    allowed_client = FakeClient(tools)
+    allowed = await CallDriver(allowed_client, allow_destructive=True).run(tools)
+    assert allowed.status is DriverStatus.COMPLETE
+    assert [request[1]["name"] for request in allowed_client.requests] == [
+        "delete_everything",
+        "read_data",
+    ]
 
 
 def test_manual_overrides_parse_only_json_object_values() -> None:

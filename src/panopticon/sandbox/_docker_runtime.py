@@ -69,8 +69,8 @@ class DockerRuntime:
     async def run(self, spec: ContainerSpec) -> Container:
         if not docker.is_pinned_image(spec.image):
             raise SandboxError("IMAGE_NOT_PINNED")
-        if not spec.decoy_home.is_dir():
-            raise SandboxError("DECOY_HOME_INVALID")
+        if not spec.decoy_archive or len(spec.decoy_archive) > 32 * 1024 * 1024:
+            raise SandboxError("DECOY_ARCHIVE_INVALID")
         if spec.self_source is not None and not spec.self_source.is_absolute():
             raise SandboxError("SELF_SOURCE_MUST_BE_ABSOLUTE")
         if not spec.read_only or spec.cap_add != ("SYS_PTRACE",):
@@ -155,7 +155,7 @@ class DockerRuntime:
             raise SandboxError("CONTAINER_ID_MISSING")
         container = self._container(container_id)
         try:
-            await container.copy_in(spec.decoy_home, "/home/pano")
+            await container.copy_archive_in(spec.decoy_archive, "/home/pano")
             await container.assert_effective_options(self._expected_options(spec))
         except BaseException:
             try:

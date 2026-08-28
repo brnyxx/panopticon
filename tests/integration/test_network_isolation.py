@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from panopticon.sandbox.base import ContainerSpec, Runtime
+from panopticon.sandbox.decoy import decoy_archive, generate_decoy_home
 from panopticon.sandbox.docker import DockerContainer, DockerRuntime
 from panopticon.sandbox.network import CapabilityStatus, NetworkController, NetworkServices
 from panopticon.sandbox.podman import PodmanRuntime
@@ -80,15 +81,14 @@ async def test_internal_network_forces_proxy_and_records_dns(
             rootless=case.rootless,
         )
     )
-    decoy_home = tmp_path / "decoy"
-    decoy_home.mkdir()
+    archive = decoy_archive(generate_decoy_home("network-test", max_bytes=0))
     container = await case.runtime.run(
         session.apply(
             ContainerSpec(
                 image=image,
                 command=["sleep", "60"],
                 env={},
-                decoy_home=decoy_home,
+                decoy_archive=archive,
             )
         )
     )
