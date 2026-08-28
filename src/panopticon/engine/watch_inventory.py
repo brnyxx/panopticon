@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from pathlib import Path
 
@@ -112,6 +112,13 @@ class ProductionWatchInventory:
         return tuple(found), tuple(diagnostics)
 
     def _context(self, entry: RawServerEntry, client: str) -> WatchTargetContext:
+        if entry.scope is ConfigScope.PROJECT:
+            acquired = acquire_self_metadata(self._env.cwd)
+            entry = replace(
+                entry,
+                raw={**entry.raw, **acquired},
+                metadata={**entry.metadata, **acquired},
+            )
         return WatchTargetContext(
             normalize_entry(entry, client=client, home=str(self._env.home)), entry
         )

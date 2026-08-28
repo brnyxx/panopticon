@@ -155,13 +155,19 @@ async def test_redirects_preserve_same_origin_and_strip_cross_origin_credentials
         )
         client.session_id = "session-1"
         result = await client.request("tools/list")
+        notified = await client.notify("notifications/initialized")
 
     assert result.status is ProbeStatus.COMPLETE
+    assert notified.status is ProbeStatus.COMPLETE
     assert seen[1].headers["authorization"] == "Bearer secret"
     assert seen[1].headers["cookie"] == "sid=1"
     assert "authorization" not in seen[2].headers
     assert "cookie" not in seen[2].headers
     assert "mcp-session-id" not in seen[2].headers
+    assert "authorization" not in seen[3].headers
+    assert "cookie" not in seen[3].headers
+    assert "mcp-session-id" not in seen[3].headers
+    assert client.session_id is None
 
 
 @pytest.mark.asyncio

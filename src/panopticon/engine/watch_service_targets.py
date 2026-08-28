@@ -166,7 +166,11 @@ async def run_target(
             remote.observation,
         )
 
-    raw = _raw_environment(context) if request.options.real_env else {}
+    raw = (
+        _raw_environment(context)
+        if request.options.real_env or request.options.real_env_all
+        else {}
+    )
     if runtime is None:
         return TargetRun(
             WatchTargetReceipt(context.name, "INCOMPLETE", "RUNTIME_UNAVAILABLE"), incomplete=True

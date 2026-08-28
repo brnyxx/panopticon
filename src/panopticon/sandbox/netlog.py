@@ -59,6 +59,9 @@ _BLOCKED = re.compile(
     r"(?:.*?\b(?:DPT|dpt)=(?P<port>\d+))?"
     r"(?:.*?\b(?:PROTO|proto)=(?P<protocol>[A-Za-z0-9]+))?"
 )
+_TINY_TIMESTAMP = re.compile(
+    r"^[A-Z]+\s+(?P<stamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\.\d+)\s+"
+)
 
 
 def _clean_host(value: str) -> str:
@@ -169,6 +172,12 @@ def _parse(
                 line = payload
             except ValueError:
                 pass
+        if timestamp is None and (matched := _TINY_TIMESTAMP.match(line)):
+            with suppress(ValueError):
+                timestamp = datetime.strptime(
+                    f"{datetime.now(UTC).year} {matched.group('stamp')}",
+                    "%Y %b %d %H:%M:%S.%f",
+                ).replace(tzinfo=UTC)
         event = parser(line)
         if event is not None and timestamp is not None:
             event = NetworkEvent(

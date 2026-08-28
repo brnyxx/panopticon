@@ -8,6 +8,7 @@ import httpx
 
 from .argument_schema import JsonValue, UnsupportedSchemaError, json_value
 from .http_redirect import post_with_redirects, response_payload
+from .http_session import close_session, send_notification
 from .http_sse import SseFallbackMixin
 from .pagination import list_paginated
 from .protocol import (
@@ -114,7 +115,15 @@ class StreamableHttpClient(SseFallbackMixin):
         )
         if isinstance(result, ProbeResult):
             return result
-        response, endpoint, _ = result
+        response, endpoint, carried_headers = result
+        sensitive = {"authorization", "cookie", "mcp-session-id"}
+        if any(name.casefold() in sensitive and name not in carried_headers for name in headers):
+            self._headers = {
+                name: value
+                for name, value in self._headers.items()
+                if name.casefold() not in sensitive
+            }
+            self.session_id = None
         if len(response.content) > self.max_response:
             return ProbeResult(ProbeStatus.ERROR, "RESPONSE_TOO_LARGE")
         if response.status_code >= 500:
@@ -161,30 +170,7 @@ class StreamableHttpClient(SseFallbackMixin):
     ) -> ProbeResult:
         if self._closed:
             return ProbeResult(ProbeStatus.ERROR, "CLIENT_CLOSED")
-        request_params = dict(params or {})
-        if self.era is ProtocolEra.MODERN:
-            request_params["_meta"] = {"client": "panopticon"}
-        message: dict[str, JsonValue] = {
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": request_params,
-        }
-        headers = {**self._headers, "Content-Type": "application/json"}
-        if self.session_id:
-            headers["Mcp-Session-Id"] = self.session_id
-        try:
-            response = await self.client.post(
-                self.endpoint,
-                json=message,
-                headers=headers,
-                timeout=self.timeout,
-            )
-        except httpx.TimeoutException:
-            return ProbeResult(ProbeStatus.INCOMPLETE, "TIMEOUT")
-        except httpx.TransportError:
-            return ProbeResult(ProbeStatus.INCOMPLETE, "TRANSPORT_ERROR")
-        status = ProbeStatus.COMPLETE if response.status_code < 400 else ProbeStatus.ERROR
-        return ProbeResult(status, "OK" if status is ProbeStatus.COMPLETE else "HTTP_ERROR")
+        return await send_notification(self, method, params)
 
     async def initialize(self) -> ProbeResult:
         preferred = self.era or ProtocolEra.MODERN
@@ -252,12 +238,4 @@ class StreamableHttpClient(SseFallbackMixin):
 
     async def close(self) -> None:
         self._closed = True
-        if self.session_id is not None:
-            try:
-                await self.client.delete(
-                    self.endpoint,
-                    headers={**self._headers, "Mcp-Session-Id": self.session_id},
-                    timeout=self.timeout,
-                )
-            except (httpx.TimeoutException, httpx.TransportError):
-                self.close_reason = "SESSION_DELETE_FAILED"
+        await close_session(self)
