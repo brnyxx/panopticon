@@ -64,6 +64,8 @@ class CollectionResult:
 
 def normalize_path(path: str, home: str = "/home/pano") -> str:
     """Convert container paths to stable ``~`` relative paths."""
+    if path == "~" or path.startswith("~/"):
+        return posixpath.normpath(path)
     path = re.sub(r"/{2,}", "/", path)
     if path == home or path.startswith(home.rstrip("/") + "/"):
         suffix = path[len(home) :].lstrip("/")
