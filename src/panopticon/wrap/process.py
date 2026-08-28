@@ -93,7 +93,11 @@ async def run_command(
     stop_event = asyncio.Event()
     loop = asyncio.get_running_loop()
     installed: list[signal.Signals] = []
-    for member in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    members: tuple[signal.Signals, ...] = (signal.SIGINT, signal.SIGTERM)
+    sighup = getattr(signal, "SIGHUP", None)
+    if isinstance(sighup, signal.Signals):
+        members += (sighup,)
+    for member in members:
         try:
             loop.add_signal_handler(member, process.send_signal, member)
             installed.append(member)

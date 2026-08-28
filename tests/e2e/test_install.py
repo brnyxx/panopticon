@@ -53,7 +53,7 @@ def _pano() -> str:
     return str(executable)
 
 
-async def _launch(command: str, args: list[str], payload: bytes) -> tuple[int, bytes]:
+async def _launch(command: str, args: list[str], payload: bytes) -> tuple[int, bytes, bytes]:
     process = await asyncio.create_subprocess_exec(
         command,
         *args,
@@ -61,8 +61,8 @@ async def _launch(command: str, args: list[str], payload: bytes) -> tuple[int, b
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    stdout, _stderr = await process.communicate(payload)
-    return process.returncode or 0, stdout
+    stdout, stderr = await process.communicate(payload)
+    return process.returncode or 0, stdout, stderr
 
 
 def test_install_launch_uninstall_restores_original_hash(tmp_path: Path) -> None:
@@ -100,14 +100,14 @@ def test_install_launch_uninstall_restores_original_hash(tmp_path: Path) -> None
     command, args = wrapped["command"], wrapped["args"]
     assert isinstance(command, str) and isinstance(args, list)
     assert all(isinstance(argument, str) for argument in args)
-    exit_code, stdout = asyncio.run(
+    exit_code, stdout, stderr = asyncio.run(
         _launch(
             command,
             [argument for argument in args if isinstance(argument, str)],
             b"\x00mcp\xff",
         )
     )
-    assert (exit_code, stdout) == (7, b"\x00mcp\xff")
+    assert (exit_code, stdout, stderr) == (7, b"\x00mcp\xff", b"")
 
     uninstalled = execute(
         InstallRequest(
