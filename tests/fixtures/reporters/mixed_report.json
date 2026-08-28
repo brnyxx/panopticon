@@ -30,10 +30,10 @@
     },
     {
       "rule_id": "FIX-002",
-      "title": "<script>alert('x')</script> [click](javascript:alert(1)) | token sk-proj-abcdefghijklmnopqrstuvwxyz1234",
+      "title": "<script>alert('x')</script> [click](javascript:alert(1)) | token <redacted>",
       "severity": "MEDIUM",
       "logical_key": "fix:hostile",
-      "path": "../../Users/runner/.config/token.txt",
+      "path": "evidence/token.txt",
       "line": 0,
       "column": -4,
       "kind": "remediation",

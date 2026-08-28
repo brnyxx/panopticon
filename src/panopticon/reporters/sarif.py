@@ -40,17 +40,15 @@ def _result(f: ReportFinding, rule_index: dict[str, int]) -> dict[str, object]:
             region["startLine"] = max(1, f.line)
         if f.column is not None:
             region["startColumn"] = max(1, f.column)
-        result["locations"] = [
-            {
-                "physicalLocation": {
-                    "artifactLocation": {"uri": artifact_uri(f.path)},
-                    "region": region,
-                }
-            }
-        ]
-    if f.logical_key:
-        digest = hashlib.sha256(f.logical_key.encode("utf-8", "strict")).hexdigest()
-        result["partialFingerprints"] = {"panopticon/v1": digest}
+        physical: dict[str, object] = {"artifactLocation": {"uri": artifact_uri(f.path)}}
+        if region:
+            physical["region"] = region
+        result["locations"] = [{"physicalLocation": physical}]
+    fingerprint_source = f.logical_key or "\0".join(
+        (f.rule_id, f.path or "", str(f.line or 0), str(f.column or 0), f.title)
+    )
+    digest = hashlib.sha256(fingerprint_source.encode("utf-8", "strict")).hexdigest()
+    result["partialFingerprints"] = {"panopticon/v1": digest}
     if f.suppressed:
         result["suppressions"] = [{"kind": "inSource", "status": "accepted"}]
     return result

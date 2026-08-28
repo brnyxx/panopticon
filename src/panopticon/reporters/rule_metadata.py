@@ -15,7 +15,8 @@ class RuleMetadata:
 
 def metadata_for(rule_id: str, title: str | None = None) -> RuleMetadata:
     rid = str(rule_id)
-    return RuleMetadata(rid, title or rid, f"Panopticon policy rule {rid}.")
+    help_uri = f"https://github.com/brnyxx/panopticon/blob/main/docs/rules/{rid}.md"
+    return RuleMetadata(rid, title or rid, f"Panopticon policy rule {rid}.", help_uri)
 
 
 def metadata_map(rule_ids: list[str] | tuple[str, ...]) -> tuple[RuleMetadata, ...]:

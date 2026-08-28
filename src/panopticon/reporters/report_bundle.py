@@ -8,6 +8,9 @@ from dataclasses import dataclass
 
 from panopticon.models.finding import Finding
 from panopticon.reporters.model import SanitizedRenderModel
+from panopticon.util.leak_check import LeakContext, assert_clean
+
+from .escaping import artifact_uri
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +33,12 @@ class ReportFinding:
             raise ValueError("invalid report severity")
         if not self.title:
             raise ValueError("report finding title must be non-empty")
+        assert_clean(
+            "\0".join((self.rule_id, self.title, self.logical_key, self.path or "")),
+            LeakContext(),
+        )
+        if self.path is not None and artifact_uri(self.path) == "unknown":
+            raise ValueError("report finding path must be repository-relative")
 
 
 @dataclass(frozen=True, slots=True)

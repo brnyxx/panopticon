@@ -6,11 +6,15 @@ from typing import Any
 from urllib.parse import quote
 
 import jsonschema
+import pytest
 
 from panopticon.reporters.markdown import render_markdown
 from panopticon.reporters.model import DiagnosticView, SanitizedRenderModel, StageView
+from panopticon.reporters.persist import ReportFormat, persist_report
 from panopticon.reporters.report_bundle import ReportBundle, ReportFinding
-from panopticon.reporters.sarif import SARIF_SCHEMA_URI, render, render_sarif
+from panopticon.reporters.sarif import SARIF_SCHEMA_URI, render_sarif
+from panopticon.store.contracts import PersistSuccess
+from panopticon.util.leak_check import LeakContext, LeakError
 
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "reporters" / "mixed_report.json"
 SECRET = "sk-proj-abcdefghijklmnopqrstuvwxyz1234"
@@ -40,7 +44,7 @@ def _bundle() -> ReportBundle:
     return ReportBundle(model, findings, data["category"])
 
 
-def test_mixed_findings_render_valid_sarif_and_markdown() -> None:
+def test_mixed_findings_render_valid_sarif_and_markdown(tmp_path: Path) -> None:
     report = _bundle()
     first = render_sarif(report)
     second = render_sarif(report)
@@ -92,22 +96,22 @@ def test_mixed_findings_render_valid_sarif_and_markdown() -> None:
     assert "](" not in markdown
     assert SECRET not in markdown
     assert "Users/runner" not in markdown
+    target = tmp_path / "report.sarif"
+    persisted = persist_report(target, report, ReportFormat.SARIF, LeakContext())
+    assert isinstance(persisted, PersistSuccess)
+    assert target.read_text(encoding="utf-8") == first
 
 
 def test_hostile_markdown_and_home_uri_are_escaped_or_rejected() -> None:
-    report = _bundle()
-    rendered = render(report, exit_code=7)
-    sarif = json.loads(rendered.stdout)
-    hostile = sarif["runs"][0]["results"][1]
-    uri = hostile["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
-
-    assert rendered.stdout
-    assert rendered.exit_code == 7
-    assert uri == "unknown"
-    assert SECRET not in rendered.stdout
-    assert "Users/runner" not in rendered.stdout
-    assert "<script>" not in rendered.stdout
-    assert "javascript:" not in rendered.stdout
-    assert "<script>" not in render_markdown(report)
-    assert SECRET not in render_markdown(report)
-    assert "Users/runner" not in render_markdown(report)
+    with pytest.raises(LeakError):
+        ReportFinding(
+            rule_id="FIX-002",
+            title=f"<script>payload</script> {SECRET}",
+            path="evidence/token.txt",
+        )
+    with pytest.raises(ValueError, match="repository-relative"):
+        ReportFinding(
+            rule_id="FIX-002",
+            title="<script>payload</script>",
+            path="../../Users/runner/.config/token.txt",
+        )

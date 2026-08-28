@@ -43,6 +43,11 @@ def canonical_json_bytes(model: BaseModel) -> bytes:
     return _dump(_model_value(model))
 
 
+def canonical_json_text_bytes(text: str) -> bytes:
+    """Validate and canonicalize an already-rendered JSON document."""
+    return _dump(_JSON_ADAPTER.validate_json(text))
+
+
 def _semantic(value: JsonValue) -> JsonValue:
     if isinstance(value, dict):
         return {

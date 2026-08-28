@@ -15,7 +15,11 @@ from panopticon.store.contracts import (
     RenderedArtifact,
     SinkKind,
 )
-from panopticon.util.canonicalize import canonical_json_bytes, canonical_text_bytes
+from panopticon.util.canonicalize import (
+    canonical_json_bytes,
+    canonical_json_text_bytes,
+    canonical_text_bytes,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +71,10 @@ def _rendered_artifact(artifact: RenderedArtifact) -> SerializationResult:
     model_text = canonical_json_bytes(artifact.render_model).decode("utf-8")
     match artifact.kind:
         case SinkKind.SARIF:
-            data = canonical_json_bytes(artifact.render_model)
+            try:
+                data = canonical_json_text_bytes(artifact.text)
+            except (UnicodeError, ValueError):
+                return InvalidArtifact((model_text, artifact.text))
         case SinkKind.MARKDOWN | SinkKind.SVG:
             try:
                 data = canonical_text_bytes(artifact.text)

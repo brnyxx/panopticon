@@ -25,13 +25,22 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
     - id: scan
       shell: bash
+      env:
+        PANO_INPUT_PATH: ${{ inputs.path }}
+        PANO_INPUT_MODE: ${{ inputs.mode }}
+        PANO_INPUT_SARIF: ${{ inputs.sarif }}
+        PANO_INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        PANO_INPUT_CONFIG: ${{ inputs.config }}
       run: |
-        uvx panopticon-mcp ci "${{ inputs.path }}" \
-          --mode "${{ inputs.mode }}" \
-          --sarif "${{ inputs.sarif }}" \
-          --fail-on "${{ inputs.fail-on }}" \
-          --config "${{ inputs.config }}"
-        echo "sarif=${{ inputs.sarif }}" >> "$GITHUB_OUTPUT"
+        case "$PANO_INPUT_SARIF" in
+          *$'\n'*|*$'\r'*) exit 2 ;;
+        esac
+        uvx panopticon-mcp ci "$PANO_INPUT_PATH" \
+          --mode "$PANO_INPUT_MODE" \
+          --sarif "$PANO_INPUT_SARIF" \
+          --fail-on "$PANO_INPUT_FAIL_ON" \
+          --config "$PANO_INPUT_CONFIG"
+        printf 'sarif=%s\n' "$PANO_INPUT_SARIF" >> "$GITHUB_OUTPUT"

@@ -76,7 +76,11 @@ def test_all_sink_types_round_trip_sanitized_models(tmp_path: Path) -> None:
         ),
         PersistRequest(
             tmp_path / "report.sarif",
-            RenderedArtifact(SinkKind.SARIF, render_model, "ignored for canonical SARIF"),
+            RenderedArtifact(
+                SinkKind.SARIF,
+                render_model,
+                '{"version":"2.1.0","runs":[]}',
+            ),
         ),
         PersistRequest(
             tmp_path / "report.md",
