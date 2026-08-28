@@ -184,7 +184,8 @@ async def test_service_persists_local_composed_observation(
     ) -> LocalWatchResult:
         return LocalWatchResult(context, LocalWatchStatus.COMPLETE, "OK")
 
-    def build(result: LocalWatchResult) -> WatchObservationBuild:
+    def build(result: LocalWatchResult, *, raw: bool = False) -> WatchObservationBuild:
+        assert not raw
         return WatchObservationBuild(observation, 0)
 
     def behavior(

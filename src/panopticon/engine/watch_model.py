@@ -41,6 +41,7 @@ class WatchOptions:
     offline: bool = False
     runtime: str | None = None
     png: bool = False
+    raw: bool = False
 
     def __post_init__(self) -> None:
         if self.calls < 0 or self.timeout <= 0 or self.idle < 0:

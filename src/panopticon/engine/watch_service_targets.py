@@ -188,7 +188,11 @@ async def run_target(
             unsupported=local.status is LocalWatchStatus.UNSUPPORTED,
             diagnostics=diagnostics,
         )
-    built = build_watch_observation(local)
+    built = build_watch_observation(local, raw=request.options.raw)
+    diagnostics = (
+        *diagnostics,
+        *(_diagnostic("WATCH_DIAGNOSTIC", item) for item in built.diagnostics),
+    )
     behavior = apply_behavior_rules(local, built)
     if behavior is None:
         return TargetRun(

@@ -60,7 +60,21 @@ async def run_local_production(
             runtime=runtime.name,
             offline=options.offline,
         )
-    manifest = generate_decoy_home(str(target.installation_id), str(target.installation_id))
+    project_filenames = context.raw_entry.metadata.get(
+        "project_filenames", context.raw_entry.raw.get("project_filenames", ())
+    )
+    names = (
+        tuple(name for name in project_filenames if isinstance(name, str))
+        if isinstance(project_filenames, (list, tuple))
+        else ()
+    )
+    if not isinstance(project_filenames, (list, tuple)) or len(names) != len(project_filenames):
+        names = ()
+    manifest = generate_decoy_home(
+        str(target.installation_id),
+        str(target.installation_id),
+        project_filenames=names,
+    )
     environment = target_environment(context, manifest.env, options, real_env)
     first_file = sorted(manifest.files)[0]
     environment["PANO_DECOY_FILE"] = f"/home/pano/{first_file}"

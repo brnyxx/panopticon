@@ -5,15 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Literal, cast
 
 from panopticon import __version__
-from panopticon.analyzers.behavior.spans import AttributionContext, SpanBoundary, attribute_event
 from panopticon.declared.model import DeclaredScope
-from panopticon.models.common import PersistedPath
-from panopticon.models.event import Event, FileEvent
-from panopticon.models.ids import ObservationId, SpanId
+from panopticon.models.ids import ObservationId
 from panopticon.models.observation import (
     DiscoveryReason,
     FallbackReason,
@@ -22,19 +19,14 @@ from panopticon.models.observation import (
     ProtocolEra,
     ProtocolInfo,
     ServerInfo,
-    Span,
-    SpanResult,
     ToolAnnotations,
     ToolInfo,
 )
-from panopticon.probe.driver import CallStatus
-from panopticon.sandbox.decoy_specs import FILE_SPECS
-from panopticon.sandbox.trace_model import TraceEvent
+from panopticon.sandbox.noise import DEFAULT_NOISE_POLICY
 
 from .watch_declared import build_declared
-from .watch_events import convert_events, convert_network_events, persisted_path
-from .watch_leaks import leak_events_by_span
-from .watch_local_model import LocalSpan, LocalWatchResult
+from .watch_local_model import LocalWatchResult
+from .watch_observation_events import assigned_events, build_observation_events, decoy_paths
 from .watch_state import build_state
 
 
@@ -45,6 +37,7 @@ class WatchObservationBuild:
     diagnostics: tuple[str, ...] = ()
     declared_scope: DeclaredScope | None = None
     reason_code: str = "OK"
+    filtered_events: int = 0
 
 
 def _observation_id(result: LocalWatchResult, observed_at: datetime) -> ObservationId:
@@ -63,93 +56,12 @@ def _observation_id(result: LocalWatchResult, observed_at: datetime) -> Observat
     return ObservationId(f"obs_{hashlib.sha256(encoded.encode()).hexdigest()[:24]}")
 
 
-def _decoy_paths(result: LocalWatchResult) -> dict[str, str]:
-    manifest = result.manifest
-    if manifest is None:
-        return {}
-    output: dict[str, str] = {}
-    for spec in FILE_SPECS:
-        marker = next(
-            (item for item in manifest.markers if item.key.endswith(f":file:{spec.key}")),
-            None,
-        )
-        if marker is not None and spec.path in manifest.files:
-            output[f"~/{spec.path}"] = marker.key
-    for path in manifest.files:
-        marker = next(
-            (item for item in manifest.markers if item.key.endswith(f":project:{path}")),
-            None,
-        )
-        if marker is not None:
-            output[f"~/{path}"] = marker.key
-    return output
-
-
-def _span_boundaries(spans: tuple[LocalSpan, ...]) -> tuple[SpanBoundary, ...]:
-    tolerance = timedelta(milliseconds=50)
-    return tuple(
-        SpanBoundary(
-            span.span_id,
-            span.started_at - tolerance if span.kind.value == "call" else span.started_at,
-            span.ended_at + tolerance if span.kind.value == "call" else span.ended_at,
-            span.kind,
-        )
-        for span in spans
-    )
-
-
-def _assigned_events(
-    result: LocalWatchResult,
-) -> tuple[dict[str, list[TraceEvent]], int]:
-    boundaries = _span_boundaries(result.spans)
-    parents = tuple(
-        (event.child_pid, event.pid)
-        for event in (result.trace.events if result.trace is not None else ())
-        if event.child_pid is not None
-    )
-    context = AttributionContext(boundaries, parents)
-    call_context = AttributionContext(
-        tuple(boundary for boundary in boundaries if boundary.kind.value == "call"),
-        parents,
-    )
-    assigned: dict[str, list[TraceEvent]] = {span.span_id: [] for span in result.spans}
-    uncovered = 0
-    for event in result.trace.events if result.trace is not None else ():
-        attribution = attribute_event(event.timestamp, event.pid, call_context)
-        if attribution.span_id is None:
-            attribution = attribute_event(event.timestamp, event.pid, context)
-        if attribution.span_id is None:
-            uncovered += 1
-        else:
-            assigned[attribution.span_id].append(event)
-    return assigned, uncovered
-
-
-def _span_result(result: LocalWatchResult, span: LocalSpan) -> SpanResult:
-    if span.kind.value != "call" or result.calls is None:
-        return SpanResult.OK
-    call = next(
-        (
-            item
-            for item in result.calls.calls
-            if item.tool == span.tool and item.call_index == span.call_index
-        ),
-        None,
-    )
-    if call is None:
-        return SpanResult.ERROR
-    if call.status is CallStatus.SKIPPED:
-        return SpanResult.SKIPPED
-    if call.reason_code == "TIMEOUT":
-        return SpanResult.TIMEOUT
-    return SpanResult.OK if call.status is CallStatus.COMPLETE else SpanResult.ERROR
-
-
 def build_watch_observation(
     result: LocalWatchResult,
     *,
     observed_at: datetime | None = None,
     tracer: str = "strace",
+    raw: bool = False,
 ) -> WatchObservationBuild:
     protocol = result.protocol
     image = result.image
@@ -167,45 +79,10 @@ def build_watch_observation(
     if observed.tzinfo is None:
         return WatchObservationBuild(None, 0, result.diagnostics, reason_code="TIMEZONE_REQUIRED")
     observed = observed.astimezone(UTC)
-    assigned, uncovered = _assigned_events(result)
-    decoy_paths = _decoy_paths(result)
-    leak_events = leak_events_by_span(result)
-    snapshot_events = tuple(
-        Event(
-            FileEvent(
-                schema_version="1.0",
-                kind="file",
-                op=operation,
-                path=PersistedPath(persisted_path(path)),
-                decoy=persisted_path(path) in decoy_paths,
-                decoy_key=decoy_paths.get(persisted_path(path)),
-                count=1,
-            )
-        )
-        for operation, path in (result.snapshot.paths if result.snapshot else ())
-    )
-    network_events = convert_network_events(result.network_events)
-    spans = tuple(
-        Span(
-            span_id=SpanId(span.span_id),
-            tool=span.tool,
-            call_index=span.call_index,
-            args_fingerprint=span.args_fingerprint,
-            result=_span_result(result, span),
-            duration_ms=max(0, int((span.ended_at - span.started_at).total_seconds() * 1000)),
-            events=(
-                *convert_events(
-                    assigned.get(span.span_id, ()),
-                    decoy_paths=decoy_paths,
-                    decoy_markers=result.manifest.markers if result.manifest else (),
-                ),
-                *(snapshot_events if span.kind.value == "session" else ()),
-                *(network_events if span.kind.value == "session" else ()),
-                *leak_events.get(span.span_id, ()),
-            ),
-        )
-        for span in result.spans
-    )
+    trace_events, filtered_count = DEFAULT_NOISE_POLICY.filter(result.trace.events, raw=raw)
+    assigned, uncovered = assigned_events(result, trace_events)
+    decoys = decoy_paths(result)
+    spans = build_observation_events(result, assigned, decoys)
     declaration = build_declared(result)
     state = build_state(result, declaration.persisted.completeness, uncovered_events=uncovered)
     image_name, image_digest = image.rsplit("@", 1)
@@ -257,12 +134,17 @@ def build_watch_observation(
         findings=(),
         state=state,
     )
-    diagnostics = (*result.diagnostics, *(("UNATTRIBUTED_EVENTS",) if uncovered else ()))
+    diagnostics = (
+        *result.diagnostics,
+        *(("UNATTRIBUTED_EVENTS",) if uncovered else ()),
+        *(("NOISE_FILTERED_EVENTS:" + str(filtered_count),) if filtered_count else ()),
+    )
     return WatchObservationBuild(
         observation,
         uncovered,
         diagnostics,
         declaration.scope,
+        filtered_events=filtered_count,
     )
 
 

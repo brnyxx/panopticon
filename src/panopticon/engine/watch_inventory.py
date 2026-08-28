@@ -20,6 +20,7 @@ from panopticon.models.ids import ClientName, ConfigPath, ConfigScope, JsonPoint
 from panopticon.models.inventory import InstalledServer
 
 from .watch_model import TargetMode, TargetSelection
+from .watch_self_metadata import acquire_self_metadata
 
 
 class InventoryStatus(StrEnum):
@@ -127,9 +128,14 @@ class ProductionWatchInventory:
                 command = value
                 if not command or not all(part for part in command):
                     raise ValueError("invalid self command")
+                metadata = acquire_self_metadata(self._env.cwd)
                 raw = RawServerEntry(
                     "self",
-                    {"command": command[0], "args": list(command[1:])},
+                    {
+                        "command": command[0],
+                        "args": list(command[1:]),
+                        **metadata,
+                    },
                     ConfigScope.PROJECT,
                     self._env.cwd,
                     ConfigPath("~"),
@@ -137,6 +143,7 @@ class ProductionWatchInventory:
                     "0" * 64,
                     JsonPointer("/self"),
                     SourceLocation(0, 0, 0),
+                    metadata,
                 )
                 value = normalize_entry(raw, client=ClientName.GENERIC, home=str(self._env.home))
                 context = WatchTargetContext(value, raw)

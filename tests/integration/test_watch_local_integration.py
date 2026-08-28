@@ -15,7 +15,7 @@ from panopticon.engine.watch_local_model import LocalWatchStatus
 from panopticon.engine.watch_local_production import LocalRuntime, run_local_production
 from panopticon.engine.watch_model import TargetMode, TargetSelection, WatchOptions
 from panopticon.engine.watch_observation import build_watch_observation
-from panopticon.models.event import LeakEvent
+from panopticon.models.event import FileEvent, LeakEvent, ProcessEvent
 from panopticon.models.ids import derive_span_id
 from panopticon.sandbox.docker import DockerRuntime
 from panopticon.store.contracts import PersistSuccess
@@ -154,3 +154,121 @@ async def test_fixture_manifest_paths_produce_exact_registered_findings(
     assert actual == expected
     if group == "clean":
         assert not any(f.kind.value == "confirmed" for f in behavior.observation.findings)
+
+
+@pytest.mark.docker
+@pytest.mark.parametrize(
+    "mode",
+    ("decoy_leak_base64", "decoy_leak_url_encoded", "decoy_leak_form_encoded"),
+)
+async def test_live_encoded_leaks_resolve_to_exact_response_keys(
+    tmp_path: Path,
+    mode: str,
+) -> None:
+    root = Path(__file__).parents[2]
+    context = (
+        ProductionWatchInventory(
+            DiscoveryEnv(tmp_path, root, "darwin"),
+            self_command=("python3", "/self/tests/fixtures/mcp/python_server.py", mode),
+        )
+        .select(TargetSelection(TargetMode.SELF))
+        .contexts[0]
+    )
+    result = await run_local_production(
+        context,
+        WatchOptions(calls=1, timeout=20, offline=True),
+        runtime=DockerRuntime(),
+        self_source=root,
+    )
+    built = build_watch_observation(result)
+
+    assert built.observation is not None and result.manifest is not None
+    leaks = [
+        event.root
+        for span in built.observation.spans
+        for event in span.events
+        if isinstance(event.root, LeakEvent)
+    ]
+    assert leaks and {leak.sink for leak in leaks} == {"response"}
+    assert {leak.decoy_key for leak in leaks} <= {marker.key for marker in result.manifest.markers}
+    rendered = built.observation.model_dump_json()
+    assert all(marker.text not in rendered for marker in result.manifest.markers)
+
+
+@pytest.mark.docker
+@pytest.mark.parametrize(
+    ("mode", "event_type"),
+    (("file_write", FileEvent), ("exec_arg", ProcessEvent)),
+)
+async def test_live_file_and_exec_sinks_keep_only_decoy_metadata(
+    tmp_path: Path,
+    mode: str,
+    event_type: type[FileEvent] | type[ProcessEvent],
+) -> None:
+    root = Path(__file__).parents[2]
+    context = (
+        ProductionWatchInventory(
+            DiscoveryEnv(tmp_path, root, "darwin"),
+            self_command=("python3", "/self/tests/fixtures/mcp/python_server.py", mode),
+        )
+        .select(TargetSelection(TargetMode.SELF))
+        .contexts[0]
+    )
+    result = await run_local_production(
+        context,
+        WatchOptions(calls=1, timeout=20, offline=True),
+        runtime=DockerRuntime(),
+        self_source=root,
+    )
+    built = build_watch_observation(result)
+
+    assert built.observation is not None and result.manifest is not None
+    events = [
+        event.root
+        for span in built.observation.spans
+        for event in span.events
+        if isinstance(event.root, event_type)
+    ]
+    assert events
+    rendered = built.observation.model_dump_json()
+    assert all(marker.text not in rendered for marker in result.manifest.markers)
+
+
+@pytest.mark.docker
+@pytest.mark.parametrize(
+    ("mode", "expected_sinks"),
+    (
+        ("decoy_leak_stderr", {"stderr"}),
+        ("decoy_leak_notification", {"notification", "response"}),
+    ),
+)
+async def test_live_stdio_leak_sinks_are_attributed(
+    tmp_path: Path,
+    mode: str,
+    expected_sinks: set[str],
+) -> None:
+    root = Path(__file__).parents[2]
+    context = (
+        ProductionWatchInventory(
+            DiscoveryEnv(tmp_path, root, "darwin"),
+            self_command=("python3", "/self/tests/fixtures/mcp/python_server.py", mode),
+        )
+        .select(TargetSelection(TargetMode.SELF))
+        .contexts[0]
+    )
+    result = await run_local_production(
+        context,
+        WatchOptions(calls=1, timeout=20, offline=True),
+        runtime=DockerRuntime(),
+        self_source=root,
+    )
+    built = build_watch_observation(result)
+
+    assert built.observation is not None
+    leaks = {
+        event.root.sink
+        for span in built.observation.spans
+        for event in span.events
+        if isinstance(event.root, LeakEvent)
+    }
+    assert leaks == expected_sinks

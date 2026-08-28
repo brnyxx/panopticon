@@ -45,6 +45,7 @@ class RawServerEntry:
     original_sha256: str
     json_pointer: JsonPointer
     source_location: SourceLocation
+    metadata: Mapping[str, JsonValue] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
