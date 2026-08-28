@@ -32,8 +32,6 @@ STUB_INVOCATIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("install", ("install", "claude")),
     ("uninstall", ("uninstall", "claude")),
     ("fix", ("fix",)),
-    ("diff", ("diff",)),
-    ("baseline", ("baseline", "list")),
     ("explain", ("explain", "WATCH-001")),
     ("scan", ("scan", ".")),
     ("ci", ("ci",)),
@@ -95,7 +93,14 @@ def test_cli_commands_delegate_without_domain_control_flow() -> None:
         roots = {_call_root(call) for call in calls}
 
         # When / Then: wrappers call a boundary, not a local feature implementation.
-        assert roots & {"engine", "reporters", "run", "render"}, name
+        assert roots & {
+            "engine",
+            "reporters",
+            "run",
+            "render",
+            "run_diff",
+            "render_diff",
+        }, name
         assert not any(
             isinstance(node, (ast.For, ast.While, ast.Match, ast.Try)) for node in ast.walk(command)
         )

@@ -10,9 +10,13 @@ import typer
 
 from panopticon import SCHEMA_VERSION, __version__
 from panopticon.engine import foundation as engine
+from panopticon.engine.baseline import BaselineRequest, run_baseline
+from panopticon.engine.diff import DiffRequest, run_diff
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
 from panopticon.reporters import doctor as doctor_reporter
 from panopticon.reporters import foundation as reporters
+from panopticon.reporters.baseline import render as render_baseline
+from panopticon.reporters.diff import render as render_diff
 
 __all__ = ["NOT_IMPLEMENTED_EXIT"]
 
@@ -121,11 +125,15 @@ def fix(
 
 
 @app.command()
-def diff(server: str | None = typer.Argument(None), since: str = typer.Option("auto")) -> None:
+def diff(
+    server: str | None = typer.Argument(None),
+    since: str = typer.Option("auto"),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
     """Compare current state against a baseline. (E14)"""
-    rendered = reporters.render(
-        engine.run_diff(engine.DiffRequest(server=server, since=since)),
-        json_output=False,
+    rendered = render_diff(
+        run_diff(DiffRequest(server=server, since=since)),
+        json_output=json_out,
     )
     typer.echo(rendered.stdout, nl=False)
     typer.echo(rendered.stderr, err=True, nl=False)
@@ -133,9 +141,20 @@ def diff(server: str | None = typer.Argument(None), since: str = typer.Option("a
 
 
 @app.command()
-def baseline(action: str = typer.Argument(..., help="create|list|show|rm")) -> None:
+def baseline(
+    action: str = typer.Argument(..., help="create|list|show|rm"),
+    identifier: str | None = typer.Argument(None, help="Baseline id for show or rm."),
+    label: str | None = typer.Option(None, help="Label for create."),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
     """Manage baselines. (E14)"""
-    raise typer.Exit(_not_implemented("baseline", "E14"))
+    rendered = render_baseline(
+        run_baseline(BaselineRequest(action, identifier, label)),
+        json_output=json_out,
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()

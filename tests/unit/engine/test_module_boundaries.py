@@ -9,12 +9,7 @@ ROOT = Path(__file__).resolve().parents[3]
 TEST_ROOT = ROOT / "tests" / "unit" / "engine"
 FORBIDDEN_ENGINE_IMPORTS = (
     "panopticon.cli",
-    "panopticon.discovery",
-    "panopticon.inventory",
-    "panopticon.probe",
-    "panopticon.rules",
-    "panopticon.sandbox",
-    "panopticon.store.gateway",
+    "panopticon.reporters",
 )
 
 
@@ -52,14 +47,14 @@ def test_engine_and_reporter_modules_stay_under_250_pure_lines() -> None:
     assert all(_pure_loc(path) <= 250 for path in paths)
 
 
-def test_engine_import_direction_excludes_feature_execution() -> None:
+def test_engine_import_direction_excludes_cli_and_renderers() -> None:
     # Given: every current engine source file.
     engine_root = ROOT / "src" / "panopticon" / "engine"
     assert engine_root.is_dir()
     paths = tuple(engine_root.rglob("*.py"))
     assert paths
 
-    # Then: engine boundaries do not reach back into CLI or execute feature packages.
+    # Then: engine orchestration does not reach back into CLI or rendering.
     for path in paths:
         imports = _imports(path.read_text(encoding="utf-8"))
         assert not any(

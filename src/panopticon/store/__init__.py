@@ -23,14 +23,23 @@ from panopticon.store.contracts import (
     SinkKind,
 )
 from panopticon.store.gateway import persist
+from panopticon.store.repository import (
+    ArtifactRepository,
+    BaselineLoad,
+    LoadStatus,
+    ObservationLoad,
+    RemoveStatus,
+)
 from panopticon.util.leak_check import LeakContext, LeakHit, LeakReason, LeakVariant
 
 __all__ = [
     "ArtifactInput",
+    "ArtifactRepository",
     "AtomicConflict",
     "AtomicConflictReason",
     "AtomicOperation",
     "AtomicPrecondition",
+    "BaselineLoad",
     "BinaryArtifact",
     "DirectorySyncStatus",
     "FailureCode",
@@ -39,13 +48,16 @@ __all__ = [
     "LeakHit",
     "LeakReason",
     "LeakVariant",
+    "LoadStatus",
     "ModelArtifact",
+    "ObservationLoad",
     "PersistFailure",
     "PersistRejected",
     "PersistRequest",
     "PersistResult",
     "PersistSuccess",
     "RejectionCode",
+    "RemoveStatus",
     "RenderField",
     "RenderModel",
     "RenderedArtifact",

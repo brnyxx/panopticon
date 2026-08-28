@@ -38,15 +38,6 @@ EXPECTED_REASON_CODES = (
     "OFFLINE",
 )
 EXPECTED_COVERAGE = ("file", "net", "process", "dns", "proxy", "snapshot", "stdio")
-FORBIDDEN_IMPORTS = (
-    "panopticon.analyzers",
-    "panopticon.discovery",
-    "panopticon.inventory",
-    "panopticon.probe",
-    "panopticon.rules",
-    "panopticon.sandbox",
-    "panopticon.store",
-)
 
 
 def _module_source(module_name: str) -> tuple[Path, str, ast.Module]:
@@ -220,22 +211,23 @@ def test_each_engine_pipeline_is_a_protocol_boundary(module_name: str, protocol_
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
 
-    # Then: the module exposes a typed seam without importing feature implementations.
+    # Then: the module exposes a typed orchestration seam.
     assert "Protocol" in bases
     assert "run" in methods
     assert any(
-        "Result" in ast.unparse(node.returns)
+        any(name in ast.unparse(node.returns) for name in ("Result", "Outcome"))
         for node in protocol.body
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.returns is not None
     )
-    assert not any(f'"{forbidden}"' in source for forbidden in FORBIDDEN_IMPORTS)
+    assert "panopticon.cli" not in source
+    assert "panopticon.reporters" not in source
 
 
-def test_engine_modules_do_not_depend_on_cli_or_feature_modules() -> None:
+def test_engine_modules_do_not_depend_on_cli_or_reporters() -> None:
     # Given: all four pipeline source files.
     sources = tuple(_module_source(module_name)[1] for module_name in ENGINE_MODULES)
 
-    # Then: dependency direction remains cli -> engine -> feature packages, never the reverse.
-    forbidden = (*FORBIDDEN_IMPORTS, "panopticon.cli")
+    # Then: dependency direction remains cli/reporters -> engine -> feature packages.
+    forbidden = ("panopticon.cli", "panopticon.reporters")
     for source in sources:
         assert not any(forbidden_name in source for forbidden_name in forbidden)

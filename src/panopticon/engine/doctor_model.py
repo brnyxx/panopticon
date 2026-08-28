@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from panopticon.analyzers.config.model import ConfigMatch
+from panopticon.analyzers.history.model import HistoryOutcome
 from panopticon.discovery.base import ClientAdapter, DiscoveryEnv
 from panopticon.engine.contracts import EngineDiagnostic, Result
 from panopticon.inventory.model import InstalledServer
@@ -51,6 +53,14 @@ class DoctorClient:
 class DoctorData:
     clients: tuple[DoctorClient, ...] = ()
     alerts: tuple[str, ...] = ()
+    config_matches: tuple[ConfigMatch, ...] = ()
+    history_outcomes: tuple[DoctorHistoryOutcomes, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class DoctorHistoryOutcomes:
+    installation_id: str
+    outcomes: tuple[HistoryOutcome, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,6 +81,7 @@ __all__ = [
     "DiscoveryEnv",
     "DoctorClient",
     "DoctorData",
+    "DoctorHistoryOutcomes",
     "DoctorInstallation",
     "DoctorOutcome",
     "DoctorRequest",

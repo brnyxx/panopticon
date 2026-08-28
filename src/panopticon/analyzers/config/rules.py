@@ -53,10 +53,10 @@ def _rule001(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-001"]
 
     def check(server: InstalledServer) -> tuple[ConfigEvidence, ...]:
+        values = _facts(context.env_values, str(server.installation_id))
         return tuple(
             ConfigEvidence(key, token_classification(value) or "token")
-            for key in server.env_keys
-            for value in _facts(context.env_values, str(server.installation_id))
+            for key, value in zip(server.env_keys, values, strict=False)
             if token_classification(value)
         )
 
@@ -143,10 +143,10 @@ def _rule007(context: ConfigInput) -> list[ConfigMatch]:
     rule = RULE_BY_ID["CFG-007"]
 
     def check(server: InstalledServer) -> tuple[ConfigEvidence, ...]:
+        values = _facts(context.env_values, str(server.installation_id))
         return tuple(
             ConfigEvidence(key, "high_entropy")
-            for key in server.env_keys
-            for value in _facts(context.env_values, str(server.installation_id))
+            for key, value in zip(server.env_keys, values, strict=False)
             if high_entropy(value)
         )
 

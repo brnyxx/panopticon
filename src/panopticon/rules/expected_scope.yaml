@@ -1,4 +1,20 @@
 version: 1
 staged: true
-expected_ids: []
+expected_ids:
+  - CFG-001
+  - CFG-002
+  - CFG-003
+  - CFG-004
+  - CFG-005
+  - CFG-006
+  - CFG-007
+  - CFG-008
+  - CFG-009
+  - CFG-010
+  - CFG-011
+  - CFG-012
+  - HIST-001
+  - HIST-002
+  - HIST-003
+  - HIST-004
 reserved_ids: [WATCH-001]

@@ -49,8 +49,8 @@ def test_reporter_is_a_sanitized_render_protocol() -> None:
     assert "panopticon.util.leak_check" not in source
 
 
-def test_engine_and_reporter_seams_have_no_concrete_work() -> None:
-    # Given: each foundation seam source file.
+def test_engine_and_reporter_orchestration_avoids_unsafe_side_effects() -> None:
+    # Given: each engine and reporter orchestration module.
     module_names = (
         "panopticon.engine.contracts",
         "panopticon.engine.doctor",
@@ -61,16 +61,16 @@ def test_engine_and_reporter_seams_have_no_concrete_work() -> None:
     )
     trees = tuple(_module_source(name)[1] for name in module_names)
 
-    # Then: boundary modules do not contain loops or feature execution at this stage.
+    # Then: orchestration may compose features but never shells, prints, or writes directly.
     for tree in trees:
         assert not any(
-            isinstance(node, (ast.For, ast.While, ast.AsyncFor)) for node in ast.walk(tree)
+            isinstance(node, ast.Import) and any(alias.name == "subprocess" for alias in node.names)
+            for node in ast.walk(tree)
         )
-        assert not any(isinstance(node, ast.With) for node in ast.walk(tree))
         assert not any(
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
-            and node.func.id in {"persist", "discover", "probe", "run_scan", "run_watch"}
+            and node.func.id in {"print", "eval", "exec", "open"}
             for node in ast.walk(tree)
         )
 

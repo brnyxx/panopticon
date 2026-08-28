@@ -14,6 +14,7 @@ from panopticon.engine.contracts import (
     UnsupportedResult,
 )
 from panopticon.engine.diff import DiffRequest
+from panopticon.engine.diff import run_diff as _run_diff
 from panopticon.engine.doctor import DoctorInputs, DoctorRequest
 from panopticon.engine.doctor import run_doctor as _run_doctor
 from panopticon.engine.doctor_model import DoctorOutcome
@@ -49,7 +50,7 @@ def run_watch(request: WatchRequest) -> Result:
 
 
 def run_diff(request: DiffRequest) -> Result:
-    return _not_implemented("E14")
+    return _run_diff(request).result
 
 
 def run_scan(request: ScanRequest) -> Result:

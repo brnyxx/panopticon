@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
+
+from panopticon.models.ids import InstallationId, ObservationId, ServerId
+from panopticon.registry.history import SnapshotSeries
 
 
 class HistorySeverity(StrEnum):
@@ -47,3 +51,16 @@ class HistoryRule:
     kind: HistoryKind
     fix_id: str | None
     condition: str
+
+
+@dataclass(frozen=True, slots=True)
+class HistoryRuleInput:
+    series: SnapshotSeries
+    server_id: ServerId
+    installation_id: InstallationId
+    observation_id: ObservationId
+    observed_at: datetime
+
+    def __post_init__(self) -> None:
+        if self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")

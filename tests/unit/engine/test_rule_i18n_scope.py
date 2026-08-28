@@ -270,18 +270,22 @@ def test_injected_repository_zero_scope_rejects_extra_observed_sources() -> None
     } <= _codes(issues)
 
 
-def test_repository_with_staged_zero_manifests_is_green() -> None:
-    # Given: the current manifests and their explicitly reserved bilingual documentation.
+def test_repository_with_active_cfg_hist_manifests_is_green() -> None:
+    # Given: the current active catalogs and reserved bilingual documentation.
     repository_issues = _repository_issue_checker()
+    active = tuple(
+        [f"CFG-{index:03d}" for index in range(1, 13)]
+        + [f"HIST-{index:03d}" for index in range(1, 5)]
+    )
     inventory = RuleScopeInventory(
-        registered_ids=(),
-        ko_ids=("WATCH-001",),
-        en_ids=("WATCH-001",),
-        positive_fixture_ids=(),
-        negative_fixture_ids=(),
+        registered_ids=active,
+        ko_ids=(*active, "WATCH-001"),
+        en_ids=(*active, "WATCH-001"),
+        positive_fixture_ids=active,
+        negative_fixture_ids=active,
     )
 
-    # When / Then: an explicitly staged empty registry is a successful clean check.
+    # When / Then: the staged active registry is a successful clean check.
     assert repository_issues(ROOT, EXPECTED_RULE_SCOPE, EXPECTED_I18N_SCOPE, inventory) == ()
 
 

@@ -6,10 +6,14 @@ from .model import (
     HistoryKind,
     HistoryOutcome,
     HistoryRule,
+    HistoryRuleInput,
     HistorySeverity,
     HistoryStatus,
 )
+from .registry_rules import register_rules
 from .rules import analyze_history, evaluate_rule
+
+register_rules()
 
 __all__ = [
     "RULES",
@@ -19,6 +23,7 @@ __all__ = [
     "HistoryKind",
     "HistoryOutcome",
     "HistoryRule",
+    "HistoryRuleInput",
     "HistorySeverity",
     "HistoryStatus",
     "analyze_history",

@@ -1,4 +1,4 @@
-"""Configuration rule catalog acceptance tests."""
+"""CFG rule catalog acceptance tests."""
 
 from __future__ import annotations
 

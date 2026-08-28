@@ -76,19 +76,23 @@ def test_rule_scope_manifest_separates_reserved_and_active_ids() -> None:
     assert {"expected_ids", "reserved_ids"} <= manifest_fields
 
 
-def test_current_manifests_explicitly_reserve_only_watch001() -> None:
+def test_current_manifests_activate_cfg_hist_and_reserve_watch001() -> None:
     # Given: the two tracked scope manifests.
     load_manifest = _loader()
 
     # When: both manifests are parsed.
     loaded = [load_manifest(path) for path in (EXPECTED_RULE_SCOPE, EXPECTED_I18N_SCOPE)]
 
-    # Then: both declare the same staged, empty-active, WATCH-001-reserved scope.
+    expected = tuple(
+        [f"CFG-{index:03d}" for index in range(1, 13)]
+        + [f"HIST-{index:03d}" for index in range(1, 5)]
+    )
+    # Then: both declare the same active scope and WATCH-001 reservation.
     for manifest, issue in loaded:
         assert issue is None
         assert manifest is not None
         assert manifest.staged is True
-        assert manifest.expected_ids == ()
+        assert manifest.expected_ids == expected
         assert getattr(manifest, "reserved_ids", None) == ("WATCH-001",)
 
     assert check_rules.repository_issues(ROOT, EXPECTED_RULE_SCOPE, EXPECTED_I18N_SCOPE) == ()
