@@ -24,7 +24,7 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | E16 Analyze line | CLOSED | exact pinned replay (125 tests), quick/standard/deep typed orchestration, semantic disclosure before transport/cache, dynamic self analysis, deterministic SARIF/exit policy, provenance, and the hardened self-scan action pass |
 | E17 Reporters | CLOSED | terminal, JSON, SARIF, Markdown, deterministic ko/en PNG, accessible SVG badge, leak rejection, store persistence, stable hashes, and live GitHub self-scan SARIF upload pass |
 | E18 i18n | CLOSED | all 47 CFG/HIST/WATCH/FIX/SENT documents have matching ko/en six-section structure; locale precedence/fallback, CJK-safe explain, catalog generation, glossary, and phrase gates pass |
-| E19 Release | IN PROGRESS | six-platform attested security matrix, ≥85% quality gates, dependency audit, and fail-closed release/performance evidence pass; external publication, artifact promotion, documentation, and final audits remain |
+| E19 Release | IN PROGRESS | six-platform attested security matrix, ≥85% quality gates, dependency audit, and fail-closed release/performance evidence pass; publication to `ghcr.io/brnyxx`, PyPI `panopticon-mcp`, and `brnyxx/homebrew-tap`, artifact promotion, documentation, and final audits remain |
 
 ## Why E01 is closed
 
