@@ -42,9 +42,14 @@ class DockerContainer:
         if not argv or any("\x00" in part for part in argv):
             raise SandboxError("INVALID_EXEC_ARGV")
         process = await asyncio.create_subprocess_exec(
-            self.runtime, "exec", "-i", self.id, *argv,
+            self.runtime,
+            "exec",
+            "-i",
+            self.id,
+            *argv,
             stdin=asyncio.subprocess.PIPE if stdin is not None else asyncio.subprocess.DEVNULL,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
         try:
             return await asyncio.wait_for(communicate(process, stdin, 1_048_576), timeout)
@@ -64,13 +69,18 @@ class DockerContainer:
     async def logs(self, max_bytes: int = 1_048_576) -> StreamResult:
         result = await self._command(["logs", self.id])
         combined = result.stdout.data + result.stderr.data
-        return StreamResult(combined[:max_bytes], result.stdout.truncated or result.stderr.truncated or len(combined) > max_bytes)
+        return StreamResult(
+            combined[:max_bytes],
+            result.stdout.truncated or result.stderr.truncated or len(combined) > max_bytes,
+        )
 
     async def copy_in(self, source: Path, destination: str) -> None:
         target = PurePosixPath(destination)
         if not target.is_absolute() or ".." in target.parts:
             raise SandboxError("COPY_DESTINATION_INVALID")
-        result = await self.exec(["tar", "-xf", "-", "-C", destination], 30, archive_for_copy(source))
+        result = await self.exec(
+            ["tar", "-xf", "-", "-C", destination], 30, archive_for_copy(source)
+        )
         if result.returncode:
             raise SandboxError("COPY_IN_FAILED")
 
@@ -101,7 +111,10 @@ class DockerContainer:
         for key, value in expected.items():
             actual_value = config.get(key)
             if key in {"CapAdd", "CapDrop"} and isinstance(actual_value, list):
-                actual_value = [item.removeprefix("CAP_") if isinstance(item, str) else item for item in actual_value]
+                actual_value = [
+                    item.removeprefix("CAP_") if isinstance(item, str) else item
+                    for item in actual_value
+                ]
                 if key == "CapDrop" and value == ["ALL"] and len(actual_value) >= 10:
                     actual_value = ["ALL"]
             if actual_value != value:
@@ -111,7 +124,10 @@ class DockerContainer:
 
     async def trace(self, max_bytes: int = 1_048_576) -> StreamResult:
         result = await self.exec(["cat", str(_CONTAINER_TRACE)], 10)
-        return StreamResult(result.stdout.data[:max_bytes], result.stdout.truncated or len(result.stdout.data) > max_bytes)
+        return StreamResult(
+            result.stdout.data[:max_bytes],
+            result.stdout.truncated or len(result.stdout.data) > max_bytes,
+        )
 
     async def wait(self, timeout: float | None = None) -> int:
         result = await self._command(["wait", self.id], 30.0 if timeout is None else timeout)
@@ -125,7 +141,9 @@ class DockerContainer:
     async def terminate(self, timeout: float = 5.0) -> None:
         if self._cleaned or self._terminated:
             return
-        result = await self._command(["stop", "-t", str(max(0, int(timeout))), self.id], timeout + 5)
+        result = await self._command(
+            ["stop", "-t", str(max(0, int(timeout))), self.id], timeout + 5
+        )
         if result.returncode and b"no such container" not in result.stderr.data.lower():
             raise SandboxError("STOP_FAILED")
         self._terminated = True
