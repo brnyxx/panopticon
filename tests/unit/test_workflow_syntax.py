@@ -63,3 +63,29 @@ def test_ci_self_scan_uses_trusted_local_action_and_pinned_upload() -> None:
     upload = steps[2]
     assert upload["uses"].startswith("github/codeql-action/upload-sarif@")
     assert upload["if"] == "always()"
+
+
+def test_platform_matrix_is_exact_and_uses_immutable_actions() -> None:
+    document = yaml.load(
+        (ROOT / ".github" / "workflows" / "platform.yml").read_text(encoding="utf-8"),
+        Loader=yaml.BaseLoader,
+    )
+    jobs = document["jobs"]
+    include = jobs["probe"]["strategy"]["matrix"]["include"]
+    labels = {entry["label"] for entry in include}
+    assert labels == {
+        "darwin-arm64",
+        "darwin-x86_64",
+        "linux-amd64",
+        "linux-arm64",
+        "windows-x64",
+        "wsl2-x64",
+    }
+    runs = {entry["label"]: entry["runs-on"] for entry in include}
+    assert runs["windows-x64"] != runs["wsl2-x64"]
+    assert isinstance(runs["wsl2-x64"], list)
+    for job in jobs.values():
+        for step in job.get("steps", []):
+            if "uses" in step:
+                assert "@" in step["uses"]
+                assert len(step["uses"].rsplit("@", 1)[1]) == 40
