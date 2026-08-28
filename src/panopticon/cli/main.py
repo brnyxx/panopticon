@@ -6,6 +6,8 @@ result to a reporter. Commands raise a clear "delivered by epic Exx" exit until 
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
 
 from panopticon import SCHEMA_VERSION, __version__
@@ -13,10 +15,12 @@ from panopticon.engine import foundation as engine
 from panopticon.engine.baseline import BaselineRequest, run_baseline
 from panopticon.engine.diff import DiffRequest, run_diff
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
+from panopticon.engine.fix import FixCommandRequest, run_fix
 from panopticon.reporters import doctor as doctor_reporter
 from panopticon.reporters import foundation as reporters
 from panopticon.reporters.baseline import render as render_baseline
 from panopticon.reporters.diff import render as render_diff
+from panopticon.reporters.fix import render as render_fix
 
 __all__ = ["NOT_IMPLEMENTED_EXIT"]
 
@@ -119,9 +123,30 @@ def fix(
     yes: bool = typer.Option(False, "--yes"),
     dry_run: bool = typer.Option(False, "--dry-run"),
     undo: str | None = typer.Option(None, help="Journal id to undo."),
+    value: str | None = typer.Option(None, help="Selected replacement value or env key."),
+    version: str | None = typer.Option(None, help="Exact version selected by the user."),
+    client: str | None = typer.Option(None, help="Limit discovery to one client."),
+    config: Path | None = typer.Option(None, help="Explicit generic client config path."),
 ) -> None:
     """Apply FIX-* remediations: diff, confirm, backup, apply, re-check. (E13)"""
-    raise typer.Exit(_not_implemented("fix", "E13"))
+    rendered = render_fix(
+        run_fix(
+            FixCommandRequest(
+                server=server,
+                rule=rule,
+                yes=yes,
+                dry_run=dry_run,
+                undo=undo,
+                value=value,
+                version=version,
+                client=client,
+                config_path=config,
+            )
+        )
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()

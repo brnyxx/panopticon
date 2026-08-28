@@ -107,6 +107,12 @@ def _binary_artifact(artifact: BinaryArtifact) -> SerializationResult:
                 artifact.data,
                 (model_text, artifact.data.decode("utf-8", errors="ignore")),
             )
+        case SinkKind.BACKUP:
+            model_text = canonical_json_bytes(artifact.render_model).decode("utf-8")
+            return SerializedArtifact(
+                artifact.data,
+                (model_text, artifact.data.decode("utf-8", errors="ignore")),
+            )
         case (
             SinkKind.CACHE
             | SinkKind.OBSERVATION
@@ -115,7 +121,6 @@ def _binary_artifact(artifact: BinaryArtifact) -> SerializationResult:
             | SinkKind.WRAP_RECORD
             | SinkKind.ALERT
             | SinkKind.JOURNAL
-            | SinkKind.BACKUP
             | SinkKind.LOG
             | SinkKind.JSON
             | SinkKind.SARIF

@@ -48,6 +48,7 @@ class FixPlan:
     prompts: tuple[FixPrompt, ...] = ()
     mode: int | None = None
     source_identity: tuple[int, int] | None = None
+    encoding: str = "utf-8"
 
     @property
     def original_hash(self) -> str:

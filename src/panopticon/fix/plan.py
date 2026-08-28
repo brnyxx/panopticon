@@ -5,6 +5,7 @@ from __future__ import annotations
 import difflib
 import hashlib
 import re
+import stat
 from pathlib import Path
 
 from panopticon.util.jsonc.document import SourceDocument
@@ -25,6 +26,11 @@ def make_plan(
     prompts: tuple[FixPrompt, ...] = (),
     mode: int | None = None,
 ) -> FixPlan:
+    if mode is None:
+        try:
+            mode = stat.S_IMODE(document.path.stat().st_mode)
+        except OSError:
+            mode = 0o600
     return FixPlan(
         target,
         document.logical_path,
@@ -33,6 +39,7 @@ def make_plan(
         tuple(prompts),
         mode,
         document.identity,
+        document.encoding,
     )
 
 

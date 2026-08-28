@@ -15,6 +15,7 @@ from panopticon.models.observation import Observation
 from panopticon.store.contracts import (
     AtomicOperation,
     FailureCode,
+    FaultInjector,
     ModelArtifact,
     PersistFailure,
     PersistRequest,
@@ -83,6 +84,17 @@ class ArtifactRepository:
                 False,
             )
         return None
+
+    def persist_request(
+        self,
+        request: PersistRequest,
+        context: LeakContext | None = None,
+        injector: FaultInjector | None = None,
+    ) -> PersistResult:
+        failure = self._prepare(request.target, request.artifact.kind)
+        if failure is not None:
+            return failure
+        return persist(request, context or self.context, injector)
 
     def persist_observation(self, observation: Observation) -> PersistResult:
         target = (

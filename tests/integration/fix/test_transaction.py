@@ -1,10 +1,13 @@
 """Wave 4 acceptance tests for fail-closed fix transactions."""
 
 import stat
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
+from panopticon.fix.cli_model import FixOutcomeStatus, FixSelection
+from panopticon.fix.executor import FixTransactionExecutor
 from panopticon.fix.journal import append_value, parse_value
 from panopticon.fix.model import FixPrompt, FixState
 from panopticon.fix.plan import make_plan
@@ -18,9 +21,12 @@ from panopticon.fix.transaction import (
     undo,
 )
 from panopticon.models.ids import ConfigPath, JsonPointer
+from panopticon.secrets import InMemorySecretStore
+from panopticon.store.repository import ArtifactRepository
 from panopticon.util.jsonc.parser import parse_document
 from panopticon.util.jsonc.patch import JsoncPatch, PatchOperation
 from panopticon.util.jsonc.transaction import PatchRequest, PatchStatus, apply_patches
+from panopticon.util.leak_check import LeakContext
 
 
 def test_concurrent_edit_survives_apply_and_rollback(tmp_path: Path) -> None:
@@ -95,3 +101,67 @@ def test_concurrent_edit_survives_apply_and_rollback(tmp_path: Path) -> None:
         rollback(result, original, original)
     with pytest.raises(FixConflictError, match="INVALID_STATE"):
         undo(rolled, original, original)
+
+
+def test_secret_fix_backup_is_encrypted_and_undo_is_exact(tmp_path: Path) -> None:
+    token = "ghp_fixture_secret_value_123456"
+    original = f'{{"env":{{"TOKEN":"{token}"}}}}\n'.encode()
+    target = tmp_path / "config.jsonc"
+    target.write_bytes(original)
+    document = parse_document(
+        original,
+        path=target,
+        logical_path=ConfigPath("~/config.jsonc"),
+    )
+    patch = JsoncPatch(
+        PatchOperation.REPLACE,
+        JsonPointer("/env/TOKEN"),
+        "${TOKEN}",
+    )
+    plan = make_plan(target, document, (patch,))
+    selection = FixSelection(
+        "FIX-001",
+        target,
+        JsonPointer("/env/TOKEN"),
+        value="TOKEN",
+    )
+
+    class Provisioner:
+        def __init__(self) -> None:
+            self.value = ""
+
+        def provision(self, key: str, value: str) -> bool:
+            assert key == "TOKEN"
+            self.value = value
+            return True
+
+    provisioner = Provisioner()
+    repository = ArtifactRepository(
+        tmp_path / "state",
+        LeakContext(secrets=(token,)),
+    )
+    executor = FixTransactionExecutor(
+        repository,
+        lambda: datetime(2026, 8, 28, tzinfo=UTC),
+        secret_store=InMemorySecretStore(),
+        secret_provisioner=provisioner,
+        leak_context=LeakContext(secrets=(token,)),
+        rechecker=lambda _selection, _plan: target.read_text().endswith('"${TOKEN}"}}\n'),
+    )
+    applied = executor.apply(plan, selection, recheck=True)
+    assert applied.status is FixOutcomeStatus.RECHECKED
+    assert applied.transaction_id is not None
+    assert provisioner.value == token
+    persisted = tuple(path.read_bytes() for path in applied.written_paths[1:])
+    assert all(token.encode() not in value for value in persisted)
+
+    undone = executor.undo(
+        FixSelection(
+            "FIX-001",
+            target,
+            JsonPointer(""),
+            value=applied.transaction_id,
+        )
+    )
+    assert undone.status is FixOutcomeStatus.UNDONE
+    assert target.read_bytes() == original

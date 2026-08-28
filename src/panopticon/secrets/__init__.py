@@ -47,6 +47,7 @@ from panopticon.secrets.crypto import (
 )
 from panopticon.secrets.keyring_backend import KeyringBridge, LazyKeyringAPI
 from panopticon.secrets.memory import InMemorySecretStore
+from panopticon.secrets.provision import KeyringSecretProvisioner
 
 __all__ = [
     "AES_KEY_BYTES",
@@ -73,6 +74,7 @@ __all__ = [
     "KeyringAPI",
     "KeyringBridge",
     "KeyringDataError",
+    "KeyringSecretProvisioner",
     "KeyringUnavailable",
     "LazyKeyringAPI",
     "LinuxSecretServiceAdapter",
