@@ -43,6 +43,7 @@ class StreamableHttpClient:
         timeout: float = 30.0,
         max_response: int = MAX_FRAME,
         era_cache: TransportEraCache | None = None,
+        headers: tuple[tuple[str, str], ...] = (),
     ) -> None:
         if not endpoint.startswith(("http://", "https://")):
             raise ValueError("MCP HTTP endpoint must be HTTP(S)")
@@ -53,6 +54,7 @@ class StreamableHttpClient:
         self.timeout = timeout
         self.max_response = max_response
         self.era_cache = era_cache or TransportEraCache()
+        self._headers = dict(headers)
         self.era: ProtocolEra | None = self.era_cache.get(endpoint)
         self.session_id: str | None = None
         self.capabilities: dict[str, JsonValue] = {}
@@ -86,6 +88,7 @@ class StreamableHttpClient:
             "params": request_params,
         }
         headers = {
+            **self._headers,
             "Accept": "application/json, text/event-stream",
             "Content-Type": "application/json",
         }
@@ -147,7 +150,7 @@ class StreamableHttpClient:
             "method": method,
             "params": request_params,
         }
-        headers = {"Content-Type": "application/json"}
+        headers = {**self._headers, "Content-Type": "application/json"}
         if self.session_id:
             headers["Mcp-Session-Id"] = self.session_id
         try:
@@ -208,7 +211,7 @@ class StreamableHttpClient:
             try:
                 await self.client.delete(
                     self.endpoint,
-                    headers={"Mcp-Session-Id": self.session_id},
+                    headers={**self._headers, "Mcp-Session-Id": self.session_id},
                     timeout=self.timeout,
                 )
             except (httpx.TimeoutException, httpx.TransportError):

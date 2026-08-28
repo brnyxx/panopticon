@@ -32,6 +32,7 @@ from .watch_local_production import run_local_production
 from .watch_local_runtime import LocalRuntime
 from .watch_model import TargetMode, WatchRequest
 from .watch_observation import build_watch_observation
+from .watch_remote_production import run_remote_production
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +103,8 @@ async def run_watch_service(request: WatchRequest, inputs: WatchInputs) -> Watch
             )
         )
     runtime = inputs.runtime
-    if runtime is None:
+    needs_local = any(context.target.transport is Transport.STDIO for context in selected.contexts)
+    if runtime is None and needs_local:
         try:
             runtime = cast(LocalRuntime, select_runtime(request.options.runtime))
         except SandboxError:
@@ -116,12 +118,48 @@ async def run_watch_service(request: WatchRequest, inputs: WatchInputs) -> Watch
     failed = incomplete = unsupported = False
     for context in selected.contexts:
         if context.target.transport is not Transport.STDIO:
-            unsupported = True
+            remote = await run_remote_production(context, request.options)
+            if remote.observation is None:
+                unsupported |= remote.status is LocalWatchStatus.UNSUPPORTED
+                incomplete |= remote.status is LocalWatchStatus.INCOMPLETE
+                receipts.append(
+                    WatchTargetReceipt(context.name, remote.status.value, remote.reason_code)
+                )
+                continue
+            repository = _repository_for(
+                inputs.repository,
+                {str(index): value for index, value in enumerate(remote.secrets)},
+            )
+            persisted = repository.persist_observation(remote.observation)
+            if not isinstance(persisted, PersistSuccess):
+                failed = True
+                receipts.append(WatchTargetReceipt(context.name, "FAILED", "PERSIST_FAILED"))
+                continue
+            observations.append(remote.observation)
+            path = persisted.target.relative_to(repository.root).as_posix()
+            if request.options.png and not isinstance(
+                persist_observation_png(repository, remote.observation),
+                PersistSuccess,
+            ):
+                failed = True
+                receipts.append(
+                    WatchTargetReceipt(context.name, "FAILED", "PNG_PERSIST_FAILED", path)
+                )
+                continue
             receipts.append(
-                WatchTargetReceipt(context.name, "UNSUPPORTED", "REMOTE_NOT_IMPLEMENTED")
+                WatchTargetReceipt(
+                    context.name,
+                    remote.status.value,
+                    "OBSERVATION_PERSISTED",
+                    path,
+                )
             )
             continue
         raw_environment = _raw_environment(context) if request.options.real_env else {}
+        if runtime is None:
+            incomplete = True
+            receipts.append(WatchTargetReceipt(context.name, "INCOMPLETE", "RUNTIME_UNAVAILABLE"))
+            continue
         local = await run_local_production(
             context,
             request.options,
