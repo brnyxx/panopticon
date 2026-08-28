@@ -17,8 +17,8 @@ from check_docs import CHECKED_FILES, CONTRACT_TOKENS, check, main
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# README joined the authoritative surface once its visuals and contract copy landed.
-EXPECTED_AUTHORITATIVE_FILES = 10
+# Release guidance joined the authoritative surface with the 1.0 artifact flow.
+EXPECTED_AUTHORITATIVE_FILES = 11
 
 # Every README contract token must be a machine-consumed identifier: a state name the
 # renderer emits, a command a user types, or the pinned upstream hash. Natural-language
@@ -81,7 +81,7 @@ def test_readme_contract_tokens_are_machine_consumed_only() -> None:
 
 def test_readme_is_part_of_the_authoritative_surface() -> None:
     # Given: the checker's declared authoritative file set
-    # When/Then: README is in it and the surface is exactly ten files
+    # When/Then: README is in it and the release guide expands the exact surface once
     assert "README.md" in CHECKED_FILES
     assert len(CHECKED_FILES) == EXPECTED_AUTHORITATIVE_FILES
 
@@ -261,4 +261,4 @@ def test_cli_surface_exits_zero_with_a_deterministic_summary(
     # Then: both exit 0 with identical output stating the frozen checked-file count
     assert codes == [0, 0], outputs
     assert outputs[0] == outputs[1]
-    assert outputs[0] == "checked 10 authoritative files, 0 problem(s)\n"
+    assert outputs[0] == "checked 11 authoritative files, 0 problem(s)\n"

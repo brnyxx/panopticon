@@ -9,6 +9,11 @@ uvx panopticon-mcp doctor        # 탐색 + config 검사, Docker 불필요
 uvx panopticon-mcp watch --all   # Docker 또는 Podman 필요
 ```
 
+고정 버전 설치, `pipx`, Homebrew, 네이티브 아카이브, 업그레이드와 롤백 절차는
+[`release.md`](release.md)에 있습니다. `pano version`은 `pano 1.0.0 (schema 1.0)`을
+출력합니다.
+
 원칙: 판단보다 관측이 먼저 · 관측하지 못한 것은 안전하다고 말하지 않음 · 사용자 홈은 컨테이너에 들어가지 않음(업로드·telemetry 없음).
 
-구현 계획은 [`PLAN.md`](PLAN.md), 진행 상황은 [`PROGRESS.md`](PROGRESS.md). 에이전트는 [`../AGENTS.md`](../AGENTS.md)를 먼저 읽으세요.
+구현 계획은 [`../panopticon-buildplan.md`](../panopticon-buildplan.md), 진행 상황은
+[`PROGRESS.md`](PROGRESS.md). 에이전트는 [`../AGENTS.md`](../AGENTS.md)를 먼저 읽으세요.
