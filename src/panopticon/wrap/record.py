@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Protocol
 
 from .framing import Frame, FrameError
 from .model import AlertCandidate, Coverage, ToolSpan, WrapRecordCandidate
@@ -49,17 +50,24 @@ class Correlator:
         )
 
 
+class RecorderSink(Protocol):
+    def record(self, candidate: WrapRecordCandidate) -> None: ...
+
+
+class FrameDecoder(Protocol):
+    def feed(self, data: bytes) -> tuple[Frame, ...]: ...
+
+
 class IsolatedRecorder:
     """Invokes a recorder while converting failures into PARTIAL coverage."""
 
-    def __init__(self, sink: object) -> None:
+    def __init__(self, sink: RecorderSink) -> None:
         self.sink = sink
         self.failures = 0
 
     def record(self, candidate: WrapRecordCandidate) -> bool:
         try:
-            method = self.sink.record
-            method(candidate)
+            self.sink.record(candidate)
         except (OSError, RuntimeError, ValueError, TypeError):
             self.failures += 1
             return False
@@ -87,7 +95,10 @@ class FirstSeen:
 
 
 def parse_and_correlate(
-    decoder: object, data: bytes, correlator: Correlator, now: datetime
+    decoder: FrameDecoder,
+    data: bytes,
+    correlator: Correlator,
+    now: datetime,
 ) -> tuple[WrapRecordCandidate, ...]:
     frames = decoder.feed(data)
     records: list[WrapRecordCandidate] = []
