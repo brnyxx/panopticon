@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .argument_schema import JsonValue
+from .pagination import list_paginated
 from .protocol import (
     LEGACY_PROTOCOL,
     MAX_FRAME,
@@ -89,35 +90,7 @@ class McpClient(StdioTransport):
             self.server_info = information
 
     async def list_paginated(self, method: str, *, timeout: float | None = None) -> ProbeResult:
-        capability = method.partition("/")[0]
-        if capability not in self.capabilities:
-            return ProbeResult(ProbeStatus.UNSUPPORTED, "CAPABILITY_UNSUPPORTED")
-        output: list[JsonValue] = []
-        cursor: str | None = None
-        seen: set[str] = set()
-        while True:
-            result = await self.request(
-                method,
-                {} if cursor is None else {"cursor": cursor},
-                timeout=timeout,
-            )
-            if result.status is not ProbeStatus.COMPLETE:
-                return result
-            if not isinstance(result.result, dict):
-                return ProbeResult(ProbeStatus.ERROR, "MALFORMED_RESPONSE")
-            values = result.result.get(capability, [])
-            if not isinstance(values, list):
-                return ProbeResult(ProbeStatus.ERROR, "MALFORMED_RESPONSE")
-            output.extend(values)
-            next_cursor = result.result.get("nextCursor")
-            if next_cursor is None:
-                return ProbeResult(ProbeStatus.COMPLETE, "OK", {capability: output})
-            if not isinstance(next_cursor, str):
-                return ProbeResult(ProbeStatus.ERROR, "MALFORMED_RESPONSE")
-            if next_cursor in seen:
-                return ProbeResult(ProbeStatus.ERROR, "DUPLICATE_CURSOR")
-            seen.add(next_cursor)
-            cursor = next_cursor
+        return await list_paginated(self, self.capabilities, method, timeout=timeout)
 
 
 AsyncMcpClient = McpClient

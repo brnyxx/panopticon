@@ -7,12 +7,14 @@ result to a reporter. Commands raise a clear "delivered by epic Exx" exit until 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal, cast
 
 import typer
 
 from panopticon import SCHEMA_VERSION, __version__
 from panopticon.cli import analysis_commands
 from panopticon.engine import foundation as engine
+from panopticon.engine.badge import run_badge
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
 from panopticon.engine.fix import FixCommandRequest, run_fix
 from panopticon.engine.install import InstallAction, InstallRequest, run_install, run_uninstall
@@ -214,9 +216,21 @@ analysis_commands.register(app)
 
 
 @app.command()
-def badge() -> None:
-    """Generate an SVG 'declared = observed' badge for an MCP repository. (E17)"""
-    raise typer.Exit(_not_implemented("badge", "E17"))
+def badge(
+    observation: Path = typer.Argument(..., help="Persisted observation JSON."),
+    output: Path = typer.Option(..., "--output", help="SVG output path."),
+    locale: str = typer.Option("en", "--locale", case_sensitive=False),
+) -> None:
+    """Generate an accessible evidence badge from a persisted observation. (E17)"""
+    if locale not in {"en", "ko"}:
+        raise typer.BadParameter("locale must be en or ko", param_hint="--locale")
+    locale_value = cast(Literal["en", "ko"], locale)
+    result = run_badge(observation, output, locale=locale_value)
+    if result.model is None:
+        assert result.diagnostic is not None
+        typer.echo(result.diagnostic.code, err=True)
+        raise typer.Exit(1)
+    typer.echo(str(output))
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import httpx
 
 from .argument_schema import JsonValue, UnsupportedSchemaError, json_value
+from .pagination import list_paginated
 from .protocol import (
     LEGACY_PROTOCOL,
     MAX_FRAME,
@@ -197,6 +198,9 @@ class StreamableHttpClient:
             self.capabilities = capabilities
         if isinstance(information, dict):
             self.server_info = information
+
+    async def list_paginated(self, method: str, *, timeout: float | None = None) -> ProbeResult:
+        return await list_paginated(self, self.capabilities, method, timeout=timeout)
 
     async def close(self) -> None:
         self._closed = True

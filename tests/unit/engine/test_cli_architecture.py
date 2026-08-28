@@ -29,10 +29,7 @@ FORBIDDEN_IMPORTS = (
     "panopticon.secrets",
     "panopticon.store",
 )
-STUB_INVOCATIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("watch", ("watch", "target")),
-    ("badge", ("badge",)),
-)
+STUB_INVOCATIONS: tuple[tuple[str, tuple[str, ...]], ...] = (("watch", ("watch", "target")),)
 
 
 def _cli_trees() -> tuple[ast.Module, ...]:
