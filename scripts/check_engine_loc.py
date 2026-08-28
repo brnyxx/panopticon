@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enforce the foundation module pure-LOC ceiling."""
+"""Enforce the repository-wide product source pure-LOC ceiling."""
 
 from __future__ import annotations
 
@@ -9,10 +9,7 @@ from pathlib import Path
 from typing import Final
 
 ROOT: Final = Path(__file__).resolve().parents[1]
-SOURCE_ROOTS: Final = (
-    ROOT / "src" / "panopticon" / "engine",
-    ROOT / "src" / "panopticon" / "reporters",
-)
+SOURCE_ROOTS: Final = (ROOT / "src" / "panopticon",)
 MAX_PURE_LOC: Final = 250
 
 

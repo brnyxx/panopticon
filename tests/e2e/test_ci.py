@@ -5,7 +5,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from panopticon.cli import main
+from panopticon.cli import analysis_commands as main
 from panopticon.cli.main import app
 from panopticon.engine.contracts import (
     CompleteResult,

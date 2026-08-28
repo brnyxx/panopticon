@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from panopticon.cli import analysis_commands as commands
 from panopticon.cli import main as cli
 from panopticon.engine.explain import ExplainStatus, explain_rule
 from panopticon.i18n.catalog import RULE_IDS
@@ -17,9 +18,9 @@ SOURCE = ROOT / "src" / "panopticon" / "i18n"
 
 
 def _inject_root(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
-    original = cli.explain_rule
+    original = commands.explain_rule
     monkeypatch.setattr(
-        cli,
+        commands,
         "explain_rule",
         lambda rule_id, *, locale=None: original(rule_id, locale=locale, root=root),
     )

@@ -8,6 +8,7 @@ import json
 import os
 import platform
 import shutil
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypedDict
 
@@ -23,6 +24,15 @@ from release_evidence import (
     validate_inputs,
 )
 
+from panopticon.store import (
+    PersistRequest,
+    PersistSuccess,
+    RenderedArtifact,
+    RenderField,
+    RenderModel,
+    SinkKind,
+    persist,
+)
 from panopticon.util.leak_check import LeakContext, find_leaks
 
 
@@ -37,6 +47,8 @@ class ReleaseManifest(TypedDict):
     fixture_digest: str
     commands: list[CommandReceipt]
     performance_sha256: str
+    started_at: str
+    finished_at: str
 
 
 def build_commands(temporary: Path) -> list[CommandSpec]:
@@ -84,6 +96,7 @@ def build_commands(temporary: Path) -> list[CommandSpec]:
                 "export",
                 "--frozen",
                 "--no-dev",
+                "--all-extras",
                 "--no-emit-project",
                 "--format",
                 "requirements-txt",
@@ -141,6 +154,7 @@ def gate(root: Path, output: Path, *, clean_checkout: bool) -> ReleaseManifest:
     if temporary.exists():
         raise ValueError("TEMPORARY_PATH_EXISTS")
     temporary.mkdir()
+    started_at = datetime.now(UTC).isoformat()
     receipts: list[CommandReceipt] = []
     try:
         for spec in build_commands(temporary_name):
@@ -150,6 +164,14 @@ def gate(root: Path, output: Path, *, clean_checkout: bool) -> ReleaseManifest:
                 raise ValueError("RELEASE_COMMAND_FAILED:" + spec["name"])
         performance = temporary / "performance.json"
         runtime, images = image_digests(root)
+        final_revision = git_command(root, "rev-parse", "HEAD")
+        final_status = git_command(root, "status", "--porcelain", "--untracked-files=all")
+        if (
+            final_revision.stdout.strip() != commit_hash
+            or final_status.returncode != 0
+            or final_status.stdout
+        ):
+            raise ValueError("CHECKOUT_CHANGED")
         manifest: ReleaseManifest = {
             "schema_version": 1,
             "status": "PASS",
@@ -161,14 +183,27 @@ def gate(root: Path, output: Path, *, clean_checkout: bool) -> ReleaseManifest:
             "fixture_digest": tree_digest(root / "tests/fixtures"),
             "commands": receipts,
             "performance_sha256": sha256(performance.read_bytes()),
+            "started_at": started_at,
+            "finished_at": datetime.now(UTC).isoformat(),
         }
         encoded = json.dumps(manifest, sort_keys=True, separators=(",", ":"))
         if find_leaks(encoded, LeakContext(home_paths=(str(Path.home()),))):
             raise ValueError("RELEASE_EVIDENCE_LEAK")
         output.parent.mkdir(parents=True, exist_ok=True)
-        staged = output.with_suffix(output.suffix + ".tmp")
-        staged.write_text(encoded + "\n", encoding="utf-8")
-        staged.replace(output)
+        model = RenderModel(
+            schema_version="1.0",
+            title="Panopticon release gate evidence",
+            fields=(
+                RenderField(name="status", value=manifest["status"]),
+                RenderField(name="commit", value=manifest["commit"]),
+            ),
+        )
+        result = persist(
+            PersistRequest(output, RenderedArtifact(SinkKind.JSON, model, encoded + "\n")),
+            LeakContext(home_paths=(str(Path.home()),)),
+        )
+        if not isinstance(result, PersistSuccess):
+            raise ValueError("RELEASE_EVIDENCE_PERSIST_FAILED")
         return manifest
     finally:
         shutil.rmtree(temporary, ignore_errors=True)
