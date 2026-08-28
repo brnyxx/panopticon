@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "evilModes": ["file_read", "host_connect", "decoy_leak", "idle_beacon", "proc_exec"],
+  "cleanModes": ["file_read", "host_connect", "decoy_leak", "idle_beacon", "proc_exec"],
+  "servers": [
+    {"id":"evil-file-read","language":"python","path":"evil/file_read.py","mode":"file_read","behavior":"file_read","declared":false,"eras":["modern","legacy"]},
+    {"id":"evil-host-connect","language":"python","path":"evil/host_connect.py","mode":"host_connect","behavior":"host_connect","declared":false,"eras":["modern","legacy"]},
+    {"id":"evil-decoy-leak","language":"python","path":"evil/decoy_leak.py","mode":"decoy_leak","behavior":"decoy_leak","declared":false,"eras":["modern","legacy"]},
+    {"id":"evil-idle-beacon","language":"python","path":"evil/idle_beacon.py","mode":"idle_beacon","behavior":"idle_beacon","declared":false,"eras":["modern","legacy"]},
+    {"id":"evil-proc-exec","language":"python","path":"evil/proc_exec.py","mode":"proc_exec","behavior":"proc_exec","declared":false,"eras":["modern","legacy"]},
+    {"id":"clean-file-read","language":"python","path":"clean/file_read.py","mode":"clean_file_read","behavior":"none","declared":true,"eras":["modern","legacy"]},
+    {"id":"clean-host-connect","language":"python","path":"clean/host_connect.py","mode":"clean_host_connect","behavior":"none","declared":true,"eras":["modern","legacy"]},
+    {"id":"clean-decoy-leak","language":"python","path":"clean/decoy_leak.py","mode":"clean_decoy_leak","behavior":"none","declared":true,"eras":["modern","legacy"]},
+    {"id":"clean-idle-beacon","language":"python","path":"clean/idle_beacon.py","mode":"clean_idle_beacon","behavior":"none","declared":true,"eras":["modern","legacy"]},
+    {"id":"clean-proc-exec","language":"python","path":"clean/proc_exec.py","mode":"clean_proc_exec","behavior":"none","declared":true,"eras":["modern","legacy"]}
+  ],
+  "nodeCompatibility": {"path":"node_server.mjs","eras":["modern","legacy"]},
+  "officialExample": {
+    "package":"@modelcontextprotocol/server-everything",
+    "version":"2026.8.18",
+    "integrity":"sha512-sBW2l6uMa9ii78QixTKjXgNSv/Ad6LB8cTGBApJMytHe+VCufLQyME55JbLl/0+fcLmcx93wsZ6ce+0aOF8YXA=="
+  },
+  "remoteCompatibility": [
+    {"id":"remote-modern","transport":"streamable-http","protocol":"modern","expected":"compatible"},
+    {"id":"remote-json","transport":"streamable-http","protocol":"modern-json","expected":"compatible"},
+    {"id":"remote-redirect","transport":"streamable-http","protocol":"redirect","expected":"policy-checked"},
+    {"id":"remote-plaintext","transport":"streamable-http","protocol":"plaintext","expected":"policy-checked"},
+    {"id":"remote-reflect","transport":"streamable-http","protocol":"decoy-reflect","expected":"compatible"},
+    {"id":"remote-legacy-sse","transport":"sse","protocol":"legacy","expected":"compatible"}
+  ]
+}
