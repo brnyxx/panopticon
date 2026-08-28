@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from enum import StrEnum
+from types import MappingProxyType
 
 from .spans import SpanKind
 
@@ -15,6 +17,8 @@ class EvidenceKind(StrEnum):
     WRITE = "write"
     NETWORK = "network"
     DNS = "dns"
+    CONNECT = "connect"
+    REQUEST = "request"
     PROXY = "proxy"
     PROCESS = "process"
     STDERR = "stderr"
@@ -27,6 +31,13 @@ class CoverageState(StrEnum):
     COMPLETE = "COMPLETE"
     PARTIAL = "PARTIAL"
     NONE = "NONE"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+class DeclaredAuthority(StrEnum):
+    AUTHORITATIVE = "AUTHORITATIVE"
+    PARTIAL = "PARTIAL"
+    NONE = "NONE"
 
 
 class OutcomeState(StrEnum):
@@ -37,7 +48,7 @@ class OutcomeState(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class WatchEvidence:
-    kind: str
+    kind: EvidenceKind
     value: str
     operation: str = ""
     span_id: str | None = None
@@ -47,6 +58,10 @@ class WatchEvidence:
     certain: bool = True
     tls: bool = False
     post: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.value:
+            raise ValueError("watch evidence value must be non-empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,6 +74,7 @@ class Authority:
     processes: tuple[str, ...] = ()
     read_only_hint: bool | None = None
     coverage: CoverageState = CoverageState.NONE
+    authority: DeclaredAuthority = DeclaredAuthority.NONE
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,8 +82,17 @@ class BehaviorInput:
     evidence: tuple[WatchEvidence, ...] = ()
     authorities: tuple[Authority, ...] = ()
     decoys: frozenset[str] = frozenset()
+    coverage: Mapping[EvidenceKind, CoverageState] = field(default_factory=dict)
     complete_spans: bool = True
     withheld: bool = False
+    suppressed_rule_ids: frozenset[str] = frozenset()
+    current_tool: str | None = None
+
+    def __post_init__(self) -> None:
+        normalized = {
+            EvidenceKind(key): CoverageState(value) for key, value in self.coverage.items()
+        }
+        object.__setattr__(self, "coverage", MappingProxyType(normalized))
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +100,9 @@ class WatchMatch:
     rule_id: str
     state: OutcomeState
     evidence: tuple[WatchEvidence, ...] = ()
+    excluded: tuple[WatchEvidence, ...] = ()
     reason: str = ""
+    suppressed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,11 +113,15 @@ class WatchRule:
     condition: str
 
 
+BehaviorEvidence = WatchEvidence
+WatchContext = BehaviorInput
+
 __all__ = [
     "Authority",
     "BehaviorEvidence",
     "BehaviorInput",
     "CoverageState",
+    "DeclaredAuthority",
     "EvidenceKind",
     "OutcomeState",
     "WatchContext",
@@ -98,7 +129,3 @@ __all__ = [
     "WatchMatch",
     "WatchRule",
 ]
-
-# Descriptive aliases used by integration boundaries.
-BehaviorEvidence = WatchEvidence
-WatchContext = BehaviorInput
