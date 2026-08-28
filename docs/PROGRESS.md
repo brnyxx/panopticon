@@ -10,7 +10,7 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | E02 Discovery | CLOSED | six adapters, the 48-file fixture matrix, isolated-home doctor CLI, partial-adapter preservation, and deterministic terminal/JSON grouping pass |
 | E03 Inventory | CLOSED | normalization, stable installation identity, cache version lookup, command fixtures, duplicate grouping, and doctor integration pass |
 | E04 Registry | IN PROGRESS | normalized npm/PyPI/GitHub history, offline/ETag snapshots, typed wire failures, transitions, HIST rules, and doctor context pass; default live/cache provider wiring remains |
-| E05 Sandbox | IN PROGRESS | Docker and rootless Podman runtime/isolation/proxy/DNS tests pass; release image digests and platform matrix remain |
+| E05 Sandbox | CLOSED | Docker and rootless Podman runtime/isolation/proxy/DNS tests, attested six-platform matrix, and verified amd64/arm64 GHCR manifests with immutable lockfile digests pass |
 | E06 Decoy | IN PROGRESS | complete synthetic home/environment matrix, canonical archive, project filename replication, bounded variant matching, typed watch materialization, and the real single-behavior fixture matrix pass; container leak-class acceptance remains |
 | E07 Events | IN PROGRESS | stateful strace/netlog parsers, source-specific coverage, deterministic span attribution, watch collection seams, and real behavior fixtures pass; exact end-to-end event attribution sets remain |
 | E08 Probe | IN PROGRESS | dual-era client, modern 2026-07-28 plus legacy fallback, schema solver, deterministic call driver, local/remote watch orchestration, and Python/Node fixture protocol runs pass; five official-example call runs remain |
