@@ -1,3 +1,5 @@
+"""Live production local-watch persistence coverage."""
+
 from __future__ import annotations
 
 import asyncio
