@@ -19,6 +19,7 @@ from panopticon.store import (
     RenderField,
     RenderModel,
     SinkKind,
+    atomic,
     persist,
 )
 
@@ -30,6 +31,22 @@ def _request(target: Path, value: str = "replacement") -> PersistRequest:
         fields=(RenderField(name="value", value=value),),
     )
     return PersistRequest(target, ModelArtifact(SinkKind.JSON, model))
+
+
+def test_windows_path_backend_replaces_regular_file_atomically(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "target.json"
+    target.write_text("prior", encoding="utf-8")
+    monkeypatch.setattr(atomic.os, "name", "nt")
+
+    result = persist(_request(target), LeakContext())
+
+    assert isinstance(result, PersistSuccess)
+    assert result.directory_sync is DirectorySyncStatus.UNSUPPORTED
+    assert b"replacement" in target.read_bytes()
+    assert not tuple(tmp_path.glob("*.tmp"))
 
 
 @dataclass(frozen=True, slots=True)

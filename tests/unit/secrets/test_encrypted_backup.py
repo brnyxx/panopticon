@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -71,7 +72,8 @@ def test_secret_config_round_trips_through_secret_store(tmp_path: Path) -> None:
         "config_digest": CONFIG_DIGEST,
     }
     assert SECRET_TEXT.encode() not in persisted
-    assert target.stat().st_mode & 0o777 == 0o600
+    if os.name != "nt":
+        assert target.stat().st_mode & 0o777 == 0o600
     assert_no_sensitive_representation(repr(saved))
     assert_no_sensitive_representation(repr(restored))
     assert_no_sensitive_representation(persisted.decode(errors="replace"))

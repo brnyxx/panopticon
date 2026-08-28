@@ -10,6 +10,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, TypeAlias
 
+from panopticon.store._atomic_windows import (
+    WindowsFailure,
+    WindowsRejected,
+    WindowsSuccess,
+    atomic_replace_windows,
+)
 from panopticon.store.contracts import (
     AtomicConflict,
     AtomicConflictReason,
@@ -176,6 +182,28 @@ def atomic_replace(
     if mode <= 0 or mode & ~0o777:
         return AtomicRejected(RejectionCode.UNSAFE_TARGET)
     active_injector = injector if injector is not None else NoFaults()
+    if os.name == "nt":
+        windows_result = atomic_replace_windows(
+            target,
+            data,
+            active_injector,
+            expected_target=expected_target,
+            mode=mode,
+        )
+        if isinstance(windows_result, WindowsSuccess):
+            return AtomicSuccess(
+                windows_result.bytes_written,
+                DirectorySyncStatus.UNSUPPORTED,
+            )
+        if isinstance(windows_result, WindowsRejected):
+            return AtomicRejected(windows_result.code)
+        if isinstance(windows_result, WindowsFailure):
+            return AtomicFailure(
+                windows_result.code,
+                windows_result.operation,
+                windows_result.target_replaced,
+            )
+        return windows_result
     directory_fd = -1
     temporary_name: str | None = None
     operation = AtomicOperation.OPEN_PARENT
