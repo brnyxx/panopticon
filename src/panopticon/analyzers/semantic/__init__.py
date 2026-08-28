@@ -1,1 +1,3 @@
-"""Upstream GPT semantic reviewer, optional (E16)."""
+# Copyright (c) 2026 MCP Sentinel contributors
+# SPDX-License-Identifier: MIT
+"""Typed Panopticon adaptations of MCP-Sentinel semantic review."""

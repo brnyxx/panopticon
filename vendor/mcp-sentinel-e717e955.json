@@ -1,0 +1,1694 @@
+{
+  "exact_files": [
+    "tests/upstream/LICENSE",
+    "tests/upstream/action.yml",
+    "src/panopticon/analyzers/static/semgrep/sent002.yaml",
+    "src/panopticon/analyzers/static/semgrep/sent005.yaml"
+  ],
+  "exact_roots": [
+    "tests/upstream/src",
+    "tests/upstream/tests",
+    "tests/upstream/scripts",
+    "tests/upstream/schemas"
+  ],
+  "files": [
+    {
+      "destination": "src/panopticon/analyzers/dependency/model.py",
+      "destination_sha256": "0dbe3d8bd58f460013d3d5f7bb86dc2ca6c86d4a803cbddeed455818c220ffa1",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/config.py",
+          "sha256": "18948a228bed9cf370cf53360f6021e8c82a0b232c6a4e6ce6aec893ef1912d7"
+        },
+        {
+          "path": "src/sentinel/dynamic/sandbox.py",
+          "sha256": "50bd1cbb02b93f55b02da64883faeac696f20342fe301bffa419abfc6685e3f5"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/dependency/requirements.py",
+      "destination_sha256": "0234cbbb80558a9a3c185520dc7f2f92e4319808fc1fa2014b58f9f340eec373",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/config.py",
+          "sha256": "18948a228bed9cf370cf53360f6021e8c82a0b232c6a4e6ce6aec893ef1912d7"
+        },
+        {
+          "path": "src/sentinel/dynamic/sandbox.py",
+          "sha256": "50bd1cbb02b93f55b02da64883faeac696f20342fe301bffa419abfc6685e3f5"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/semantic/__init__.py",
+      "destination_sha256": "c973594fd94fbf05bee9b597ab90dac58b8b5d14ebb275d02684ccefd774ab8e",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/__init__.py",
+          "sha256": "9b5fbc1f9031c8bd0b87432e3c5809a55f4f65591213b61e5d4b647295d348b4"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/semantic/cache.py",
+      "destination_sha256": "1a4c394b75086a7f62776477040e40b379c41df7ce31cc874c2c6b99153b0dfa",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/cache.py",
+          "sha256": "664dd9bba60fb45569f1e3b574bb266b9bdc7d4c6ad6be9e054020e7b2ea92d6"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/semantic/context.py",
+      "destination_sha256": "b8ba899bd3b893dd622a06a37c21d80d52755e42b2f25d6d95a05461f3da30fe",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/context.py",
+          "sha256": "3642c79f92e34d5e549d4dc2d5e6cb23b4eea04f0954cd6b305a95e6e6ce6a4e"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/semantic/model.py",
+      "destination_sha256": "cb995de323ad88a70ae00e774664d8ed073f5015014b02a8945f9f5665ff1c2d",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/schema.py",
+          "sha256": "de3c4b306f7b3c71f6a6f7d310bc2dc7c621d9a457365b9079e7107b0211286a"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/semantic/reviewer.py",
+      "destination_sha256": "50e462c9b90725c56e344f7a4a82a6481e094c67a08f4e8b5e17856f0d9ec896",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/semantic_reviewer.py",
+          "sha256": "5b7d22660ef4c9572319a97c58c97c928a0dcf54fdcf73916becf5930d3e5ed1"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/semantic/tools.py",
+      "destination_sha256": "8e9eab2d7cb50247c6be76330066d606f1dc7519aecfa3d530a704ea27e90b57",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/tools.py",
+          "sha256": "3ce3aebed590c98099ad2780137f4195eb9058fb5a69df3ebb05a3923a3797a6"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/__init__.py",
+      "destination_sha256": "f0682d45ce85ca611f5f36be5755973241a5b31c449a37f18b7f70cf4a32bd5b",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/__init__.py",
+          "sha256": "926a1a25f2081624e5b42c7174e1fe7c98c33d11d27264bb38f8c0a8931a04f8"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/ast_utils.py",
+      "destination_sha256": "b2d73c1b7bc15ce325fee99fc5b371886c4ee0ec807d1dd766690741e56018b0",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/ast_utils.py",
+          "sha256": "f014cc63d2e9b6059f9f2164b6d78fd8a38f734e5e2e2f83249fcba92dc9446f"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/catalog.py",
+      "destination_sha256": "b20819b8b1a2e7143452d3d185a75bb5c4618575d48361904a7cd3864539ab73",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/catalog.py",
+          "sha256": "5a6bce6b8a6f622d572504a3acf272cb2febd3ec0373c2a495f10d5283a0bbc5"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/engine.py",
+      "destination_sha256": "8fafb7dfef4d3b05d41a8da8226478cb24405a907db98b1957b3146ff1229d71",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/engine.py",
+          "sha256": "80bc1ad576821f25dc72b5e41163ab9e1dc7aba70f8fa72f6df0d2389311b76c"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/model.py",
+      "destination_sha256": "0dfad62fb77ec9a93e042388e75d662223810fb7651fa6b384fa287dc3b3930c",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/model.py",
+          "sha256": "7c7aeab0e9e6263019ae0fc8d768919a79c22b35aaf92e54b6bb74e0a71c3820"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/__init__.py",
+      "destination_sha256": "26f5d3837e1e61d0305a3ec23e2c164736a3463efd1cf56de69043990b392ace",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/__init__.py",
+          "sha256": "2caa23ab42c308ca3c81ae15cc98c2b5c64f80305e1ec9e1a30162618e12cdef"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/sent001.py",
+      "destination_sha256": "19389f6a7ccaf7d638ccd8c3c1dde24bbe7470cea3829c9f40cf03b930b68eb1",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent001.py",
+          "sha256": "cf290dc41d56df564ec8ad060e5f81b6362fa4dc352f0beead06f41ca3105a9a"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/sent002.py",
+      "destination_sha256": "812162bd4c52da0cc0acffc4eecaf0a91245aada03a1fe6fd313ca8e2eca017a",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent002.py",
+          "sha256": "c933deec7aa0c3c83515034a0cbe5f88783c00f9ca1eebb848aab351d2cba55e"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/sent003.py",
+      "destination_sha256": "c2d9a7cfbee1b993ec3bfd571fd79b5ff0adde9cfc4f343656a86093e5cfb148",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent003.py",
+          "sha256": "3b6d529d27a39161a7fe84cc59c91426393b8ab475a59c346c7b40cfe4506f45"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/sent004.py",
+      "destination_sha256": "a03bf2173eeb83b3df821aa28425ca7ca016ebad56bd1303546acea82eab2c04",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent004.py",
+          "sha256": "648b5bbc1b27c73f76d6d6345b68981a8f360b6a80f6a9a807489c8c9c7b826e"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/sent005.py",
+      "destination_sha256": "438b4b30fb128850ab019e223c612bc546b1e817fe01fa8ffefad84f8575452b",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent005.py",
+          "sha256": "97dbeaf268d1ef409dbd0e65d53bb3c397c960914767ec23e0acc7b828618f2b"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/sent006.py",
+      "destination_sha256": "39d5351f35b958b4ef5d6e73b73a9998a0a110d94e5c947e71b4b0db7ca2a8b9",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent006.py",
+          "sha256": "f5d25f83d6a8c083ae5b1e6352764fd7eee8288688777a314a0fe556be00ed6d"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/rules/sent007.py",
+      "destination_sha256": "88ed2a532e71a6f385ee29badf93ede35ac87eadb238dd047923282b981a7707",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent007.py",
+          "sha256": "8172e26c8b080a1a2b0b173a19657e62a0a508aa9a4e0cd009a606331cdc8d9a"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/semgrep/sent002.yaml",
+      "destination_sha256": "b231859ee9e191af60bc58df962f94711f63d5d9ee1f3ef31807fd1aa61cdcea",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/semgrep/sent002.yaml",
+          "sha256": "b231859ee9e191af60bc58df962f94711f63d5d9ee1f3ef31807fd1aa61cdcea"
+        }
+      ]
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/semgrep/sent005.yaml",
+      "destination_sha256": "5703943b4afb0da1c62231ae86e43336c586485f541db8b9aa9d6ce0242b423c",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/semgrep/sent005.yaml",
+          "sha256": "5703943b4afb0da1c62231ae86e43336c586485f541db8b9aa9d6ce0242b423c"
+        }
+      ]
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/semgrep_adapter.py",
+      "destination_sha256": "e7e651361c1e9e7423b4680fff86024ce38808422a463f062991326ccd3281f1",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/semgrep_adapter.py",
+          "sha256": "34bff160f3fbe5a2fc359b1cd9710979cba28583d7fe95a2a21bd188a26bb64f"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "src/panopticon/analyzers/static/traversal.py",
+      "destination_sha256": "e668d9095924daad0e2699d83ab09deea2a771ceb9a0cdaabb15d88a929abc24",
+      "license": "MIT",
+      "mode": "adapted",
+      "role": "product",
+      "sources": [
+        {
+          "path": "src/sentinel/static/traversal.py",
+          "sha256": "8ca98d8874355bf0e80f69165f7f091cb6032733851aa181e7a5724920e0ac7a"
+        }
+      ],
+      "transform": "Typed Panopticon port preserving pinned business conditions"
+    },
+    {
+      "destination": "tests/upstream/LICENSE",
+      "destination_sha256": "d33d4a26cdbf472e34c6eee80da145a71ba4407e8978c5668d3f6ff5a8c4ef04",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "LICENSE",
+          "sha256": "d33d4a26cdbf472e34c6eee80da145a71ba4407e8978c5668d3f6ff5a8c4ef04"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/action.yml",
+      "destination_sha256": "d82b2df99bf6cdf525de8f96df6fdbba8fb845a00cfa8fbde9b844e0a4385662",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "action.yml",
+          "sha256": "d82b2df99bf6cdf525de8f96df6fdbba8fb845a00cfa8fbde9b844e0a4385662"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/schemas/finding.schema.json",
+      "destination_sha256": "09e1ff45a2fb35b7143fb4c405c4132c54ea8fb7fcd719b379cf85129226f67d",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "schemas/finding.schema.json",
+          "sha256": "09e1ff45a2fb35b7143fb4c405c4132c54ea8fb7fcd719b379cf85129226f67d"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/schemas/gpt-review.schema.json",
+      "destination_sha256": "4abbe5f6b12f8875e653e0e4a6d3caba4f79b6538feb12be92e7af35012300d7",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "schemas/gpt-review.schema.json",
+          "sha256": "4abbe5f6b12f8875e653e0e4a6d3caba4f79b6538feb12be92e7af35012300d7"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/schemas/report.schema.json",
+      "destination_sha256": "8251e59a7ad97953ab4310d66ced83e177e70ff5b632675e4e6d3ae5d7ff329a",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "schemas/report.schema.json",
+          "sha256": "8251e59a7ad97953ab4310d66ced83e177e70ff5b632675e4e6d3ae5d7ff329a"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/schemas/sarif-2.1.0.schema.json",
+      "destination_sha256": "c3b4bb2d6093897483348925aaa73af03b3e3f4bd4ca38cef26dcb4212a2682e",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "schemas/sarif-2.1.0.schema.json",
+          "sha256": "c3b4bb2d6093897483348925aaa73af03b3e3f4bd4ca38cef26dcb4212a2682e"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/scripts/__init__.py",
+      "destination_sha256": "b4a58b275f0f28f785d2f27b599f00d4f63c67460bf3758d5638ba1c51b0ee97",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "scripts/__init__.py",
+          "sha256": "b4a58b275f0f28f785d2f27b599f00d4f63c67460bf3758d5638ba1c51b0ee97"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/scripts/capture_gpt_reviews.py",
+      "destination_sha256": "f31d270b34852bba140bd0c48b5e647d23f6054b06e0be10951e923220978ba9",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "scripts/capture_gpt_reviews.py",
+          "sha256": "f31d270b34852bba140bd0c48b5e647d23f6054b06e0be10951e923220978ba9"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/scripts/run_github_action.py",
+      "destination_sha256": "0f5b6d3f6588a366eccfde83ae043348a6968a7835ca039909e409fda1c1e919",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "scripts/run_github_action.py",
+          "sha256": "0f5b6d3f6588a366eccfde83ae043348a6968a7835ca039909e409fda1c1e919"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/__init__.py",
+      "destination_sha256": "23334ec175ca143945318ccf277c796737769e8cd9e2d217aa85b3762f46923b",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/__init__.py",
+          "sha256": "23334ec175ca143945318ccf277c796737769e8cd9e2d217aa85b3762f46923b"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/_cassettes/demo/1d9fb0acc9cf64f746d01d57845fb73028d8c3930d3b6279ec5941880a417118.json",
+      "destination_sha256": "be74a2910c06f9a0c00e3229d076d304b2aabe0aa997848bc87a8ae8db705d7d",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/_cassettes/demo/1d9fb0acc9cf64f746d01d57845fb73028d8c3930d3b6279ec5941880a417118.json",
+          "sha256": "be74a2910c06f9a0c00e3229d076d304b2aabe0aa997848bc87a8ae8db705d7d"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/_cassettes/demo/52e691ed64ffa15f877a2b0b5654250109324d5c2819449f657f62907b1c1f39.json",
+      "destination_sha256": "103040c8049ed26e54ab024244aee98457231f10328adbeaab80bd8b784d76c6",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/_cassettes/demo/52e691ed64ffa15f877a2b0b5654250109324d5c2819449f657f62907b1c1f39.json",
+          "sha256": "103040c8049ed26e54ab024244aee98457231f10328adbeaab80bd8b784d76c6"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/_cassettes/demo/99a008e1be20cfca0897fb0791f692013f04dc910f9e3e8cae395614110721ab.json",
+      "destination_sha256": "1f7e507993942e2df47034cbb9f03507b9669a1fad7b72254084a06a6c052afc",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/_cassettes/demo/99a008e1be20cfca0897fb0791f692013f04dc910f9e3e8cae395614110721ab.json",
+          "sha256": "1f7e507993942e2df47034cbb9f03507b9669a1fad7b72254084a06a6c052afc"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/_cassettes/demo/bf1c7a0f5ef6334341ecbf14f307b44e01b8bdf5ec298a10a77aedc5dfb083ba.json",
+      "destination_sha256": "094005ec92709576d51ace8b051fda26b11daaca5ff20c429129a78113539a0f",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/_cassettes/demo/bf1c7a0f5ef6334341ecbf14f307b44e01b8bdf5ec298a10a77aedc5dfb083ba.json",
+          "sha256": "094005ec92709576d51ace8b051fda26b11daaca5ff20c429129a78113539a0f"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/_cassettes/demo/c9738662d82b105023701144342c342f8bc8fe8e68ebd816c2bc6998a96eb79b.json",
+      "destination_sha256": "f10ad3b25f124d182a9489cdb416136ae69e466a5ec3d91bbe0e2962da0f0baa",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/_cassettes/demo/c9738662d82b105023701144342c342f8bc8fe8e68ebd816c2bc6998a96eb79b.json",
+          "sha256": "f10ad3b25f124d182a9489cdb416136ae69e466a5ec3d91bbe0e2962da0f0baa"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/_cassettes/demo/manifest.json",
+      "destination_sha256": "d49bd29afc478de72a3df054b98d2704cb2902af5566bd9032944892b8fd6856",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/_cassettes/demo/manifest.json",
+          "sha256": "d49bd29afc478de72a3df054b98d2704cb2902af5566bd9032944892b8fd6856"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/cli.py",
+      "destination_sha256": "57b30b2c0efdf44119c8c84cbf228cf7cd28a1d11f55f192bfb366fafdb7fece",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/cli.py",
+          "sha256": "57b30b2c0efdf44119c8c84cbf228cf7cd28a1d11f55f192bfb366fafdb7fece"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/config.py",
+      "destination_sha256": "18948a228bed9cf370cf53360f6021e8c82a0b232c6a4e6ce6aec893ef1912d7",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/config.py",
+          "sha256": "18948a228bed9cf370cf53360f6021e8c82a0b232c6a4e6ce6aec893ef1912d7"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/dynamic/__init__.py",
+      "destination_sha256": "0de57b4166806a7b444d7ee5c4ce967843918b148898a5e11c48fe4d071aa9e7",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/dynamic/__init__.py",
+          "sha256": "0de57b4166806a7b444d7ee5c4ce967843918b148898a5e11c48fe4d071aa9e7"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/dynamic/catalog.py",
+      "destination_sha256": "879f690c1e8b6e73258a9bc4c64f8202494b8e28fbfde4890c43deebf44109a4",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/dynamic/catalog.py",
+          "sha256": "879f690c1e8b6e73258a9bc4c64f8202494b8e28fbfde4890c43deebf44109a4"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/dynamic/merge.py",
+      "destination_sha256": "d436fedaf507eeb3c6aed22d08ea5d3d7b6a98222a60a2c9712fbbfb547be91e",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/dynamic/merge.py",
+          "sha256": "d436fedaf507eeb3c6aed22d08ea5d3d7b6a98222a60a2c9712fbbfb547be91e"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/dynamic/prober.py",
+      "destination_sha256": "2db9e044e7483a9cf1a73bb5f2a4e83d3c57099da774d9aaafd999d97f28e316",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/dynamic/prober.py",
+          "sha256": "2db9e044e7483a9cf1a73bb5f2a4e83d3c57099da774d9aaafd999d97f28e316"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/dynamic/sandbox.py",
+      "destination_sha256": "50bd1cbb02b93f55b02da64883faeac696f20342fe301bffa419abfc6685e3f5",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/dynamic/sandbox.py",
+          "sha256": "50bd1cbb02b93f55b02da64883faeac696f20342fe301bffa419abfc6685e3f5"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/errors.py",
+      "destination_sha256": "77072fb9cfef844d32d94f931afdd32c2f7361bab08cc3ee8335d85b0404e7eb",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/errors.py",
+          "sha256": "77072fb9cfef844d32d94f931afdd32c2f7361bab08cc3ee8335d85b0404e7eb"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/finding.py",
+      "destination_sha256": "a441609df528cc2fc06c8bf918e68599f542f0e6fab16da64060b4fe527ffa4a",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/finding.py",
+          "sha256": "a441609df528cc2fc06c8bf918e68599f542f0e6fab16da64060b4fe527ffa4a"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/llm/__init__.py",
+      "destination_sha256": "9b5fbc1f9031c8bd0b87432e3c5809a55f4f65591213b61e5d4b647295d348b4",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/__init__.py",
+          "sha256": "9b5fbc1f9031c8bd0b87432e3c5809a55f4f65591213b61e5d4b647295d348b4"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/llm/cache.py",
+      "destination_sha256": "664dd9bba60fb45569f1e3b574bb266b9bdc7d4c6ad6be9e054020e7b2ea92d6",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/cache.py",
+          "sha256": "664dd9bba60fb45569f1e3b574bb266b9bdc7d4c6ad6be9e054020e7b2ea92d6"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/llm/context.py",
+      "destination_sha256": "3642c79f92e34d5e549d4dc2d5e6cb23b4eea04f0954cd6b305a95e6e6ce6a4e",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/context.py",
+          "sha256": "3642c79f92e34d5e549d4dc2d5e6cb23b4eea04f0954cd6b305a95e6e6ce6a4e"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/llm/schema.py",
+      "destination_sha256": "de3c4b306f7b3c71f6a6f7d310bc2dc7c621d9a457365b9079e7107b0211286a",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/schema.py",
+          "sha256": "de3c4b306f7b3c71f6a6f7d310bc2dc7c621d9a457365b9079e7107b0211286a"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/llm/semantic_reviewer.py",
+      "destination_sha256": "5b7d22660ef4c9572319a97c58c97c928a0dcf54fdcf73916becf5930d3e5ed1",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/semantic_reviewer.py",
+          "sha256": "5b7d22660ef4c9572319a97c58c97c928a0dcf54fdcf73916becf5930d3e5ed1"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/llm/tools.py",
+      "destination_sha256": "3ce3aebed590c98099ad2780137f4195eb9058fb5a69df3ebb05a3923a3797a6",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/llm/tools.py",
+          "sha256": "3ce3aebed590c98099ad2780137f4195eb9058fb5a69df3ebb05a3923a3797a6"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/orchestrator.py",
+      "destination_sha256": "912bb0d4be2dd72af51453b09e67c1c3b38a6d6164643a0f6a1347722d425675",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/orchestrator.py",
+          "sha256": "912bb0d4be2dd72af51453b09e67c1c3b38a6d6164643a0f6a1347722d425675"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/owasp_mapping.py",
+      "destination_sha256": "eed5b8103cba914355ca7fd88027b8ae9aeac9989310bcec78ba166b87303126",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/owasp_mapping.py",
+          "sha256": "eed5b8103cba914355ca7fd88027b8ae9aeac9989310bcec78ba166b87303126"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/permissions.py",
+      "destination_sha256": "cb700b080375f6f60c28093edc6a8b23fd072002fc7dff1e9b3c6e4ec4f618a4",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/permissions.py",
+          "sha256": "cb700b080375f6f60c28093edc6a8b23fd072002fc7dff1e9b3c6e4ec4f618a4"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/report/__init__.py",
+      "destination_sha256": "305eaf3a0dfcd01e3ae1c03cb19a17dd6f75c4540e323a31ae5a22d82ceb977b",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/report/__init__.py",
+          "sha256": "305eaf3a0dfcd01e3ae1c03cb19a17dd6f75c4540e323a31ae5a22d82ceb977b"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/report/console.py",
+      "destination_sha256": "aca03a4b64db935b2118c74b79e72ece2c42a9b8f599ef9c8a26f808f4699dda",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/report/console.py",
+          "sha256": "aca03a4b64db935b2118c74b79e72ece2c42a9b8f599ef9c8a26f808f4699dda"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/report/json_report.py",
+      "destination_sha256": "3b6f7489aeace7f18893ab21b45ac029a4c1718affc95acd00802f2b6a4ac934",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/report/json_report.py",
+          "sha256": "3b6f7489aeace7f18893ab21b45ac029a4c1718affc95acd00802f2b6a4ac934"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/report/model.py",
+      "destination_sha256": "57b3de4253a0cb39d8459717373533b8a75bc6f29316fe2ef9917eabb78dc518",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/report/model.py",
+          "sha256": "57b3de4253a0cb39d8459717373533b8a75bc6f29316fe2ef9917eabb78dc518"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/report/sarif.py",
+      "destination_sha256": "522eee6e0f1b35fed6590b2de2dd6db383705ed183ad29333aa2c90cb63b5e89",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/report/sarif.py",
+          "sha256": "522eee6e0f1b35fed6590b2de2dd6db383705ed183ad29333aa2c90cb63b5e89"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/report/validate_json.py",
+      "destination_sha256": "36d15930e665ed6e5ea6aa41b617cb46f413dde663f96e9921821f0e57b1d411",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/report/validate_json.py",
+          "sha256": "36d15930e665ed6e5ea6aa41b617cb46f413dde663f96e9921821f0e57b1d411"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/report/validate_sarif.py",
+      "destination_sha256": "e76c14da14f5aee8f7db97fbbfe7f98aaca95551edade4132712b32323dd02f7",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/report/validate_sarif.py",
+          "sha256": "e76c14da14f5aee8f7db97fbbfe7f98aaca95551edade4132712b32323dd02f7"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/schema.py",
+      "destination_sha256": "605322a769dddc250c3b29a8e117682e1fd82bde9603dbb370008876d5922dbe",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/schema.py",
+          "sha256": "605322a769dddc250c3b29a8e117682e1fd82bde9603dbb370008876d5922dbe"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/__init__.py",
+      "destination_sha256": "926a1a25f2081624e5b42c7174e1fe7c98c33d11d27264bb38f8c0a8931a04f8",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/__init__.py",
+          "sha256": "926a1a25f2081624e5b42c7174e1fe7c98c33d11d27264bb38f8c0a8931a04f8"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/ast_utils.py",
+      "destination_sha256": "f014cc63d2e9b6059f9f2164b6d78fd8a38f734e5e2e2f83249fcba92dc9446f",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/ast_utils.py",
+          "sha256": "f014cc63d2e9b6059f9f2164b6d78fd8a38f734e5e2e2f83249fcba92dc9446f"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/catalog.py",
+      "destination_sha256": "5a6bce6b8a6f622d572504a3acf272cb2febd3ec0373c2a495f10d5283a0bbc5",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/catalog.py",
+          "sha256": "5a6bce6b8a6f622d572504a3acf272cb2febd3ec0373c2a495f10d5283a0bbc5"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/engine.py",
+      "destination_sha256": "80bc1ad576821f25dc72b5e41163ab9e1dc7aba70f8fa72f6df0d2389311b76c",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/engine.py",
+          "sha256": "80bc1ad576821f25dc72b5e41163ab9e1dc7aba70f8fa72f6df0d2389311b76c"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/model.py",
+      "destination_sha256": "7c7aeab0e9e6263019ae0fc8d768919a79c22b35aaf92e54b6bb74e0a71c3820",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/model.py",
+          "sha256": "7c7aeab0e9e6263019ae0fc8d768919a79c22b35aaf92e54b6bb74e0a71c3820"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/__init__.py",
+      "destination_sha256": "2caa23ab42c308ca3c81ae15cc98c2b5c64f80305e1ec9e1a30162618e12cdef",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/__init__.py",
+          "sha256": "2caa23ab42c308ca3c81ae15cc98c2b5c64f80305e1ec9e1a30162618e12cdef"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/sent001.py",
+      "destination_sha256": "cf290dc41d56df564ec8ad060e5f81b6362fa4dc352f0beead06f41ca3105a9a",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent001.py",
+          "sha256": "cf290dc41d56df564ec8ad060e5f81b6362fa4dc352f0beead06f41ca3105a9a"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/sent002.py",
+      "destination_sha256": "c933deec7aa0c3c83515034a0cbe5f88783c00f9ca1eebb848aab351d2cba55e",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent002.py",
+          "sha256": "c933deec7aa0c3c83515034a0cbe5f88783c00f9ca1eebb848aab351d2cba55e"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/sent003.py",
+      "destination_sha256": "3b6d529d27a39161a7fe84cc59c91426393b8ab475a59c346c7b40cfe4506f45",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent003.py",
+          "sha256": "3b6d529d27a39161a7fe84cc59c91426393b8ab475a59c346c7b40cfe4506f45"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/sent004.py",
+      "destination_sha256": "648b5bbc1b27c73f76d6d6345b68981a8f360b6a80f6a9a807489c8c9c7b826e",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent004.py",
+          "sha256": "648b5bbc1b27c73f76d6d6345b68981a8f360b6a80f6a9a807489c8c9c7b826e"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/sent005.py",
+      "destination_sha256": "97dbeaf268d1ef409dbd0e65d53bb3c397c960914767ec23e0acc7b828618f2b",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent005.py",
+          "sha256": "97dbeaf268d1ef409dbd0e65d53bb3c397c960914767ec23e0acc7b828618f2b"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/sent006.py",
+      "destination_sha256": "f5d25f83d6a8c083ae5b1e6352764fd7eee8288688777a314a0fe556be00ed6d",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent006.py",
+          "sha256": "f5d25f83d6a8c083ae5b1e6352764fd7eee8288688777a314a0fe556be00ed6d"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/rules/sent007.py",
+      "destination_sha256": "8172e26c8b080a1a2b0b173a19657e62a0a508aa9a4e0cd009a606331cdc8d9a",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/rules/sent007.py",
+          "sha256": "8172e26c8b080a1a2b0b173a19657e62a0a508aa9a4e0cd009a606331cdc8d9a"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/semgrep/sent002.yaml",
+      "destination_sha256": "b231859ee9e191af60bc58df962f94711f63d5d9ee1f3ef31807fd1aa61cdcea",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/semgrep/sent002.yaml",
+          "sha256": "b231859ee9e191af60bc58df962f94711f63d5d9ee1f3ef31807fd1aa61cdcea"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/semgrep/sent005.yaml",
+      "destination_sha256": "5703943b4afb0da1c62231ae86e43336c586485f541db8b9aa9d6ce0242b423c",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/semgrep/sent005.yaml",
+          "sha256": "5703943b4afb0da1c62231ae86e43336c586485f541db8b9aa9d6ce0242b423c"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/semgrep_adapter.py",
+      "destination_sha256": "34bff160f3fbe5a2fc359b1cd9710979cba28583d7fe95a2a21bd188a26bb64f",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/semgrep_adapter.py",
+          "sha256": "34bff160f3fbe5a2fc359b1cd9710979cba28583d7fe95a2a21bd188a26bb64f"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/src/sentinel/static/traversal.py",
+      "destination_sha256": "8ca98d8874355bf0e80f69165f7f091cb6032733851aa181e7a5724920e0ac7a",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "src/sentinel/static/traversal.py",
+          "sha256": "8ca98d8874355bf0e80f69165f7f091cb6032733851aa181e7a5724920e0ac7a"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/__init__.py",
+      "destination_sha256": "d1595162827586635b21b78fafb3c62c7010180e7f54782a5f396c688ce6c4bd",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/__init__.py",
+          "sha256": "d1595162827586635b21b78fafb3c62c7010180e7f54782a5f396c688ce6c4bd"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/conftest.py",
+      "destination_sha256": "44928020bda8f276630d771e0c1c8193322906e4bc8c1a1952ca1a69f216ab12",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/conftest.py",
+          "sha256": "44928020bda8f276630d771e0c1c8193322906e4bc8c1a1952ca1a69f216ab12"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/clean_server/pyproject.toml",
+      "destination_sha256": "1ea1d67065f366f1f3bf2349359df56bfbef65d731086d7c5beb813796199ef7",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/clean_server/pyproject.toml",
+          "sha256": "1ea1d67065f366f1f3bf2349359df56bfbef65d731086d7c5beb813796199ef7"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/clean_server/sentinel.integrity.yaml",
+      "destination_sha256": "ce99ab287d65f7cc3a68c44d1b51badf64e61c575353db3ca8673c934ce4a109",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/clean_server/sentinel.integrity.yaml",
+          "sha256": "ce99ab287d65f7cc3a68c44d1b51badf64e61c575353db3ca8673c934ce4a109"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/clean_server/sentinel.permissions.yaml",
+      "destination_sha256": "df7c6246193c0502d86c54b00115d3b8d98110efc04d3be7228d78182c2b217d",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/clean_server/sentinel.permissions.yaml",
+          "sha256": "df7c6246193c0502d86c54b00115d3b8d98110efc04d3be7228d78182c2b217d"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/clean_server/sentinel.target.yaml",
+      "destination_sha256": "06b4502cc844aaa0e0435fe318e1eefdebb59c2e5f72f29d8534a822f3d70df2",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/clean_server/sentinel.target.yaml",
+          "sha256": "06b4502cc844aaa0e0435fe318e1eefdebb59c2e5f72f29d8534a822f3d70df2"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/clean_server/sentinel.toml",
+      "destination_sha256": "5fc17161028a9647fe6dac056ef01780f49cc4b9d69e8a23b3201767a929a1c8",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/clean_server/sentinel.toml",
+          "sha256": "5fc17161028a9647fe6dac056ef01780f49cc4b9d69e8a23b3201767a929a1c8"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/clean_server/server.py",
+      "destination_sha256": "ebaeb8085964a6a6b58d8a0b78702c5c3001ac3c1bf25c821f21242fbc41c79b",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/clean_server/server.py",
+          "sha256": "ebaeb8085964a6a6b58d8a0b78702c5c3001ac3c1bf25c821f21242fbc41c79b"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/clean_server/tools.yaml",
+      "destination_sha256": "e98c7dbabf0b0bfba8338980a3eae2e099bf9d7ab5c2e2717f2fb850b4f7054b",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/clean_server/tools.yaml",
+          "sha256": "e98c7dbabf0b0bfba8338980a3eae2e099bf9d7ab5c2e2717f2fb850b4f7054b"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/gpt_review_eval/pyproject.toml",
+      "destination_sha256": "e79db80e5a58d98a969af6c6953210c990f5d429d1ba84a0ef29589c02c2ffba",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/gpt_review_eval/pyproject.toml",
+          "sha256": "e79db80e5a58d98a969af6c6953210c990f5d429d1ba84a0ef29589c02c2ffba"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/gpt_review_eval/sentinel.permissions.yaml",
+      "destination_sha256": "0617b4411eba2d81b597df5a5a0a05bc2b532fea2b430b70ba33821398c9ce85",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/gpt_review_eval/sentinel.permissions.yaml",
+          "sha256": "0617b4411eba2d81b597df5a5a0a05bc2b532fea2b430b70ba33821398c9ce85"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/gpt_review_eval/sentinel.target.yaml",
+      "destination_sha256": "22e83dbfc117e1e428a58c05ed0c13e41047dfbfb4b14f4b131fe595b4b1918d",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/gpt_review_eval/sentinel.target.yaml",
+          "sha256": "22e83dbfc117e1e428a58c05ed0c13e41047dfbfb4b14f4b131fe595b4b1918d"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/gpt_review_eval/server.py",
+      "destination_sha256": "39b13db32bfd1383c2f87c8a985ced5342269cc8cbb13e1a313a403b1e7689d0",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/gpt_review_eval/server.py",
+          "sha256": "39b13db32bfd1383c2f87c8a985ced5342269cc8cbb13e1a313a403b1e7689d0"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/gpt_review_eval/storage.py",
+      "destination_sha256": "e300a7e485344f9d5ab2f5c5645e215ffa2486c189663b9a00238b7a2c265644",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/gpt_review_eval/storage.py",
+          "sha256": "e300a7e485344f9d5ab2f5c5645e215ffa2486c189663b9a00238b7a2c265644"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/gpt_review_eval/tools.yaml",
+      "destination_sha256": "19dc70f6664cc8c8b27f9c218f4a050eda6b77d9bc4c7ae800568d7ee989e3e0",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/gpt_review_eval/tools.yaml",
+          "sha256": "19dc70f6664cc8c8b27f9c218f4a050eda6b77d9bc4c7ae800568d7ee989e3e0"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/vulnerable_server/pyproject.toml",
+      "destination_sha256": "8177e151e5395644df925b5a1f869a5c290e3437f10ca116be48cb5155ddc8e8",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/vulnerable_server/pyproject.toml",
+          "sha256": "8177e151e5395644df925b5a1f869a5c290e3437f10ca116be48cb5155ddc8e8"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/vulnerable_server/sentinel.permissions.yaml",
+      "destination_sha256": "b15c9597b9bdb0112cff12871d8b41975c37801c5950c9e610192c69ccde8862",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/vulnerable_server/sentinel.permissions.yaml",
+          "sha256": "b15c9597b9bdb0112cff12871d8b41975c37801c5950c9e610192c69ccde8862"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/vulnerable_server/sentinel.target.yaml",
+      "destination_sha256": "06b4502cc844aaa0e0435fe318e1eefdebb59c2e5f72f29d8534a822f3d70df2",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/vulnerable_server/sentinel.target.yaml",
+          "sha256": "06b4502cc844aaa0e0435fe318e1eefdebb59c2e5f72f29d8534a822f3d70df2"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/vulnerable_server/server.py",
+      "destination_sha256": "6c915026bb8a539c57bdea6fe6f632f2cc311387e28e31f756f344ae0e11b6aa",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/vulnerable_server/server.py",
+          "sha256": "6c915026bb8a539c57bdea6fe6f632f2cc311387e28e31f756f344ae0e11b6aa"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/fixtures/vulnerable_server/tools.yaml",
+      "destination_sha256": "5876a8f8a41e34a187d48125982ee029e7f9b7825405a8566288b30af3e9afc9",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/fixtures/vulnerable_server/tools.yaml",
+          "sha256": "5876a8f8a41e34a187d48125982ee029e7f9b7825405a8566288b30af3e9afc9"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_cli.py",
+      "destination_sha256": "cc643d2d3ca1f41b8ae2c3f58333a048b577c5c18e93656bccb672d678508380",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_cli.py",
+          "sha256": "cc643d2d3ca1f41b8ae2c3f58333a048b577c5c18e93656bccb672d678508380"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_config.py",
+      "destination_sha256": "f78238f3ca604c6dd70da23c7bdc1457236ebe3a3022763d683fdeec5f53a414",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_config.py",
+          "sha256": "f78238f3ca604c6dd70da23c7bdc1457236ebe3a3022763d683fdeec5f53a414"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_dynamic_prober.py",
+      "destination_sha256": "a3468d1ab43adde0464eec17c91b8be8f7a14ad2ad92847c2890b3f0a7833547",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_dynamic_prober.py",
+          "sha256": "a3468d1ab43adde0464eec17c91b8be8f7a14ad2ad92847c2890b3f0a7833547"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_dynamic_sandbox.py",
+      "destination_sha256": "0bfffbc332737fa8afd7906608fc19b9f409379be7439a3c9ad26ddeaa874b20",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_dynamic_sandbox.py",
+          "sha256": "0bfffbc332737fa8afd7906608fc19b9f409379be7439a3c9ad26ddeaa874b20"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_finding.py",
+      "destination_sha256": "44058c9c72be555f6e70db105a2ad33b676bb295e1be813f17908a72f4480014",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_finding.py",
+          "sha256": "44058c9c72be555f6e70db105a2ad33b676bb295e1be813f17908a72f4480014"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_github_action.py",
+      "destination_sha256": "d2ff72905886e686780db7d9fef14f024ee85ef424a889e2f9e5fb0de367580b",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_github_action.py",
+          "sha256": "d2ff72905886e686780db7d9fef14f024ee85ef424a889e2f9e5fb0de367580b"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_gpt_review.py",
+      "destination_sha256": "15990bc8fb578187f290b06b07fbebd900a2fcc1d22566e341022dd799b24d28",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_gpt_review.py",
+          "sha256": "15990bc8fb578187f290b06b07fbebd900a2fcc1d22566e341022dd799b24d28"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_orchestrator.py",
+      "destination_sha256": "3f4625323235339d94eb3e9e4b16ad4e0713da2821fdbee363f930cd176bec8e",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_orchestrator.py",
+          "sha256": "3f4625323235339d94eb3e9e4b16ad4e0713da2821fdbee363f930cd176bec8e"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_phase3_capture.py",
+      "destination_sha256": "d87858635c958d07cba7150eebd94b67435d46816b3191e449dae20ee04da3c4",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_phase3_capture.py",
+          "sha256": "d87858635c958d07cba7150eebd94b67435d46816b3191e449dae20ee04da3c4"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_report.py",
+      "destination_sha256": "83a6ee400af4e2208c7c50430f4e0b96283fb6c8128e45792be27337a1200e7f",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_report.py",
+          "sha256": "83a6ee400af4e2208c7c50430f4e0b96283fb6c8128e45792be27337a1200e7f"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_sarif.py",
+      "destination_sha256": "67c740f290c66cb55516b63a0059fff2cacd474c16148c99a0ac9602ca32dfc0",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_sarif.py",
+          "sha256": "67c740f290c66cb55516b63a0059fff2cacd474c16148c99a0ac9602ca32dfc0"
+        }
+      ]
+    },
+    {
+      "destination": "tests/upstream/tests/test_static_engine.py",
+      "destination_sha256": "cf0b86f6f9be3dc99e994baa7203a1ef80a490e69e587d6ef0a507f92cbfccb5",
+      "license": "MIT",
+      "mode": "exact",
+      "role": "replay",
+      "sources": [
+        {
+          "path": "tests/test_static_engine.py",
+          "sha256": "cf0b86f6f9be3dc99e994baa7203a1ef80a490e69e587d6ef0a507f92cbfccb5"
+        }
+      ]
+    }
+  ],
+  "notice": "THIRD_PARTY_NOTICES.md",
+  "schema_version": 1,
+  "tests": {
+    "expected_count": 125,
+    "nodeids": [
+      "tests/test_cli.py::test_version_and_help",
+      "tests/test_cli.py::test_json_scan_returns_complete_exit_and_clean_stdout",
+      "tests/test_cli.py::test_conflicting_format_is_usage_error",
+      "tests/test_cli.py::test_machine_formats_reject_console_presentation_options[--verbose]",
+      "tests/test_cli.py::test_machine_formats_reject_console_presentation_options[--color]",
+      "tests/test_cli.py::test_machine_formats_reject_console_presentation_options[--no-color]",
+      "tests/test_cli.py::test_color_precedence",
+      "tests/test_cli.py::test_output_atomically_overwrites_named_file",
+      "tests/test_cli.py::test_invalid_output_parent_is_usage_error",
+      "tests/test_cli.py::test_missing_target_uses_target_error_prefix",
+      "tests/test_cli.py::test_static_only_skips_target_launch_and_completes_when_clean",
+      "tests/test_cli.py::test_static_only_gpt_failure_is_fatal_or_explicitly_degraded",
+      "tests/test_cli.py::test_launch_override_and_rule_validation",
+      "tests/test_cli.py::test_orphan_reaper_failure_returns_infrastructure_exit",
+      "tests/test_cli.py::test_demo_validates_and_cleans_temporary_reports",
+      "tests/test_cli.py::test_debug_controls_internal_tracebacks",
+      "tests/test_config.py::test_defaults_and_framework_metadata_are_loaded",
+      "tests/test_config.py::test_precedence_and_list_replacement",
+      "tests/test_config.py::test_unknown_file_key_and_invalid_env_list_fail",
+      "tests/test_config.py::test_static_only_skips_target_config_but_not_framework_check",
+      "tests/test_config.py::test_launch_override_supplies_safe_defaults",
+      "tests/test_config.py::test_unsafe_or_unsupported_target_config_fails[language: python\\nlaunch_cmd: [bash, -c, echo]\\ntransport: stdio\\nworking_dir: .]",
+      "tests/test_config.py::test_unsafe_or_unsupported_target_config_fails[language: python\\nlaunch_cmd: [python, server.py]\\ntransport: http\\nworking_dir: .\\nport: 8000]",
+      "tests/test_config.py::test_unsafe_or_unsupported_target_config_fails[language: python\\nlaunch_cmd: [python, server.py]\\ntransport: stdio\\nworking_dir: ../]",
+      "tests/test_config.py::test_secret_shaped_environment_names_fail[API_KEY]",
+      "tests/test_config.py::test_secret_shaped_environment_names_fail[SESSION_MODE]",
+      "tests/test_config.py::test_secret_shaped_environment_names_fail[AUTH_LEVEL]",
+      "tests/test_config.py::test_secret_shaped_environment_names_fail[PASSWORD_HINT]",
+      "tests/test_config.py::test_secret_literal_values_fail[Bearer abc]",
+      "tests/test_config.py::test_secret_literal_values_fail[Basic abc]",
+      "tests/test_config.py::test_secret_literal_values_fail[sk-example]",
+      "tests/test_config.py::test_secret_literal_values_fail[ghp_example]",
+      "tests/test_config.py::test_secret_literal_values_fail[AKIAEXAMPLE]",
+      "tests/test_config.py::test_secret_literal_values_fail[AIzaExample]",
+      "tests/test_config.py::test_secret_literal_values_fail[-----BEGIN PRIVATE KEY-----]",
+      "tests/test_config.py::test_dependency_only_pip_install_shapes_are_accepted[command0]",
+      "tests/test_config.py::test_dependency_only_pip_install_shapes_are_accepted[command1]",
+      "tests/test_config.py::test_unsafe_install_shapes_are_rejected[command0]",
+      "tests/test_config.py::test_unsafe_install_shapes_are_rejected[command1]",
+      "tests/test_config.py::test_unsafe_install_shapes_are_rejected[command2]",
+      "tests/test_config.py::test_unsafe_install_shapes_are_rejected[command3]",
+      "tests/test_config.py::test_unsafe_install_shapes_are_rejected[command4]",
+      "tests/test_config.py::test_python_version_inference_and_symlink_rejection",
+      "tests/test_dynamic_prober.py::test_valid_gpt_plan_controls_order_and_bindings",
+      "tests/test_dynamic_prober.py::test_invalid_or_suppressed_plan_uses_all_four_fixed_probes",
+      "tests/test_dynamic_prober.py::test_payloads_are_schema_shaped_and_evidence_is_redacted",
+      "tests/test_dynamic_prober.py::test_oversized_response_evidence_is_bounded_without_losing_outcome",
+      "tests/test_dynamic_prober.py::test_runtime_binding_uses_ungranted_tool_and_schema_fallback",
+      "tests/test_dynamic_prober.py::test_runtime_binding_preserves_logical_field_inside_object_envelope",
+      "tests/test_dynamic_prober.py::test_dynamic_finding_is_confirmed_and_redacts_pointer_tokens",
+      "tests/test_dynamic_prober.py::test_malformed_dynamic_proof_merges_into_matching_sent003",
+      "tests/test_dynamic_sandbox.py::test_dependency_image_build_is_proxied_then_offline",
+      "tests/test_dynamic_sandbox.py::test_dependency_image_cache_hit_skips_build",
+      "tests/test_dynamic_sandbox.py::test_missing_docker_binary_is_an_infrastructure_failure",
+      "tests/test_dynamic_sandbox.py::test_dependency_build_failure_still_cleans_build_resources",
+      "tests/test_dynamic_sandbox.py::test_dependency_build_cleanup_failure_is_not_silent",
+      "tests/test_dynamic_sandbox.py::test_dependency_inputs_hash_declared_files_and_support_requirements",
+      "tests/test_dynamic_sandbox.py::test_runtime_arguments_enforce_isolation_and_explicit_environment",
+      "tests/test_dynamic_sandbox.py::test_proxy_allowlist_denies_ip_literals_and_everything_else",
+      "tests/test_dynamic_sandbox.py::test_reaper_removes_only_stale_labeled_containers",
+      "tests/test_dynamic_sandbox.py::test_reaper_fails_closed_on_invalid_creation_label",
+      "tests/test_finding.py::test_severity_rubric[Critical-Critical-High]",
+      "tests/test_finding.py::test_severity_rubric[High-High-Medium]",
+      "tests/test_finding.py::test_severity_rubric[Medium-Medium-Low]",
+      "tests/test_finding.py::test_severity_rubric[Low-Low-Informational]",
+      "tests/test_finding.py::test_severity_rubric[Informational-Informational-Informational]",
+      "tests/test_finding.py::test_finding_serializes_computed_severity_and_utc",
+      "tests/test_finding.py::test_dedup_key_is_canonical_sha256",
+      "tests/test_finding.py::test_location_normalization_and_range_validation",
+      "tests/test_finding.py::test_dynamic_evidence_rejects_non_json_payloads",
+      "tests/test_finding.py::test_status_transitions_are_immutable_and_audited",
+      "tests/test_finding.py::test_suppression_requires_reason_and_disallowed_transition_fails",
+      "tests/test_finding.py::test_finding_rejects_non_uuid4_and_mismatched_provenance",
+      "tests/test_github_action.py::test_analyze_sarif_counts_all_results_but_excludes_suppressed_severity",
+      "tests/test_github_action.py::test_execute_action_validates_and_preserves_report_bearing_exits[0]",
+      "tests/test_github_action.py::test_execute_action_validates_and_preserves_report_bearing_exits[1]",
+      "tests/test_github_action.py::test_execute_action_validates_and_preserves_report_bearing_exits[3]",
+      "tests/test_github_action.py::test_fork_pull_request_withholds_secret_degrades_and_skips_upload",
+      "tests/test_github_action.py::test_invalid_or_missing_sarif_blocks_upload",
+      "tests/test_github_action.py::test_target_must_remain_inside_workspace",
+      "tests/test_github_action.py::test_outputs_and_summary_are_aggregate_only",
+      "tests/test_github_action.py::test_action_metadata_exposes_only_approved_interface",
+      "tests/test_gpt_review.py::test_live_capture_plans_one_attempt_with_per_request_reservations",
+      "tests/test_gpt_review.py::test_demo_capture_uses_production_candidate_order",
+      "tests/test_gpt_review.py::test_tool_metadata_comes_from_ast_and_matching_manifest",
+      "tests/test_gpt_review.py::test_unversioned_manifest_is_accepted_and_bad_version_falls_back",
+      "tests/test_gpt_review.py::test_context_is_bounded_grounded_and_line_preserving",
+      "tests/test_gpt_review.py::test_ambiguous_eval_context_does_not_expose_imported_helper",
+      "tests/test_gpt_review.py::test_live_review_merges_status_plan_usage_and_authority",
+      "tests/test_gpt_review.py::test_cache_rebinds_new_runtime_finding_ids",
+      "tests/test_gpt_review.py::test_replay_rebinds_ids_and_preserves_capture_provenance",
+      "tests/test_gpt_review.py::test_invalid_batch_is_atomic_and_fails_closed",
+      "tests/test_gpt_review.py::test_suppressed_static_finding_can_use_fixed_probe_fallback",
+      "tests/test_gpt_review.py::test_retry_then_success_uses_sentinel_owned_backoff",
+      "tests/test_gpt_review.py::test_api_contract_errors_preserve_safe_diagnostic_detail",
+      "tests/test_gpt_review.py::test_refusal_can_only_become_explicit_degraded_review",
+      "tests/test_gpt_review.py::test_finding_cap_keeps_overflow_visible_without_failure",
+      "tests/test_gpt_review.py::test_dynamic_candidate_uses_supplied_evidence_and_never_gets_probe_plan",
+      "tests/test_orchestrator.py::test_full_orchestration_orders_both_reviews_and_merge",
+      "tests/test_orchestrator.py::test_dynamic_infrastructure_failures_return_incomplete_exit_three[Docker daemon is unavailable]",
+      "tests/test_orchestrator.py::test_dynamic_infrastructure_failures_return_incomplete_exit_three[dependency image build failed]",
+      "tests/test_orchestrator.py::test_dynamic_infrastructure_failures_return_incomplete_exit_three[probe container failed to start]",
+      "tests/test_orchestrator.py::test_dynamic_infrastructure_failures_return_incomplete_exit_three[failed to clean probe container]",
+      "tests/test_phase3_capture.py::test_phase3_capture_dry_run_does_not_launch_docker_or_read_live_key",
+      "tests/test_report.py::test_phase1_report_has_static_results_and_is_explicitly_incomplete",
+      "tests/test_report.py::test_console_reports_semantic_state",
+      "tests/test_report.py::test_console_orders_by_severity_then_suppression_and_bounds_detail",
+      "tests/test_report.py::test_schema_generate_and_drift_check",
+      "tests/test_report.py::test_completed_gpt_review_survives_console_json_and_sarif",
+      "tests/test_sarif.py::test_sarif_shell_validates_and_preserves_failure_state",
+      "tests/test_sarif.py::test_invalid_sarif_is_an_infrastructure_failure",
+      "tests/test_sarif.py::test_suppressed_result_uses_schema_valid_native_suppression",
+      "tests/test_static_engine.py::test_reference_fixture_acceptance[vulnerable_server-expected0]",
+      "tests/test_static_engine.py::test_reference_fixture_acceptance[clean_server-expected1]",
+      "tests/test_static_engine.py::test_secret_evidence_is_redacted_but_fingerprinted",
+      "tests/test_static_engine.py::test_phase1_sarif_contains_findings_and_full_rule_catalog",
+      "tests/test_static_engine.py::test_rule_selection_uses_include_then_exclude_semantics",
+      "tests/test_static_engine.py::test_missing_permissions_sidecar_marks_sent001_skipped",
+      "tests/test_static_engine.py::test_secret_allowlist_requires_matching_path_and_fingerprint",
+      "tests/test_static_engine.py::test_traversal_honors_nested_gitignore_config_and_symlinks",
+      "tests/test_static_engine.py::test_traversal_rejects_malformed_supported_files[broken.py-def nope(:\\n-cannot parse Python source]",
+      "tests/test_static_engine.py::test_traversal_rejects_malformed_supported_files[broken.json-{-cannot parse configuration]",
+      "tests/test_static_engine.py::test_traversal_rejects_malformed_supported_files[.env-NOT_AN_ASSIGNMENT-invalid dotenv syntax]",
+      "tests/test_static_engine.py::test_traversal_rejects_oversized_supported_file",
+      "tests/test_static_engine.py::test_rule_specific_configuration_is_strict"
+    ]
+  },
+  "upstream": {
+    "commit": "e717e955210b1d2a3e9fb1cdc266587c77ffebf3",
+    "license": "MIT",
+    "license_path": "LICENSE",
+    "license_sha256": "d33d4a26cdbf472e34c6eee80da145a71ba4407e8978c5668d3f6ff5a8c4ef04",
+    "repository": "https://github.com/BashaarJavaid/MCP-Sentinel"
+  }
+}

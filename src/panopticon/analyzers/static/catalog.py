@@ -62,7 +62,10 @@ RULES = tuple(
         (
             "SENT-004",
             "Unsanitized tool content in prompt",
-            "Tool output or description flows into a later model prompt without a trusted sanitizer.",
+            (
+                "Tool output or description flows into a later model prompt "
+                "without a trusted sanitizer."
+            ),
             Impact.HIGH,
             "Pass tool-controlled text through a configured sanitizer before prompt construction.",
             "Medium-High",
@@ -71,7 +74,10 @@ RULES = tuple(
         (
             "SENT-005",
             "Hardcoded secret",
-            "Source or configuration contains a credential signature or contextual high-entropy secret.",
+            (
+                "Source or configuration contains a credential signature "
+                "or contextual high-entropy secret."
+            ),
             Impact.CRITICAL,
             "Load credentials from an external secret store or environment at runtime.",
             "Low-Medium",
@@ -82,7 +88,10 @@ RULES = tuple(
             "Missing or ineffective route authentication",
             "An HTTP route lacks inherited authentication or uses a no-op verifier.",
             Impact.HIGH,
-            "Require credential verification and an explicit rejection path before route execution.",
+            (
+                "Require credential verification and an explicit rejection path "
+                "before route execution."
+            ),
             "Low",
             RuleEngine.AST,
         ),

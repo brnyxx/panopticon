@@ -34,7 +34,7 @@ def run_semgrep(
     rule_ids = tuple(
         rule_id for rule_id in selected_rule_ids if rule_id in {"SENT-002", "SENT-005"}
     )
-    results = {rule_id: [] for rule_id in rule_ids}
+    results: dict[str, list[StaticMatch]] = {rule_id: [] for rule_id in rule_ids}
     if not rule_ids:
         return results
     _verify_version()
@@ -78,7 +78,6 @@ async def _run_batches(
         if remaining <= 0:
             raise SemgrepExecutionError("static analysis exceeded its timeout")
         with tempfile.TemporaryDirectory(prefix="panopticon-semgrep-") as directory:
-            output = Path(directory) / "results.json"
             env.update(
                 {
                     "SEMGREP_LOG_FILE": str(Path(directory) / "semgrep.log"),
@@ -89,8 +88,6 @@ async def _run_batches(
                 executable,
                 "scan",
                 "--json",
-                "--output",
-                str(output),
                 "--jobs",
                 "1",
                 "--timeout",
@@ -113,18 +110,16 @@ async def _run_batches(
                     ),
                     timeout=min(SEMGREP_TIMEOUT_SECONDS, remaining),
                 )
-                stdout, stderr = await asyncio.wait_for(
+                stdout, _stderr = await asyncio.wait_for(
                     proc.communicate(), timeout=min(SEMGREP_TIMEOUT_SECONDS, remaining)
                 )
             except (TimeoutError, OSError) as error:
-                raise SemgrepExecutionError(f"Semgrep execution failed: {error}") from error
+                raise SemgrepExecutionError("Semgrep execution failed") from error
             if proc.returncode not in {0, 1}:
-                raise SemgrepExecutionError(
-                    f"Semgrep execution failed: {stderr.decode(errors='replace').strip() or 'unknown failure'}"
-                )
-            if not output.is_file():
-                raise SemgrepExecutionError("Semgrep wrote no JSON report")
-            _collect(_parse(output.read_text(encoding="utf-8")), results, files, scan_root)
+                raise SemgrepExecutionError("Semgrep execution failed")
+            if len(stdout) > 4_194_304:
+                raise SemgrepExecutionError("Semgrep JSON report exceeded its bound")
+            _collect(_parse(stdout.decode()), results, files, scan_root)
     return results
 
 
@@ -196,7 +191,7 @@ def _relative(path: Path, files: StaticFileSet, scan_root: Path) -> str:
     for item in files.python_files:
         if item.path == path:
             return item.relative_path
-    for item in files.config_files:
-        if item == path:
+    for config_path in files.config_files:
+        if config_path == path:
             return path.relative_to(scan_root).as_posix()
-    raise SemgrepExecutionError(f"Semgrep returned an out-of-scope path: {path}")
+    raise SemgrepExecutionError("Semgrep returned an out-of-scope path")

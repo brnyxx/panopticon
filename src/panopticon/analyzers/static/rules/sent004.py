@@ -18,7 +18,7 @@ from panopticon.analyzers.static.model import RuleRunState, StaticContext
 
 
 def detect(context: StaticContext, state: RuleRunState) -> None:
-    configured = set(context.configuration.scanner.rules.sent004.sanitizers)
+    configured = set(context.configuration.scanner.rule_options.sanitizers)
     for file in context.files.python_files:
         aliases = import_aliases(file)
         module = module_name(context.configuration.scan_root, file)

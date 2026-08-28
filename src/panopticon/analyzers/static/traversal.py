@@ -80,13 +80,14 @@ def collect_static_files(root: Path, ignore_paths: tuple[str, ...]) -> StaticFil
                 config_files.append(path)
 
     visit(root)
+    suffix = ", ..." if len(symlinks) > 20 else ""
     warnings = (
         ()
         if not symlinks
         else (
             ReportWarning(
                 "static_symlinks_skipped",
-                f"Skipped {len(symlinks)} symlink entries: {', '.join(symlinks[:20])}{', ...' if len(symlinks) > 20 else ''}",
+                f"Skipped {len(symlinks)} symlink entries: {', '.join(symlinks[:20])}{suffix}",
             ),
         )
     )

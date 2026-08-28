@@ -8,7 +8,6 @@ import ast
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Protocol
 
 
 class Impact(StrEnum):
@@ -87,12 +86,28 @@ class RuleRunState:
         self.exemptions[reason] = self.exemptions.get(reason, 0) + 1
 
 
-class ScannerConfig(Protocol):
-    rules: tuple[str, ...]
-    ignore_paths: tuple[str, ...]
+@dataclass(frozen=True, slots=True)
+class SecretAllowlistEntry:
+    path: str
+    fingerprint: str
 
 
-class StaticConfiguration(Protocol):
+@dataclass(frozen=True, slots=True)
+class StaticRuleOptions:
+    sanitizers: tuple[str, ...] = ()
+    secret_allowlist: tuple[SecretAllowlistEntry, ...] = ()
+    public_routes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ScannerConfig:
+    selected_rule_ids: tuple[str, ...] = ()
+    ignore_paths: tuple[str, ...] = ()
+    rule_options: StaticRuleOptions = StaticRuleOptions()
+
+
+@dataclass(frozen=True, slots=True)
+class StaticConfiguration:
     scan_root: Path
     scanner: ScannerConfig
 
@@ -114,6 +129,6 @@ class StaticAnalysisSummary:
 
 @dataclass(frozen=True, slots=True)
 class StaticScanResult:
-    findings: tuple[object, ...]
+    matches: tuple[StaticMatch, ...]
     warnings: tuple[ReportWarning, ...]
     summary: StaticAnalysisSummary

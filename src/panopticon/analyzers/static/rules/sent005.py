@@ -91,7 +91,7 @@ def _is_secret(value: str) -> bool:
 
 
 def _is_allowlisted(context: StaticContext, path: str, fingerprint: str) -> bool:
-    for entry in context.configuration.scanner.rules.sent005.allowlist:
+    for entry in context.configuration.scanner.rule_options.secret_allowlist:
         if (
             GitIgnoreSpec.from_lines([entry.path]).match_file(path)
             and entry.fingerprint == fingerprint

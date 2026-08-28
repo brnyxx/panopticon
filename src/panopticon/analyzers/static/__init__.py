@@ -1,1 +1,3 @@
-"""Upstream Python AST + Semgrep rules SENT-001..007. Preserve MIT headers when vendoring (E16)."""
+# Copyright (c) 2026 MCP Sentinel contributors
+# SPDX-License-Identifier: MIT
+"""Typed Panopticon adaptations of MCP-Sentinel static analysis."""

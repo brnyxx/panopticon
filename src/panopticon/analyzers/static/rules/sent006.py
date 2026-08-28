@@ -15,7 +15,7 @@ _HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head"}
 
 
 def detect(context: StaticContext, state: RuleRunState) -> None:
-    public = context.configuration.scanner.rules.sent006.public_routes
+    public = context.configuration.scanner.rule_options.public_routes
     for file in context.files.python_files:
         functions = {
             node.name: node
@@ -32,7 +32,9 @@ def detect(context: StaticContext, state: RuleRunState) -> None:
                 method = name.rsplit(".", 1)[-1].lower()
                 if method not in _HTTP_METHODS and method != "api_route":
                     continue
-                route = _literal(call.args[0]) if call and call.args else None
+                if call is None:
+                    continue
+                route = _literal(call.args[0]) if call.args else None
                 if route is None:
                     continue
                 methods = [method.upper()] if method != "api_route" else _api_route_methods(call)
