@@ -72,7 +72,7 @@ class ProcessState:
 PREFIX: Final = re.compile(r"^(?:(?P<pid>\d+)\s+)?(?P<ts>\d+(?:\.\d+)?)\s+(?P<body>.*)$")
 CALL: Final = re.compile(
     r"(?P<name>[a-zA-Z_][a-zA-Z0-9_]*)\((?P<args>.*)\)\s+=\s+"
-    r"(?P<res>-?\d+|0x[0-9a-fA-F]+|[-A-Z]+)(?:\s+.*)?$"
+    r"(?P<res>-?\d+|0x[0-9a-fA-F]+|[-A-Z]+)(?:<[^>]*>)?(?:\s+.*)?$"
 )
 OPERATIONS: Final = {
     "open": "open",

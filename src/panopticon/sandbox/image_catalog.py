@@ -109,9 +109,11 @@ class ImageCatalog:
         eco = ecosystem.casefold().strip()
         ver = None if version is None else str(version).strip().casefold()
         key: str | None = None
-        if eco in {"npm", "node"} and ver in {"20", "22"}:
-            key = f"node{ver}"
-        elif eco in {"pypi", "python"} and ver in {"3.12", "312"}:
+        if eco in {"npm", "node"} and ver in {None, "", "default", "20"}:
+            key = "node20"
+        elif eco in {"npm", "node"} and ver == "22":
+            key = "node22"
+        elif eco in {"pypi", "python"} and ver in {None, "", "default", "3.12", "312"}:
             key = "python312"
         elif eco in {"generic", "base"} and ver in {None, "", "base", "0.1"}:
             key = "base"

@@ -72,6 +72,17 @@ def test_escaped_path_is_decoded_without_losing_unicode() -> None:
     assert result.events[0].path == "/home/pano/a\n☃"
 
 
+def test_pinned_strace_fd_annotations_are_parsed() -> None:
+    result = parse_strace(
+        '10 1700000002.050 openat(AT_FDCWD</home/pano>, "/etc/localtime", '
+        "O_RDONLY|O_CLOEXEC) = 3</usr/share/zoneinfo/Etc/UTC>"
+    )
+
+    assert result.status is TraceStatus.COMPLETE
+    assert result.events[0].path == "/etc/localtime"
+    assert result.events[0].result == 3
+
+
 def test_fd_cwd_fork_and_mmap_state_prove_actual_access() -> None:
     result = parse_strace(
         "\n".join(

@@ -55,7 +55,13 @@ class StdioTransport:
         self._reader_task: asyncio.Task[None] | None = None
         self._closed = False
         self._desynchronized = False
+        self._notifications: list[dict[str, JsonValue]] = []
+        self.notifications_truncated = False
         self.era: ProtocolEra | None = None
+
+    @property
+    def notifications(self) -> tuple[dict[str, JsonValue], ...]:
+        return tuple(self._notifications)
 
     def _ensure_reader(self) -> None:
         if self._reader_task is None:
@@ -81,6 +87,14 @@ class StdioTransport:
 
     def _resolve(self, message: dict[str, object]) -> None:
         identifier = message.get("id")
+        if identifier is None and isinstance(message.get("method"), str):
+            value = response_value(message)
+            if isinstance(value, dict):
+                if len(self._notifications) < 1000:
+                    self._notifications.append(value)
+                else:
+                    self.notifications_truncated = True
+                return
         if not isinstance(identifier, int):
             raise FrameError("MALFORMED_RESPONSE")
         future = self._pending.pop(identifier, None)
