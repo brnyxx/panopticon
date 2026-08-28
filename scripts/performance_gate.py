@@ -173,7 +173,7 @@ def _doctor_workload(root: Path, home: Path) -> Callable[[], None]:
     inputs = DoctorInputs(environment, registered_adapters(environment))
 
     def run() -> None:
-        outcome = run_doctor(DoctorRequest(list_clients=True, offline=True), inputs)
+        outcome = asyncio.run(run_doctor(DoctorRequest(list_clients=True, offline=True), inputs))
         if outcome.result.status.value not in {"COMPLETE", "PARTIAL"}:
             raise RuntimeError("DOCTOR_FIXTURE_INCOMPLETE")
 
