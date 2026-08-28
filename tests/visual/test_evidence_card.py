@@ -37,6 +37,7 @@ PNG_GOLDEN_HASHES = {
     },
     "ko": {
         "58a8c52c66e37b17cf4e03c3a6163ef5b9047e4ba4b1658c38bc150f03197c90",
+        "8d9de8d193b609703b0e72e8b036f41876c87e64d405ca8417f756dc22e4c52f",
     },
 }
 SVG_GOLDEN_HASHES = {

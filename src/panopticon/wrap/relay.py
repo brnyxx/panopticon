@@ -68,17 +68,18 @@ async def relay(
                 counts[index] += len(chunk)
                 writer.write(chunk)
                 await writer.drain()
+                if recorder is None:
+                    continue
                 try:
                     records = parse_and_correlate(decoder, chunk, correlator, clock.now())
                 except FrameError:
                     parser_errors += 1
                     partial = True
                     continue
-                if recorder is not None:
-                    for record in records:
-                        if not recorder.record(record):
-                            recorder_errors += 1
-                            partial = True
+                for record in records:
+                    if not recorder.record(record):
+                        recorder_errors += 1
+                        partial = True
         finally:
             with suppress(OSError, RuntimeError):
                 writer.close()

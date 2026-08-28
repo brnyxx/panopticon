@@ -1,4 +1,4 @@
-.PHONY: setup lint type foundation test test-docker i18n rules leak persistence schemas ci images clean
+.PHONY: setup lint type foundation test test-docker i18n rules leak persistence schemas ci images images-podman clean
 
 setup:
 	uv sync --all-extras
@@ -47,6 +47,12 @@ images:
 	docker build -t pano-sandbox-node:20-ultragoal --build-arg BASE_IMAGE=pano-sandbox-base:ultragoal -f src/panopticon/sandbox/images/node.Dockerfile src/panopticon/sandbox/images
 	docker build -t pano-sandbox-node:22-ultragoal --build-arg BASE_IMAGE=pano-sandbox-base:ultragoal --build-arg NODE_IMAGE=node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 -f src/panopticon/sandbox/images/node.Dockerfile src/panopticon/sandbox/images
 	docker build -t pano-sandbox-python:3.12-ultragoal -f src/panopticon/sandbox/images/python.Dockerfile src/panopticon/sandbox/images
+
+images-podman:
+	podman build -t localhost/pano-sandbox-base:ultragoal -f src/panopticon/sandbox/images/base.Dockerfile src/panopticon/sandbox/images
+	podman build -t localhost/pano-sandbox-node:20-ultragoal --build-arg BASE_IMAGE=localhost/pano-sandbox-base:ultragoal -f src/panopticon/sandbox/images/node.Dockerfile src/panopticon/sandbox/images
+	podman build -t localhost/pano-sandbox-node:22-ultragoal --build-arg BASE_IMAGE=localhost/pano-sandbox-base:ultragoal --build-arg NODE_IMAGE=node:22-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 -f src/panopticon/sandbox/images/node.Dockerfile src/panopticon/sandbox/images
+	podman build -t localhost/pano-sandbox-python:3.12-ultragoal -f src/panopticon/sandbox/images/python.Dockerfile src/panopticon/sandbox/images
 
 clean:
 	rm -rf .venv .mypy_cache .ruff_cache .pytest_cache htmlcov coverage.xml dist build

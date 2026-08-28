@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from panopticon.sandbox.base import ContainerSpec, SandboxError
-from panopticon.sandbox.docker import DockerContainer, DockerRuntime
+from panopticon.sandbox.docker import DockerContainer, DockerRuntime, is_pinned_image
 
 
 class _Reader:
@@ -89,6 +89,10 @@ async def test_run_rejects_mutable_image(tmp_path: Path) -> None:
     spec = ContainerSpec("registry.example/pano:latest", [], {}, tmp_path)
     with pytest.raises(SandboxError, match="IMAGE_NOT_PINNED"):
         await runtime.run(spec)
+
+
+def test_local_content_digest_is_an_immutable_image_reference() -> None:
+    assert is_pinned_image("sha256:" + "a" * 64)
 
 
 async def test_cancelled_setup_removes_created_container(

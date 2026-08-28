@@ -41,22 +41,23 @@ RUNTIME_CASES = (
 
 
 async def _local_image_ref(case: RuntimeCase) -> str:
-    field = "{{.Id}}" if case.executable == "docker" else "{{.Digest}}"
     process = await asyncio.create_subprocess_exec(
         case.executable,
         "image",
         "inspect",
         case.image_name,
         "--format",
-        field,
+        "{{.Id}}",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     stdout, _ = await asyncio.wait_for(process.communicate(), timeout=30)
     assert process.returncode == 0
     digest = stdout.decode().strip()
+    if len(digest) == 64:
+        digest = "sha256:" + digest
     assert digest.startswith("sha256:")
-    return f"{case.image_name}@{digest}"
+    return digest
 
 
 @pytest.mark.docker

@@ -6,8 +6,11 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import TypedDict, cast
+
+from panopticon.util.leak_check import LeakContext, find_leaks
 
 
 class CommandEvidence(TypedDict):
@@ -52,6 +55,11 @@ def run_command(argv: list[str], root: Path) -> CommandEvidence:
             "stdout_sha256": "",
             "stderr_sha256": "",
         }
+    if completed.returncode:
+        diagnostic = (completed.stdout + completed.stderr)[-8_000:]
+        homes = tuple(value for key in ("HOME", "USERPROFILE") if (value := os.getenv(key)))
+        if not find_leaks(diagnostic, LeakContext(home_paths=homes)):
+            sys.stderr.write(diagnostic)
     return {
         "argv": argv,
         "exit_code": completed.returncode,
