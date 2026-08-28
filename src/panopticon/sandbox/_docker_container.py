@@ -37,9 +37,6 @@ class _InteractiveSession:
         data = await self._stderr.read(max_bytes + 1)
         return StreamResult(data[:max_bytes], len(data) > max_bytes)
 
-    async def stderr(self, max_bytes: int = 1_048_576) -> StreamResult:
-        return await self.read_stderr(max_bytes)
-
     async def wait(self, timeout: float | None = None) -> int:
         result = self._process.wait()
         return await asyncio.wait_for(result, timeout) if timeout is not None else await result
@@ -72,9 +69,6 @@ class _InteractiveSession:
                 await self._container.terminate()
             finally:
                 await self._container.rm()
-
-    async def close(self) -> None:
-        await self.cleanup()
 
 
 class DockerContainer:
@@ -180,7 +174,9 @@ class DockerContainer:
         if not target.is_absolute() or ".." in target.parts:
             raise SandboxError("COPY_DESTINATION_INVALID")
         result = await self.exec(
-            ["tar", "-xf", "-", "-C", destination], 30, archive_for_copy(source)
+            ["tar", "--no-same-owner", "-xf", "-", "-C", destination],
+            30,
+            archive_for_copy(source),
         )
         if result.returncode:
             raise SandboxError("COPY_IN_FAILED")
@@ -191,7 +187,11 @@ class DockerContainer:
             raise SandboxError("COPY_DESTINATION_INVALID")
         if not payload or len(payload) > 32 * 1024 * 1024:
             raise SandboxError("DECOY_ARCHIVE_INVALID")
-        result = await self.exec(["tar", "-xf", "-", "-C", destination], 30, payload)
+        result = await self.exec(
+            ["tar", "--no-same-owner", "-xf", "-", "-C", destination],
+            30,
+            payload,
+        )
         if result.returncode:
             raise SandboxError("COPY_IN_FAILED")
 

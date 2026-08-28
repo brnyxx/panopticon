@@ -18,6 +18,7 @@ from panopticon.engine.watch_observation import build_watch_observation
 from panopticon.models.event import FileEvent, LeakEvent, ProcessEvent
 from panopticon.models.ids import derive_span_id
 from panopticon.sandbox.docker import DockerRuntime
+from panopticon.sandbox.podman import PodmanRuntime
 from panopticon.store.contracts import PersistSuccess
 from panopticon.store.repository import ArtifactRepository, LoadStatus
 
@@ -73,6 +74,34 @@ async def test_real_python_mcp_is_observed_and_cleaned_up(tmp_path: Path) -> Non
     loaded = repository.load_observation(persisted.target)
     assert loaded.status is LoadStatus.AVAILABLE
     assert loaded.observation == built.observation
+    assert await _running(runtime.executable) == before
+
+
+@pytest.mark.docker
+async def test_real_rootless_podman_watch_is_observed_and_cleaned_up(tmp_path: Path) -> None:
+    root = Path(__file__).parents[2]
+    runtime: LocalRuntime = PodmanRuntime()
+    assert runtime.available()
+    before = await _running(runtime.executable)
+    context = (
+        ProductionWatchInventory(
+            DiscoveryEnv(tmp_path, root, "darwin"),
+            self_command=("python3", "/self/tests/fixtures/mcp/clean/file_read.py"),
+        )
+        .select(TargetSelection(TargetMode.SELF))
+        .contexts[0]
+    )
+
+    result = await run_local_production(
+        context,
+        WatchOptions(calls=1, timeout=20, offline=True),
+        runtime=runtime,
+        self_source=root,
+    )
+
+    assert result.status is LocalWatchStatus.COMPLETE
+    assert result.coverage["dns"].value == "UNSUPPORTED"
+    assert result.coverage["proxy"].value == "UNSUPPORTED"
     assert await _running(runtime.executable) == before
 
 
