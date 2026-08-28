@@ -90,7 +90,40 @@ def _result(
     return PatchResult(target, status, reason, written)
 
 
+def _read_current_windows(request: PatchRequest) -> CurrentFile | PatchResult:
+    absolute = request.target.absolute()
+    try:
+        parent = absolute.parent.resolve(strict=True)
+        if os.path.normcase(os.fspath(parent)) != os.path.normcase(os.fspath(absolute.parent)):
+            return _result(request.target, PatchStatus.REJECTED, PatchReason.UNSAFE_PARENT)
+        target = parent / absolute.name
+        metadata = target.lstat()
+        if stat.S_ISLNK(metadata.st_mode):
+            return _result(request.target, PatchStatus.REJECTED, PatchReason.SYMLINK_TARGET)
+        if not stat.S_ISREG(metadata.st_mode):
+            return _result(request.target, PatchStatus.FAILED, PatchReason.READ_ERROR)
+        identity = metadata.st_dev, metadata.st_ino
+        if request.document.identity is not None and identity != request.document.identity:
+            return _result(request.target, PatchStatus.CONFLICT, PatchReason.SOURCE_REPLACED)
+        with target.open("rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if (opened.st_dev, opened.st_ino) != identity:
+                return _result(request.target, PatchStatus.CONFLICT, PatchReason.SOURCE_REPLACED)
+            data = stream.read()
+    except FileNotFoundError:
+        return _result(request.target, PatchStatus.FAILED, PatchReason.READ_ERROR)
+    except PermissionError:
+        return _result(request.target, PatchStatus.FAILED, PatchReason.PERMISSION_DENIED)
+    except OSError:
+        return _result(request.target, PatchStatus.FAILED, PatchReason.READ_ERROR)
+    if hashlib.sha256(data).hexdigest() != request.document.original_sha256:
+        return _result(request.target, PatchStatus.CONFLICT, PatchReason.SOURCE_STALE)
+    return CurrentFile(identity, stat.S_IMODE(opened.st_mode))
+
+
 def _read_current(request: PatchRequest) -> CurrentFile | PatchResult:
+    if os.name == "nt":
+        return _read_current_windows(request)
     directory_fd = -1
     descriptor = -1
     try:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sys
 from datetime import UTC, datetime
@@ -75,11 +76,11 @@ def test_install_launch_uninstall_restores_original_hash(tmp_path: Path) -> None
     )
     config = env.cwd / "generic.json"
     original = (
-        b'{\n  // preserved\n  "mcpServers": {"demo": {"command": "'
-        + sys.executable.encode()
-        + b'", "args": ["'
-        + str(child).encode()
-        + b'"]}}\n}\n'
+        b'{\n  // preserved\n  "mcpServers": {"demo": {"command": '
+        + json.dumps(sys.executable).encode()
+        + b', "args": ['
+        + json.dumps(str(child)).encode()
+        + b"]}}\n}\n"
     )
     config.write_bytes(original)
     transaction = _executor(tmp_path)

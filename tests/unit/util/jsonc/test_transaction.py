@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from panopticon.util.jsonc import transaction
+
 from ._support import (
     JSONC_SOURCE,
     AtomicOperation,
@@ -23,6 +25,23 @@ from ._support import (
     require_jsonc_module,
     write_source,
 )
+
+
+def test_windows_path_backend_applies_patch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "config.jsonc"
+    write_source(target)
+    api = require_jsonc_api()
+    document = parse_document(api, DocumentSpec(JSONC_SOURCE, target))
+    patch = make_patch(api, PatchSpec("REPLACE", "/mcpServers/fixture/command", "node"))
+    monkeypatch.setattr(transaction.os, "name", "nt")
+
+    result = apply_patches(api, WriteSpec(target, document, (patch,)))
+
+    assert machine_value(result.status) == "COMPLETE"
+    assert b'"command": "node"' in target.read_bytes()
 
 
 def test_replacement_identity_is_rejected_even_when_bytes_match(tmp_path: Path) -> None:
