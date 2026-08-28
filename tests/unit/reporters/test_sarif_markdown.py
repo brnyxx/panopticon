@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+import jsonschema
+
 from panopticon.reporters.markdown import render_markdown
 from panopticon.reporters.model import DiagnosticView, SanitizedRenderModel, StageView
 from panopticon.reporters.report_bundle import ReportBundle, ReportFinding
@@ -47,6 +49,12 @@ def test_mixed_findings_render_valid_sarif_and_markdown() -> None:
     results = run["results"]
 
     assert first == second
+    schema = json.loads(
+        (Path(__file__).parents[2] / "upstream" / "schemas" / "sarif-2.1.0.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    jsonschema.validate(payload, schema)
     assert payload["$schema"] == SARIF_SCHEMA_URI
     assert payload["version"] == "2.1.0"
     assert len(payload["runs"]) == 1
