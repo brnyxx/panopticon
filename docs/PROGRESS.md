@@ -20,11 +20,11 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | E12 Rules | IN PROGRESS | CFG-001..012, HIST-001..004, and WATCH-001..014 are registered with exact fixtures and ko/en docs; exact evil/clean end-to-end finding sets remain |
 | E13 Fix | IN PROGRESS | all six FIX plans, encrypted secret backup, guidance-only fallback, six-client disabled-entry apply/re-check/undo, comment preservation, and concurrent-edit rejection pass; every fix across every client fixture remains |
 | E14 Baseline/Diff | CLOSED | leak-checked observation/baseline repository, create/list/show/rm CLI, 0.x migration replay, deterministic semantic views, and coverage-aware deltas pass |
-| E15 Wrap/Install | IN PROGRESS | byte-transparent relay, framing isolation, cancellation/signals, child exit propagation, immutable per-installation records, UTC retention, CLI, and latency gate pass; native event monitoring, alerts, install/uninstall, and five official-example manual proof remain |
-| E16 Analyze line | IN PROGRESS | exact pinned replay (125 tests), adapted static/semantic/dependency modules, provenance verifier, and notices pass; full scan orchestration remains |
-| E17 Reporters | IN PROGRESS | terminal, JSON, SARIF, Markdown, deterministic ko/en PNG, accessible badge, leak rejection, store persistence, and stable hashes pass; live GitHub SARIF upload proof remains |
-| E18 i18n | IN PROGRESS | WATCH-001 plus all 16 CFG/HIST documents pass bilingual structure and glossary gates; remaining WATCH/FIX/SENT documents and explain remain |
-| E19 Release | TODO | scope in §28; targets are `brnyxx/panopticon`, `ghcr.io/brnyxx`, PyPI `panopticon-mcp`, `brnyxx/homebrew-tap` |
+| E15 Wrap/Install | CLOSED | byte-transparent cross-platform relay, framing/recorder isolation, cancellation/signals, child exit propagation, portable immutable records, UTC retention, alerts, reversible six-client install/uninstall, and latency gates pass |
+| E16 Analyze line | CLOSED | exact pinned replay (125 tests), quick/standard/deep typed orchestration, semantic disclosure before transport/cache, dynamic self analysis, deterministic SARIF/exit policy, provenance, and the hardened self-scan action pass |
+| E17 Reporters | CLOSED | terminal, JSON, SARIF, Markdown, deterministic ko/en PNG, accessible SVG badge, leak rejection, store persistence, stable hashes, and live GitHub self-scan SARIF upload pass |
+| E18 i18n | CLOSED | all 47 CFG/HIST/WATCH/FIX/SENT documents have matching ko/en six-section structure; locale precedence/fallback, CJK-safe explain, catalog generation, glossary, and phrase gates pass |
+| E19 Release | IN PROGRESS | six-platform attested security matrix, ≥85% quality gates, dependency audit, and fail-closed release/performance evidence pass; external publication, artifact promotion, documentation, and final audits remain |
 
 ## Why E01 is closed
 
