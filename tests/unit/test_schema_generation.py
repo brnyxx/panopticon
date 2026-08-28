@@ -18,4 +18,4 @@ def test_generated_schemas_match_shipped_bytes_across_two_generations() -> None:
     assert first == second
     assert all((SCHEMAS / document.name).read_text() == document.content for document in first)
     assert all('"schema_version"' in document.content for document in first)
-    assert all('"const": "0.1"' in document.content for document in first)
+    assert all('"const": "1.0"' in document.content for document in first)

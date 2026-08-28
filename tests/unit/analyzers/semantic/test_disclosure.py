@@ -76,7 +76,7 @@ class RecordingDisclosure:
 
 def _finding() -> Finding:
     return Finding(
-        schema_version="0.1",
+        schema_version="1.0",
         id=FindingId("0000000000000001"),
         logical_key=LogicalKey("lk_0000000000000001"),
         rule_id="SENT-003",

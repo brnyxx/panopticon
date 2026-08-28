@@ -66,7 +66,10 @@ The legacy-only handshake stage is `NOT_REQUESTED` for a modern run; modern vers
 
 Persisted schemas develop on the **0.x** line. Every breaking shape change bumps the version within 0.x and ships an idempotent migrator dispatched explicitly by source version. Shipped JSON Schemas are generated and validated from the runtime models, never hand-maintained beside them.
 
-Schema `1.0` is frozen exactly once, at the 0.9 release-candidate gate, together with the ID formats, stage reason codes, event/finding/baseline/diff/wrap shapes, the canonicalizer version, the CLI exit codes, and the `_pano_original` v1 representation. Post-1.0 breaking changes are 2.0 and need their own release plan.
+Schema `1.0` was frozen exactly once at the 0.9 release-candidate gate, together with the ID
+formats, stage reason codes, event/finding/baseline/diff/wrap shapes, the canonicalizer version,
+the CLI exit codes, and the `_pano_original` v1 representation. Post-1.0 breaking changes are 2.0
+and need their own release plan.
 
 ## Persistence, canonicalization, and the leak boundary
 

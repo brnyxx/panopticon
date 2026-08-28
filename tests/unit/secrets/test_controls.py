@@ -19,7 +19,7 @@ def test_plaintext_control_is_rejected_without_target_or_temp_file(tmp_path: Pat
     # Given: a non-secret control value and a separately registered secret.
     target = tmp_path / "control.pano-bak"
     model = RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="control",
         fields=(RenderField(name="value", value="registered-secret"),),
     )

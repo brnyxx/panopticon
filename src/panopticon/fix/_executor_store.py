@@ -43,7 +43,7 @@ class JournalStatus(StrEnum):
 
 
 class FixJournal(StrictModel):
-    schema_version: Literal["0.1"] = "0.1"
+    schema_version: Literal["1.0"] = "1.0"
     transaction_id: NonEmptyStr
     fix_id: NonEmptyStr
     config_path: PersistedPathValue
@@ -63,7 +63,7 @@ class StoredBackup:
 
 def _render_model(plan: FixPlan) -> RenderModel:
     return RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Panopticon fix backup",
         fields=(RenderField(name="config_path", value=str(plan.logical_target)),),
     )

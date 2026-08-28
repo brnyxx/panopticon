@@ -199,7 +199,7 @@ def compute_diff(before: Record, after: Record) -> DiffResult:
         }
     )
     return DiffResult(
-        schema_version="0.1",
+        schema_version="1.0",
         since=_label(before),
         until=_label(after),
         findings=_finding_changes(old, new),

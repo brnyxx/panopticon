@@ -26,7 +26,7 @@ from panopticon.store import (
 
 def _request(target: Path, value: str = "replacement") -> PersistRequest:
     model = RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Atomic fixture",
         fields=(RenderField(name="value", value=value),),
     )
@@ -243,7 +243,7 @@ def test_eintr_descriptor_write_is_retried_to_complete_canonical_artifact(
     monkeypatch.setattr(os, "write", interrupted_once)
     expected = (
         b'{"fields":[{"name":"value","value":"interrupted"}],'
-        b'"schema_version":"0.1","title":"Atomic fixture"}\n'
+        b'"schema_version":"1.0","title":"Atomic fixture"}\n'
     )
 
     # When: persistence reaches the interrupted descriptor write.

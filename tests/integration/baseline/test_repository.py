@@ -15,7 +15,7 @@ from panopticon.util.leak_check import LeakContext
 
 def _baseline(label: str = "checkpoint") -> Baseline:
     return Baseline(
-        schema_version="0.1",
+        schema_version="1.0",
         baseline_id="bl_0000000000000001",
         created_at=datetime(2026, 8, 28, tzinfo=UTC),
         label=label,

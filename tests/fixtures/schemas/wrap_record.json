@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "1.0",
   "ts": "2026-08-26T00:00:00Z",
   "server_id": "npm:@modelcontextprotocol/server-github",
   "installation_id": "inst_0123456789abcdef",

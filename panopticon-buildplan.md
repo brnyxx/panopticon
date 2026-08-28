@@ -675,7 +675,9 @@ The i18n manifest requires ko and en documents for all 47 IDs (§27). The rule c
 
 ## 21. Data schemas (summary)
 
-JSON Schema in `schemas/`, generated and validated from the runtime models. Development line `schema_version: "0.1"`, bumped within 0.x for every breaking shape change with an explicitly dispatched idempotent migrator. `1.0` is frozen exactly once at the 0.9 release-candidate gate (§23, DECISIONS #6).
+JSON Schema in `schemas/`, generated and validated from the runtime models. The development line
+used `schema_version: "0.1"`; `1.0` was frozen exactly once at the 0.9 release-candidate gate with
+idempotent migration replay (§23, DECISIONS #6).
 
 ### InstalledServer
 `schema_version, server_id, installation_id, name, client, config_path, config_pointer, scope, transport, command, args[], env_keys[], url, headers_keys[], package{ecosystem,name,pinned,resolved}, source{kind,url}, identity_confidence, disabled, wrapped`
@@ -756,7 +758,10 @@ Versions advance by **closed epics**, not by dates.
 | 0.9 | all quality standards (§22), schema 1.0 frozen, all docs | release candidate |
 | **1.0.0** | entire §2 checklist | — |
 
-Persisted schemas develop on the `0.x` line. Every breaking shape change between 0.x versions bumps `schema_version` and adds an explicitly dispatched idempotent migrator. The migration to `1.0` happens exactly once, at the 0.9 gate, and freezes the ID formats, stage reason codes, event, finding, baseline, diff, and wrap shapes, the canonicalizer version, the CLI exit codes, and the `_pano_original` v1 representation. Post-1.0 breaking schema changes are 2.0 and need their own release plan.
+Persisted schemas developed on the `0.x` line. The migration to `1.0` happened exactly once at the
+0.9 gate and froze the ID formats, stage reason codes, event, finding, baseline, diff, and wrap
+shapes, the canonicalizer version, the CLI exit codes, and the `_pano_original` v1 representation.
+Post-1.0 breaking schema changes are 2.0 and need their own release plan.
 
 ---
 

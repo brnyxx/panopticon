@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "1.0",
   "id": "0123456789abcdef",
   "logical_key": "lk_0123456789abcdef",
   "rule_id": "WATCH-001",

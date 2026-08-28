@@ -67,7 +67,7 @@ def normalize_entry(
     env = raw.get("env", {})
     headers = raw.get("headers", {})
     return InstalledServer(
-        schema_version="0.1",
+        schema_version="1.0",
         server_id=ServerId(parsed.server_id),
         installation_id=installation_id,
         name=entry.name,

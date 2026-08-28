@@ -28,7 +28,7 @@ class RejectFilesystemAccess:
 def test_binary_output_scans_render_model_before_encoding(tmp_path: Path) -> None:
     # Given: opaque compressed-looking bytes backed by a render model containing a known secret.
     render_model = RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Evidence",
         fields=(RenderField(name="detail", value="REAL-SECRET-VALUE"),),
     )
@@ -52,7 +52,7 @@ def test_markdown_leak_precedes_invalid_unicode_without_filesystem_access(tmp_pa
     # Given: valid Markdown content containing a recognizable token and a lone surrogate.
     token = "sk-proj-abcdefghijklmnopqrstuvwxyz1234"
     render_model = RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Markdown evidence",
         fields=(RenderField(name="detail", value="clean"),),
     )

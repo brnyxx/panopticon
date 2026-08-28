@@ -33,7 +33,7 @@ def _obs(
         (SimpleNamespace(events=tuple(SimpleNamespace(root=e) for e in events)),) if events else ()
     )
     return Observation.model_construct(
-        schema_version="0.1",
+        schema_version="1.0",
         observation_id=oid,
         server_id="server",
         installation_id=install,
@@ -184,7 +184,7 @@ def test_reordered_inputs_and_identical_semantics_are_zero_diff():
 
 def _baseline(*observations, inventory=()):
     return Baseline.model_construct(
-        schema_version="0.1",
+        schema_version="1.0",
         baseline_id="base",
         created_at=datetime(2025, 1, 1, tzinfo=UTC),
         label=None,

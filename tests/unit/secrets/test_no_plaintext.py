@@ -220,7 +220,7 @@ def test_plaintext_backup_path_is_rejected_by_task4_gateway(tmp_path: Path) -> N
     # Given: a secret-bearing typed model sent to the backup sink without encryption.
     target = tmp_path / "plaintext.pano-bak"
     model = RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="backup",
         fields=(RenderField(name="secret", value=SECRET_TEXT),),
     )

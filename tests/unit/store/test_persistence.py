@@ -34,7 +34,7 @@ GENERIC_MODEL_SINKS = (
 
 def _render_model() -> RenderModel:
     return RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Observation evidence",
         fields=(RenderField(name="coverage", value="UNKNOWN"),),
     )

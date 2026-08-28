@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "1.0",
   "since": "bl_example",
   "until": "obs_local",
   "findings": {

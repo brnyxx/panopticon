@@ -101,7 +101,7 @@ class FindingDraft:
 def build_finding(draft: FindingDraft) -> Finding:
     normalized = normalize_evidence(draft.evidence)
     return Finding(
-        schema_version="0.1",
+        schema_version="1.0",
         id=FindingId(occurrence_id(draft.meta.id, draft.installation_id, normalized)),
         logical_key=derive_logical_key(
             draft.meta.id,

@@ -66,7 +66,7 @@ def _finding(value: ScanFinding) -> Finding:
         else None
     )
     return Finding(
-        schema_version="0.1",
+        schema_version="1.0",
         id=FindingId(_id("finding", value)),
         logical_key=LogicalKey(f"lk_{_id('logical', value)}"),
         rule_id=value.rule_id,

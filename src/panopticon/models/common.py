@@ -9,7 +9,7 @@ from typing import Annotated, Literal, NewType
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints, WithJsonSchema
 
-SchemaVersion = Literal["0.1"]
+SchemaVersion = Literal["1.0"]
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 PersistedPath = NewType("PersistedPath", str)
 Host = NewType("Host", str)

@@ -63,7 +63,7 @@ def build_baseline(
     )
     baseline_id = BaselineId(f"bl_{hashlib.sha256(identity.encode()).hexdigest()[:16]}")
     return Baseline(
-        schema_version="0.1",
+        schema_version="1.0",
         baseline_id=baseline_id,
         created_at=now,
         label=label,

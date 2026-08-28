@@ -40,7 +40,7 @@ def persist_report(
         text = render_markdown(report)
         kind = SinkKind.MARKDOWN
     render_model = RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Panopticon report",
         fields=(
             RenderField(name="status", value=report.model.status),

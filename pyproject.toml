@@ -1,6 +1,6 @@
 [project]
 name = "panopticon-mcp"
-version = "0.0.1"
+version = "1.0.0"
 description = "Local-first MCP behavior observatory. We don't watch you. We watch your MCPs."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -8,7 +8,7 @@ requires-python = ">=3.11"
 authors = [{ name = "Panopticon contributors" }]
 keywords = ["mcp", "model-context-protocol", "security", "sandbox", "observability"]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 5 - Production/Stable",
   "Environment :: Console",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3 :: Only",

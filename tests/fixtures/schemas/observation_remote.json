@@ -1,10 +1,10 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "1.0",
   "observation_id": "obs_remote",
   "server_id": "remote:api.example.com/mcp",
   "installation_id": "inst_fedcba9876543210",
   "observed_at": "2026-08-26T01:00:00Z",
-  "pano_version": "0.0.1",
+  "pano_version": "1.0.0",
   "sandbox": {
     "runtime": "remote",
     "transport": "streamable_http",

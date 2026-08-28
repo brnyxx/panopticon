@@ -67,7 +67,7 @@ def _coverage(candidate: WrapRecordCandidate) -> PersistedCoverage:
 
 def to_record(candidate: WrapRecordCandidate) -> WrapRecord:
     return WrapRecord(
-        schema_version="0.1",
+        schema_version="1.0",
         ts=candidate.span.finished_at,
         server_id=ServerId(candidate.server_id),
         installation_id=InstallationId(candidate.installation_id),

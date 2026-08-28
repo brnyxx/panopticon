@@ -36,7 +36,7 @@ CONTEXT = LeakContext(
 
 def _artifact(kind: SinkKind, payload: str) -> ArtifactInput:
     render_model = RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Leak fixture",
         fields=(RenderField(name="detail", value=payload),),
     )

@@ -12,7 +12,7 @@ from panopticon.models.observation import Observation
 
 def observation(oid, at, installation="inst"):
     return Observation.model_construct(
-        schema_version="0.1",
+        schema_version="1.0",
         observation_id=oid,
         installation_id=installation,
         observed_at=at,
@@ -31,7 +31,7 @@ def observation(oid, at, installation="inst"):
 
 def baseline(kind=BaselineKind.EXPLICIT):
     return Baseline.model_construct(
-        schema_version="0.1",
+        schema_version="1.0",
         baseline_id="baseline",
         created_at=datetime(2025, 1, 1, tzinfo=UTC),
         label="release",
@@ -66,8 +66,8 @@ def test_empty_observations_have_no_implicit_baseline():
     assert select_baseline(None, ()) is None
 
 
-def test_every_shipped_development_version_migrates_and_replays_idempotently():
+def test_every_shipped_development_version_converges_on_frozen_schema():
     fixture = Path(__file__).resolve().parents[2] / "fixtures" / "schemas" / "baseline-0.0-dev.json"
     migrated = migrate_baseline_json(fixture.read_text())
-    assert migrated.schema_version == "0.1"
+    assert migrated.schema_version == "1.0"
     assert migrate_baseline_json(migrated.model_dump_json()) == migrated

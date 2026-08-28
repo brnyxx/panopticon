@@ -29,7 +29,7 @@ class VisualFormat(StrEnum):
 
 def _render_model(model: EvidenceCardModel) -> RenderModel:
     return RenderModel(
-        schema_version="0.1",
+        schema_version="1.0",
         title="Panopticon observation evidence",
         fields=(
             RenderField(name="server", value=model.server),
