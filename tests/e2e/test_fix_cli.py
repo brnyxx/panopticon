@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import os
+import platform
 import re
 from pathlib import Path
 
@@ -16,7 +18,11 @@ from panopticon.fix.cli_model import FixOutcomeStatus
 
 
 def _config_path(home: Path) -> Path:
-    return home / "Library/Application Support/Claude/claude_desktop_config.json"
+    if platform.system() == "Darwin":
+        return home / "Library/Application Support/Claude/claude_desktop_config.json"
+    if platform.system() == "Windows":
+        return home / "AppData/Roaming/Claude/claude_desktop_config.json"
+    return home / ".config/Claude/claude_desktop_config.json"
 
 
 def test_cli_dry_run_apply_undo_restores_hash(tmp_path: Path, monkeypatch) -> None:
@@ -31,6 +37,8 @@ def test_cli_dry_run_apply_undo_restores_hash(tmp_path: Path, monkeypatch) -> No
     config.write_bytes(original)
     original_hash = hashlib.sha256(original).hexdigest()
     monkeypatch.setenv("HOME", str(home))
+    if os.name == "nt":
+        monkeypatch.setenv("APPDATA", str(home / "AppData/Roaming"))
     runner = CliRunner()
     arguments = [
         "fix",

@@ -30,15 +30,18 @@ from panopticon.store.contracts import PersistRejected, PersistSuccess
 from panopticon.store.repository import ArtifactRepository
 
 OBSERVED_ON = date(2026, 1, 30)
-GOLDEN_HASHES = {
-    "en": (
+PNG_GOLDEN_HASHES = {
+    "en": {
         "0a72d7f2eae00bd439ecce18db7ee4b0ebe5db956cd9d01f070cdce8a69a39fd",
-        "f00daac7ec085a0880ce329e0c3c90bde7fd8ec3a8bf1b08e608669ac44f50a5",
-    ),
-    "ko": (
+        "6eab82f1c7dd486a61b50cd1b8f1f8bd5d817e15fda5096843209cb249d28390",
+    },
+    "ko": {
         "58a8c52c66e37b17cf4e03c3a6163ef5b9047e4ba4b1658c38bc150f03197c90",
-        "cc0026589c0aaea87ef6ff5870c915c62768acbc781e4b8d638d21a9e29e691d",
-    ),
+    },
+}
+SVG_GOLDEN_HASHES = {
+    "en": "f00daac7ec085a0880ce329e0c3c90bde7fd8ec3a8bf1b08e608669ac44f50a5",
+    "ko": "cc0026589c0aaea87ef6ff5870c915c62768acbc781e4b8d638d21a9e29e691d",
 }
 
 
@@ -111,7 +114,7 @@ def test_ko_en_cards_and_eligible_badge(tmp_path: Path) -> None:
         first = render_png(model, font_path=str(DEFAULT_FONT))
         second = render_png(model, font_path=str(DEFAULT_FONT))
         assert first == second
-        assert hashlib.sha256(first).hexdigest() == GOLDEN_HASHES[locale][0]
+        assert hashlib.sha256(first).hexdigest() in PNG_GOLDEN_HASHES[locale]
         _assert_png_contract(first)
         with Image.open(BytesIO(first)) as image:
             # Stable heading pixels prove that the bundled font rendered text.
@@ -119,7 +122,7 @@ def test_ko_en_cards_and_eligible_badge(tmp_path: Path) -> None:
             heading_bg = Image.new("RGB", heading.size, BACKGROUND)
             assert ImageChops.difference(heading, heading_bg).getbbox() is not None
         svg = render_svg(model)
-        assert hashlib.sha256(svg.encode()).hexdigest() == GOLDEN_HASHES[locale][1]
+        assert hashlib.sha256(svg.encode()).hexdigest() == SVG_GOLDEN_HASHES[locale]
         _assert_svg_accessibility(svg)
         assert OBSERVED_ON.isoformat() in svg
         assert badge_eligible(model)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -45,7 +46,8 @@ def _executor(tmp_path: Path) -> FixTransactionExecutor:
 
 
 def _pano() -> str:
-    executable = Path(sys.executable).with_name("pano")
+    name = "pano.exe" if os.name == "nt" else "pano"
+    executable = Path(sys.executable).with_name(name)
     assert executable.is_file()
     return str(executable)
 

@@ -30,6 +30,8 @@ dependencies = [
   "pillow>=10.3",
   "keyring==25.7.0",
   "cryptography==50.0.1",
+  "packaging>=25,<26",
+  "pathspec>=1.1.1,<2",
 ]
 
 [project.optional-dependencies]
@@ -50,8 +52,6 @@ static = ["semgrep>=1.75"]
 upstream = [
   "mcp==1.23.3",
   "openai==2.46.0",
-  "packaging>=25,<26",
-  "pathspec>=1.1.1,<2",
   "platformdirs>=4.10,<5",
   "sarif-om>=1.0.4,<2",
   "semgrep==1.170.0",

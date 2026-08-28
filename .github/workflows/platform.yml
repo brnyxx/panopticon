@@ -47,6 +47,7 @@ jobs:
           PANO_COMMIT: ${{ github.sha }}
         run: uv run python scripts/platform_probe.py --label "$PANO_PLATFORM_LABEL" --commit "$PANO_COMMIT" --output "evidence/$PANO_PLATFORM_LABEL.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: platform-${{ matrix.label }}
           path: evidence/${{ matrix.label }}.json
