@@ -13,7 +13,13 @@ class FixConflictError(ValueError):
 
 
 def prepare(plan: FixPlan) -> FixResult:
-    return FixResult(FixState.PLANNED, plan.target, plan.original_hash, plan_hash(plan))
+    return FixResult(
+        FixState.PLANNED,
+        plan.target,
+        plan.logical_target,
+        plan.original_hash,
+        plan_hash(plan),
+    )
 
 
 def confirm(result: FixResult, approved: bool = True) -> FixResult:
@@ -50,7 +56,12 @@ def recheck(result: FixResult, current: bytes, passed: bool) -> FixResult:
         return replace(
             result, state=FixState.CONFLICT, current_hash=current_hash, reason="USER_CHANGED"
         )
-    return replace(result, state=FixState.RECHECKED, current_hash=current_hash)
+    return replace(
+        result,
+        state=FixState.RECHECKED,
+        current_hash=current_hash,
+        reason="" if passed else "RECHECK_FAILED",
+    )
 
 
 def rollback(result: FixResult, current: bytes, original: bytes) -> FixResult:
@@ -61,10 +72,27 @@ def rollback(result: FixResult, current: bytes, original: bytes) -> FixResult:
         return replace(
             result, state=FixState.CONFLICT, current_hash=current_hash, reason="USER_CHANGED"
         )
-    return replace(result, state=FixState.ROLLED_BACK, current_hash=current_hash, bytes_value=None)
+    if digest(original) != result.original_hash:
+        return replace(
+            result,
+            state=FixState.CONFLICT,
+            current_hash=current_hash,
+            reason="BACKUP_MISMATCH",
+        )
+    return replace(
+        result,
+        state=FixState.ROLLED_BACK,
+        current_hash=current_hash,
+        bytes_value=original,
+    )
 
 
-def undo(result: FixResult, current: bytes, expected_current: str | None = None) -> FixResult:
+def undo(
+    result: FixResult,
+    current: bytes,
+    original: bytes,
+    expected_current: str | None = None,
+) -> FixResult:
     if result.state not in (FixState.RECHECKED, FixState.APPLIED):
         raise FixConflictError("INVALID_STATE")
     current_hash = digest(current)
@@ -76,4 +104,16 @@ def undo(result: FixResult, current: bytes, expected_current: str | None = None)
             current_hash=current_hash,
             reason="UNDO_EXPECTATION_FAILED",
         )
-    return replace(result, state=FixState.UNDONE, current_hash=current_hash, bytes_value=None)
+    if digest(original) != result.original_hash:
+        return replace(
+            result,
+            state=FixState.CONFLICT,
+            current_hash=current_hash,
+            reason="BACKUP_MISMATCH",
+        )
+    return replace(
+        result,
+        state=FixState.UNDONE,
+        current_hash=current_hash,
+        bytes_value=original,
+    )

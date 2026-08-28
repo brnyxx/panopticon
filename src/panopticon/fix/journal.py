@@ -5,7 +5,21 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+from panopticon.models.common import NonEmptyStr, PersistedPathValue, StrictModel
+from panopticon.models.ids import ConfigPath
+
 from .model import FixResult, FixState, JournalEntry
+
+
+class _JournalWire(StrictModel):
+    transaction_id: NonEmptyStr
+    target: PersistedPathValue
+    state: FixState
+    original_hash: NonEmptyStr
+    plan_hash: NonEmptyStr
+    apply_hash: str | None = None
+    current_hash: str | None = None
+    reason: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,7 +29,10 @@ class JournalValue:
     def as_bytes(self) -> bytes:
         return (
             json.dumps(
-                self.entry.as_value(), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                self.entry.as_value(),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
             )
             + "\n"
         ).encode("utf-8")
@@ -24,7 +41,7 @@ class JournalValue:
 def journal_entry(transaction_id: str, result: FixResult) -> JournalEntry:
     return JournalEntry(
         transaction_id,
-        result.target,
+        result.logical_target,
         result.state,
         result.original_hash,
         result.plan_hash,
@@ -39,21 +56,21 @@ def append_value(transaction_id: str, result: FixResult) -> bytes:
 
 
 def parse_value(data: bytes) -> tuple[JournalEntry, ...]:
-    records = []
+    records: list[JournalEntry] = []
     for line in data.splitlines():
         if not line.strip():
             continue
-        value = json.loads(line)
+        wire = _JournalWire.model_validate_json(line)
         records.append(
             JournalEntry(
-                transaction_id=str(value["transaction_id"]),
-                target=__import__("pathlib").Path(value["target"]),
-                state=FixState(value["state"]),
-                original_hash=str(value["original_hash"]),
-                plan_hash=str(value["plan_hash"]),
-                apply_hash=value.get("apply_hash"),
-                current_hash=value.get("current_hash"),
-                reason=str(value.get("reason", "")),
+                transaction_id=wire.transaction_id,
+                target=ConfigPath(wire.target),
+                state=wire.state,
+                original_hash=wire.original_hash,
+                plan_hash=wire.plan_hash,
+                apply_hash=wire.apply_hash,
+                current_hash=wire.current_hash,
+                reason=wire.reason,
             )
         )
     return tuple(records)

@@ -36,6 +36,12 @@ from .patch import JsoncPatch, patch_document
 CurrentIdentity: TypeAlias = tuple[int, int]
 
 
+@dataclass(frozen=True, slots=True)
+class CurrentFile:
+    identity: CurrentIdentity
+    mode: int
+
+
 @unique
 class PatchStatus(StrEnum):
     COMPLETE = "COMPLETE"
@@ -84,7 +90,7 @@ def _result(
     return PatchResult(target, status, reason, written)
 
 
-def _read_current(request: PatchRequest) -> CurrentIdentity | PatchResult:
+def _read_current(request: PatchRequest) -> CurrentFile | PatchResult:
     directory_fd = -1
     descriptor = -1
     try:
@@ -129,7 +135,7 @@ def _read_current(request: PatchRequest) -> CurrentIdentity | PatchResult:
             os.close(directory_fd)
     if hashlib.sha256(data).hexdigest() != request.document.original_sha256:
         return _result(request.target, PatchStatus.CONFLICT, PatchReason.SOURCE_STALE)
-    return identity
+    return CurrentFile(identity, stat.S_IMODE(opened_stat.st_mode))
 
 
 def _failure_reason(result: AtomicFailure) -> PatchReason:
@@ -181,7 +187,8 @@ def apply_patches(request: PatchRequest, injector: FaultInjector | None = None) 
         request.target,
         patched,
         injector,
-        expected_target=AtomicPrecondition(verified, request.document.original_sha256),
+        expected_target=AtomicPrecondition(verified.identity, request.document.original_sha256),
+        mode=verified.mode,
     )
     match atomic_result:
         case AtomicSuccess():

@@ -7,7 +7,6 @@ import hashlib
 import re
 from pathlib import Path
 
-from panopticon.models.ids import ConfigPath
 from panopticon.util.jsonc.document import SourceDocument
 from panopticon.util.jsonc.parser import parse_document
 from panopticon.util.jsonc.patch import JsoncPatch, patch_document
@@ -26,7 +25,15 @@ def make_plan(
     prompts: tuple[FixPrompt, ...] = (),
     mode: int | None = None,
 ) -> FixPlan:
-    return FixPlan(target, document.original_bytes, tuple(patches), tuple(prompts), mode)
+    return FixPlan(
+        target,
+        document.logical_path,
+        document.original_bytes,
+        tuple(patches),
+        tuple(prompts),
+        mode,
+        document.identity,
+    )
 
 
 def plan_hash(plan: FixPlan) -> str:
@@ -40,7 +47,7 @@ def apply_bytes(plan: FixPlan) -> bytes:
     document = parse_document(
         plan.original,
         path=plan.target,
-        logical_path=ConfigPath(f"~/{plan.target.name}"),
+        logical_path=plan.logical_target,
     )
     return patch_document(document, plan.patches)
 
@@ -54,5 +61,10 @@ def unified_diff(plan: FixPlan, patched: bytes | None = None) -> str:
     old = _redact(plan.original.decode("utf-8", "replace")).splitlines(keepends=True)
     new = _redact(updated.decode("utf-8", "replace")).splitlines(keepends=True)
     return "".join(
-        difflib.unified_diff(old, new, fromfile=str(plan.target), tofile=str(plan.target))
+        difflib.unified_diff(
+            old,
+            new,
+            fromfile=str(plan.logical_target),
+            tofile=str(plan.logical_target),
+        )
     )

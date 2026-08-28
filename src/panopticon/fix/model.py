@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum, unique
 from pathlib import Path
 
+from panopticon.models.ids import ConfigPath
 from panopticon.util.jsonc.patch import JsoncPatch
 
 
@@ -41,10 +42,12 @@ class FixPrompt:
 @dataclass(frozen=True, slots=True)
 class FixPlan:
     target: Path
+    logical_target: ConfigPath
     original: bytes
     patches: tuple[JsoncPatch, ...] = ()
     prompts: tuple[FixPrompt, ...] = ()
     mode: int | None = None
+    source_identity: tuple[int, int] | None = None
 
     @property
     def original_hash(self) -> str:
@@ -53,6 +56,7 @@ class FixPlan:
     def __repr__(self) -> str:
         return (
             f"FixPlan(target={str(self.target)!r}, "
+            f"logical_target={str(self.logical_target)!r}, "
             f"original_hash={self.original_hash!r}, "
             f"patches={len(self.patches)}, prompts={len(self.prompts)})"
         )
@@ -62,6 +66,7 @@ class FixPlan:
 class FixResult:
     state: FixState
     target: Path
+    logical_target: ConfigPath
     original_hash: str
     plan_hash: str
     apply_hash: str | None = None
@@ -72,6 +77,7 @@ class FixResult:
     def __repr__(self) -> str:
         return (
             f"FixResult(state={self.state.value!r}, target={str(self.target)!r}, "
+            f"logical_target={str(self.logical_target)!r}, "
             f"original_hash={self.original_hash!r}, plan_hash={self.plan_hash!r}, "
             f"apply_hash={self.apply_hash!r}, current_hash={self.current_hash!r}, "
             f"reason={self.reason!r})"
@@ -81,6 +87,7 @@ class FixResult:
 @dataclass(frozen=True, slots=True)
 class BackupRequest:
     target: Path
+    logical_target: ConfigPath
     plaintext: bytes
     source: str
     config_digest: str
@@ -93,7 +100,7 @@ class BackupRequest:
 @dataclass(frozen=True, slots=True)
 class JournalEntry:
     transaction_id: str
-    target: Path
+    target: ConfigPath
     state: FixState
     original_hash: str
     plan_hash: str

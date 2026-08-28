@@ -170,8 +170,11 @@ def atomic_replace(
     injector: FaultInjector | None = None,
     *,
     expected_target: AtomicPrecondition | None = None,
+    mode: int = 0o600,
 ) -> AtomicResult:
     """Replace a regular target without following any parent or target symlink."""
+    if mode <= 0 or mode & ~0o777:
+        return AtomicRejected(RejectionCode.UNSAFE_TARGET)
     active_injector = injector if injector is not None else NoFaults()
     directory_fd = -1
     temporary_name: str | None = None
@@ -194,7 +197,7 @@ def atomic_replace(
         )
         file_descriptor = os.open(temporary_name, flags, 0o600, dir_fd=directory_fd)
         try:
-            os.fchmod(file_descriptor, 0o600)
+            os.fchmod(file_descriptor, mode)
             operation = AtomicOperation.WRITE
             active_injector.before(operation)
             offset = 0
