@@ -276,11 +276,12 @@ def test_repository_with_active_cfg_hist_manifests_is_green() -> None:
     active = tuple(
         [f"CFG-{index:03d}" for index in range(1, 13)]
         + [f"HIST-{index:03d}" for index in range(1, 5)]
+        + [f"WATCH-{index:03d}" for index in range(1, 15)]
     )
     inventory = RuleScopeInventory(
         registered_ids=active,
-        ko_ids=(*active, "WATCH-001"),
-        en_ids=(*active, "WATCH-001"),
+        ko_ids=active,
+        en_ids=active,
         positive_fixture_ids=active,
         negative_fixture_ids=active,
     )

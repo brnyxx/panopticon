@@ -60,10 +60,17 @@ def absence(
     context: BehaviorInput,
     rule_id: str,
     *kinds: EvidenceKind,
+    observed: tuple[WatchEvidence, ...] = (),
 ) -> WatchMatch:
     if covered(context, *kinds):
         return result(context, rule_id, OutcomeState.CLEAR)
-    return result(context, rule_id, OutcomeState.UNKNOWN, reason="INCOMPLETE_COVERAGE")
+    return result(
+        context,
+        rule_id,
+        OutcomeState.UNKNOWN,
+        observed,
+        reason="INCOMPLETE_COVERAGE",
+    )
 
 
 def declared_path(context: BehaviorInput, value: str) -> bool:

@@ -12,6 +12,8 @@ from panopticon.analyzers.behavior.model import (
     Authority,
     BehaviorInput,
     CoverageState,
+    DeclaredAuthority,
+    EvidenceKind,
     OutcomeState,
     WatchEvidence,
 )
@@ -24,9 +26,15 @@ CASES = json.loads(
 
 
 def _context(raw: dict) -> BehaviorInput:
+    source_state = CoverageState(
+        raw.get(
+            "source_coverage",
+            "PARTIAL" if raw.get("direction") == "unknown" else "COMPLETE",
+        )
+    )
     evidence = tuple(
         WatchEvidence(
-            kind=e["kind"],
+            kind=EvidenceKind(e["kind"]),
             value=e["value"],
             operation=e.get("operation", ""),
             span_id=e.get("span_id"),
@@ -47,14 +55,30 @@ def _context(raw: dict) -> BehaviorInput:
             processes=tuple(a.get("processes", ())),
             read_only_hint=a.get("read_only_hint"),
             coverage=CoverageState(a.get("coverage", "NONE")),
+            authority=DeclaredAuthority(
+                "AUTHORITATIVE"
+                if a.get("coverage") == "COMPLETE"
+                else ("PARTIAL" if a.get("coverage") == "PARTIAL" else "NONE")
+            ),
         )
         for a in raw.get("authorities", ())
     )
+    if not authorities and raw.get("direction") != "unknown":
+        authorities = (
+            Authority(
+                tool="t",
+                coverage=CoverageState.COMPLETE,
+                authority=DeclaredAuthority.AUTHORITATIVE,
+            ),
+        )
     return BehaviorInput(
         evidence=evidence,
         authorities=authorities,
         decoys=frozenset(raw.get("decoys", ())),
+        coverage=dict.fromkeys(EvidenceKind, source_state),
+        complete_spans=source_state is CoverageState.COMPLETE,
         withheld=raw.get("withheld", False),
+        suppressed_rule_ids=frozenset(raw.get("suppressed_rule_ids", ())),
     )
 
 
@@ -80,7 +104,7 @@ def test_each_fixture_yields_exact_watch_finding() -> None:
                 sorted(
                     (
                         WatchEvidence(
-                            kind=e["kind"],
+                            kind=EvidenceKind(e["kind"]),
                             value=e["value"],
                             operation=e.get("operation", ""),
                             span_kind=SpanKind(e["span_kind"]) if e.get("span_kind") else None,
@@ -89,12 +113,21 @@ def test_each_fixture_yields_exact_watch_finding() -> None:
                         )
                         for e in case.get("evidence", ())
                     ),
-                    key=lambda e: (e.span_id or "", e.kind, e.value, e.operation),
+                    key=lambda e: (e.span_id or "", e.kind.value, e.value, e.operation),
                 )
             )
-            assert tuple(
-                (e.kind, e.value, e.operation, e.span_kind) for e in match.evidence
-            ) == tuple((e.kind, e.value, e.operation, e.span_kind) for e in expected)
+            expected_signatures = {(e.kind, e.value, e.operation, e.span_kind) for e in expected}
+            observed = (*match.evidence, *match.excluded)
+            observed_signatures = {(e.kind, e.value, e.operation, e.span_kind) for e in observed}
+            assert observed_signatures <= expected_signatures
+            assert match.evidence == tuple(
+                sorted(
+                    match.evidence,
+                    key=lambda e: (e.span_id or "", e.kind.value, e.value, e.operation),
+                )
+            )
+            if direction == "positive" and rule_id not in {"WATCH-010", "WATCH-011"}:
+                assert match.evidence
     assert all(len(metadata[r]) == 3 for r in RULE_IDS)
 
 

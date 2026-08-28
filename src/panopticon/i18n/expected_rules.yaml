@@ -17,4 +17,18 @@ expected_ids:
   - HIST-002
   - HIST-003
   - HIST-004
-reserved_ids: [WATCH-001]
+  - WATCH-001
+  - WATCH-002
+  - WATCH-003
+  - WATCH-004
+  - WATCH-005
+  - WATCH-006
+  - WATCH-007
+  - WATCH-008
+  - WATCH-009
+  - WATCH-010
+  - WATCH-011
+  - WATCH-012
+  - WATCH-013
+  - WATCH-014
+reserved_ids: []

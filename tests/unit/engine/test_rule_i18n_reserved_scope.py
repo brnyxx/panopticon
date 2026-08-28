@@ -76,7 +76,7 @@ def test_rule_scope_manifest_separates_reserved_and_active_ids() -> None:
     assert {"expected_ids", "reserved_ids"} <= manifest_fields
 
 
-def test_current_manifests_activate_cfg_hist_and_reserve_watch001() -> None:
+def test_current_manifests_activate_cfg_hist_and_watch_catalog() -> None:
     # Given: the two tracked scope manifests.
     load_manifest = _loader()
 
@@ -86,16 +86,26 @@ def test_current_manifests_activate_cfg_hist_and_reserve_watch001() -> None:
     expected = tuple(
         [f"CFG-{index:03d}" for index in range(1, 13)]
         + [f"HIST-{index:03d}" for index in range(1, 5)]
+        + [f"WATCH-{index:03d}" for index in range(1, 15)]
     )
-    # Then: both declare the same active scope and WATCH-001 reservation.
+    # Then: both declare the same active scope with no reserved rules.
     for manifest, issue in loaded:
         assert issue is None
         assert manifest is not None
         assert manifest.staged is True
         assert manifest.expected_ids == expected
-        assert getattr(manifest, "reserved_ids", None) == ("WATCH-001",)
+        assert getattr(manifest, "reserved_ids", None) == ()
 
-    assert check_rules.repository_issues(ROOT, EXPECTED_RULE_SCOPE, EXPECTED_I18N_SCOPE) == ()
+    inventory = RuleScopeInventory(expected, expected, expected, expected, expected)
+    assert (
+        check_rules.repository_issues(
+            ROOT,
+            EXPECTED_RULE_SCOPE,
+            EXPECTED_I18N_SCOPE,
+            inventory,
+        )
+        == ()
+    )
 
 
 def test_reserved_bilingual_docs_are_allowed_without_active_assets() -> None:

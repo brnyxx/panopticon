@@ -39,7 +39,10 @@ def rule001(context: BehaviorInput) -> WatchMatch:
     )
     if hits:
         return result(context, "WATCH-001", OutcomeState.MATCH, hits)
-    return absence(context, "WATCH-001", EvidenceKind.LEAK)
+    uncertain = tuple(
+        item for item in context.evidence if not item.certain and item.kind in observable
+    )
+    return absence(context, "WATCH-001", EvidenceKind.LEAK, observed=uncertain)
 
 
 def rule002(context: BehaviorInput) -> WatchMatch:
@@ -126,12 +129,24 @@ def rule009(context: BehaviorInput) -> WatchMatch:
     )
     if broad_enumeration_count(tuple(item.value for item in evidence)) >= 10:
         return result(context, "WATCH-009", OutcomeState.MATCH, evidence)
-    return absence(context, "WATCH-009", EvidenceKind.FILE, EvidenceKind.STAT)
+    return absence(
+        context,
+        "WATCH-009",
+        EvidenceKind.FILE,
+        EvidenceKind.STAT,
+        observed=evidence,
+    )
 
 
 def rule010(context: BehaviorInput) -> WatchMatch:
     if not authoritative(context):
-        return result(context, "WATCH-010", OutcomeState.UNKNOWN, reason="INCOMPLETE_DECLARATION")
+        return result(
+            context,
+            "WATCH-010",
+            OutcomeState.UNKNOWN,
+            context.evidence,
+            reason="INCOMPLETE_DECLARATION",
+        )
     required = (EvidenceKind.FILE, EvidenceKind.NETWORK, EvidenceKind.PROCESS)
     if not all(covered(context, kind) for kind in required) or not context.complete_spans:
         return result(context, "WATCH-010", OutcomeState.UNKNOWN, reason="INCOMPLETE_COVERAGE")
@@ -141,6 +156,20 @@ def rule010(context: BehaviorInput) -> WatchMatch:
             "WATCH-010",
             OutcomeState.UNKNOWN,
             reason="HIDDEN_OR_INCOMPLETE_EVIDENCE",
+        )
+    excluded_processes = tuple(
+        item
+        for item in context.evidence
+        if item.kind is EvidenceKind.PROCESS
+        and item.value.rsplit("/", 1)[-1].split(" ", 1)[0].casefold() in _TOOLING
+    )
+    if excluded_processes:
+        return result(
+            context,
+            "WATCH-010",
+            OutcomeState.UNKNOWN,
+            excluded_processes,
+            reason="EXCLUDED_EVIDENCE",
         )
     unmatched = tuple(
         item

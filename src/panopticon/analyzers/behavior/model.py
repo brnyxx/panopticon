@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import StrEnum
 from types import MappingProxyType
+
+from panopticon.models.ids import InstallationId, ObservationId, ServerId
 
 from .spans import SpanKind
 
@@ -87,6 +90,10 @@ class BehaviorInput:
     withheld: bool = False
     suppressed_rule_ids: frozenset[str] = frozenset()
     current_tool: str | None = None
+    server_id: ServerId | None = None
+    installation_id: InstallationId | None = None
+    observation_id: ObservationId | None = None
+    observed_at: datetime | None = None
 
     def __post_init__(self) -> None:
         normalized = {
