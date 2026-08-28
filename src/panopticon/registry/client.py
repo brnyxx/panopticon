@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Protocol
 from urllib.parse import quote
+
+import httpx
 
 from .cache import make_lookup
 from .history import SnapshotSeries, append_snapshot
@@ -29,6 +31,49 @@ class RegistryHttp(Protocol):
         headers: tuple[tuple[str, str], ...],
         timeout: float,
     ) -> HttpOutcome: ...
+
+
+class HttpxRegistryHttp:
+    """Concrete HTTP boundary; only normalized wire outcomes escape."""
+
+    def __init__(self, client: httpx.AsyncClient | None = None) -> None:
+        self._client = client
+
+    async def get(
+        self, url: str, *, headers: tuple[tuple[str, str], ...], timeout: float
+    ) -> HttpOutcome:
+        client = self._client
+        owns_client = client is None
+        if client is None:
+            client = httpx.AsyncClient(trust_env=False, follow_redirects=False, timeout=timeout)
+        try:
+            response = await client.get(url, headers=dict(headers), timeout=timeout)
+            try:
+                body = response.json()
+            except (ValueError, UnicodeDecodeError):
+                return HttpOutcome(response.status_code, reason_code="MALFORMED_JSON")
+            return HttpOutcome(
+                response.status_code,
+                tuple((str(k), str(v)) for k, v in response.headers.items()),
+                body,
+            )
+        except httpx.TimeoutException:
+            return HttpOutcome(None, reason_code="TIMEOUT")
+        except httpx.TransportError:
+            return HttpOutcome(None, reason_code="TRANSPORT_ERROR")
+        finally:
+            if owns_client:
+                await client.aclose()
+
+
+class SystemClock:
+    def now(self) -> datetime:
+        return datetime.now(UTC)
+
+
+# Explicit aliases keep the production boundary discoverable by role.
+RegistryHttpClient = HttpxRegistryHttp
+UtcClock = SystemClock
 
 
 class Clock(Protocol):
@@ -77,8 +122,28 @@ class RegistryClient:
                 False,
                 "MALFORMED_LOOKUP",
             )
-        url, headers = request
-        outcome = await self.http.get(url, headers=headers, timeout=self.timeout)
+        urls, headers = request
+        if isinstance(urls, tuple):
+            outcomes = [
+                await self.http.get(url, headers=headers, timeout=self.timeout) for url in urls
+            ]
+            outcome = outcomes[0]
+            if any(item.status_code == 304 for item in outcomes):
+                outcome = next(item for item in outcomes if item.status_code == 304)
+            elif any(item.status_code != 200 for item in outcomes):
+                outcome = next(item for item in outcomes if item.status_code != 200)
+            else:
+                outcome = HttpOutcome(
+                    200,
+                    outcome.headers,
+                    {
+                        "repository": outcomes[0].body,
+                        "releases": outcomes[1].body,
+                        "tags": outcomes[2].body,
+                    },
+                )
+        else:
+            outcome = await self.http.get(urls, headers=headers, timeout=self.timeout)
         observed_at = self.clock.now()
         if outcome.status_code == 304:
             if not series.snapshots:
@@ -100,7 +165,11 @@ class RegistryClient:
             return RegistryFetch(updated.snapshots[-1].history, updated, True, "NOT_MODIFIED")
         failure = _failure_reason(outcome)
         if failure is not None:
-            status = HistoryStatus.UNKNOWN
+            status = (
+                HistoryStatus.INCOMPLETE
+                if failure is HistoryReason.MALFORMED_INPUT
+                else HistoryStatus.UNKNOWN
+            )
             history = _unavailable(lookup, status, failure)
             return RegistryFetch(history, series, True, failure.value)
         if outcome.status_code != 200:
@@ -147,11 +216,12 @@ def _request(
     lookup: CacheLookup,
     snapshots: SnapshotSeries,
     github_token: str | None,
-) -> tuple[str, tuple[tuple[str, str], ...]] | None:
+) -> tuple[str | tuple[str, str, str], tuple[tuple[str, str], ...]] | None:
     headers: list[tuple[str, str]] = [("accept", "application/json")]
     if snapshots.snapshots and snapshots.snapshots[-1].etag:
         headers.append(("if-none-match", snapshots.snapshots[-1].etag or ""))
     ecosystem = lookup.ecosystem.casefold()
+    url: str | tuple[str, str, str]
     if ecosystem == "npm":
         url = f"https://registry.npmjs.org/{quote(lookup.name, safe='')}"
     elif ecosystem in {"pypi", "python"}:
@@ -160,7 +230,8 @@ def _request(
         parts = lookup.name.split("/")
         if len(parts) != 2 or not all(_safe_segment(part) for part in parts):
             return None
-        url = f"https://api.github.com/repos/{parts[0]}/{parts[1]}/releases"
+        base = f"https://api.github.com/repos/{parts[0]}/{parts[1]}"
+        url = (base, f"{base}/releases", f"{base}/tags")
         if github_token:
             headers.append(("authorization", f"Bearer {github_token}"))
     else:
@@ -189,6 +260,8 @@ def _failure_reason(outcome: HttpOutcome) -> HistoryReason | None:
         return HistoryReason.TIMEOUT
     if outcome.status_code is None:
         return HistoryReason.REGISTRY_FAILURE
+    if outcome.reason_code == "MALFORMED_JSON":
+        return HistoryReason.MALFORMED_INPUT
     return None
 
 

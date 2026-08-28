@@ -21,6 +21,16 @@ def normalize_github(
             status=HistoryStatus.INCOMPLETE,
             reason_code=HistoryReason.MALFORMED_INPUT,
         )
+    repository = payload.get("repository", payload)
+    tags = payload.get("tags", [])
+    if not isinstance(repository, Mapping) or not isinstance(tags, list):
+        return result(
+            "github",
+            name,
+            spec,
+            status=HistoryStatus.INCOMPLETE,
+            reason_code=HistoryReason.MALFORMED_INPUT,
+        )
     records: list[ReleaseRecord] = []
     for item in payload["releases"]:
         if not isinstance(item, Mapping):
@@ -40,6 +50,14 @@ def normalize_github(
                 deprecated=False,
             )
         )
+    seen = {record.version for record in records}
+    for item in tags:
+        if not isinstance(item, Mapping):
+            continue
+        ver = version(item.get("name"))
+        if ver and ver not in seen:
+            records.append(ReleaseRecord(version=ver))
+            seen.add(ver)
     records.sort(key=lambda record: semver_key(record.version))
     resolved, reason = resolve(spec, records)
     return result(
@@ -49,7 +67,9 @@ def normalize_github(
         status=HistoryStatus.AVAILABLE if resolved else HistoryStatus.UNKNOWN,
         reason_code=reason,
         resolved_version=resolved,
-        source_url=safe_url(payload.get("html_url") or payload.get("url")),
-        archived=payload.get("archived") if isinstance(payload.get("archived"), bool) else None,
+        source_url=safe_url(repository.get("html_url") or repository.get("url")),
+        archived=repository.get("archived")
+        if isinstance(repository.get("archived"), bool)
+        else None,
         releases=tuple(records),
     )

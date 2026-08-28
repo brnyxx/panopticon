@@ -85,15 +85,9 @@ async def test_wire_failures_are_typed_unknown(
 async def test_github_token_and_traversal_values_do_not_enter_results() -> None:
     token = "synthetic-provider-value"
     http = FakeHttp(
-        HttpOutcome(
-            200,
-            body=[
-                {
-                    "tag_name": "v1.0.0",
-                    "published_at": "2024-01-01T00:00:00Z",
-                }
-            ],
-        )
+        HttpOutcome(200, body={"html_url": "https://github.com/Owner/Repo", "archived": False}),
+        HttpOutcome(200, body=[{"tag_name": "v1.0.0", "published_at": "2024-01-01T00:00:00Z"}]),
+        HttpOutcome(200, body=[{"name": "v1.0.0"}]),
     )
     client = RegistryClient(http, FixedClock(), github_token=token)
 
@@ -103,4 +97,10 @@ async def test_github_token_and_traversal_values_do_not_enter_results() -> None:
     assert result.history.source_url == "https://github.com/Owner/Repo"
     assert token not in repr(result)
     assert invalid.history.reason_code is HistoryReason.MALFORMED_INPUT
-    assert len(http.requests) == 1
+    assert len(http.requests) == 3
+    assert [request[0] for request in http.requests] == [
+        "https://api.github.com/repos/Owner/Repo",
+        "https://api.github.com/repos/Owner/Repo/releases",
+        "https://api.github.com/repos/Owner/Repo/tags",
+    ]
+    assert all(("authorization", f"Bearer {token}") in request[1] for request in http.requests)

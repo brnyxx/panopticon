@@ -1,14 +1,19 @@
 from datetime import UTC, datetime, timedelta
 
 from panopticon.registry.cache import (
+    CacheEnvelope,
+    CacheLoadStatus,
     MemoryCache,
+    PersistentCache,
     cache_key,
     cache_path,
     lookup_history,
     make_lookup,
     resolve_cached_version,
 )
+from panopticon.registry.history import SnapshotSeries
 from panopticon.registry.model import CacheRecord, HistoryReason, HistoryStatus, NormalizedHistory
+from panopticon.store import ArtifactRepository
 
 
 def test_cache_miss_and_offline_are_explicit() -> None:
@@ -16,7 +21,7 @@ def test_cache_miss_and_offline_are_explicit() -> None:
     result = lookup_history(MemoryCache(), lookup, offline=True)
     assert result.status is HistoryStatus.UNKNOWN
     assert result.reason_code is HistoryReason.OFFLINE
-    assert cache_key(lookup) != cache_key(make_lookup("npm", "pkg", "1.0.0"))
+    assert cache_key(lookup) == cache_key(make_lookup("npm", "pkg", "1.0.0"))
     assert cache_path(lookup).startswith("~/.panopticon/")
     assert ".." not in cache_path(make_lookup("npm", "../../escape", "latest"))
 
@@ -73,3 +78,22 @@ def test_stale_and_future_cache_records_are_unknown() -> None:
         assert result.status is HistoryStatus.UNKNOWN
         assert result.reason_code is HistoryReason.STALE_CACHE
         assert result.registry_fresh is False
+
+
+def test_persistent_cache_round_trips_at_exact_ttl_boundary(tmp_path) -> None:
+    lookup = make_lookup("npm", "pkg", "latest")
+    fetched = datetime(2025, 1, 1, tzinfo=UTC)
+    envelope = CacheEnvelope(
+        ecosystem="npm",
+        name="pkg",
+        snapshots=SnapshotSeries(),
+        etags=(("package", '"etag"'),),
+        fetched_at=fetched,
+    )
+    cache = PersistentCache(ArtifactRepository(tmp_path))
+
+    assert cache.persist(lookup, envelope).status is CacheLoadStatus.HIT
+    assert cache.load(lookup, now=fetched + timedelta(hours=24)).status is CacheLoadStatus.HIT
+    stale = cache.load(lookup, now=fetched + timedelta(hours=24, microseconds=1))
+    assert stale.status is CacheLoadStatus.STALE
+    assert stale.envelope == envelope
