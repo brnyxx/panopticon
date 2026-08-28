@@ -63,10 +63,11 @@ class DecoyManifest:
         return b"".join(self.files[path] for path in sorted(self.files))
 
 
-def _token(seed: str, identity: str, key: str, length: int = 32) -> bytes:
-    # Hex is deliberately boring, portable, and cannot contain real credentials.
+def _token(seed: str, identity: str, key: str) -> bytes:
+    # Synthetic punctuation makes escaped/encoded leak variants observably distinct.
     digest = hashlib.sha256(f"panopticon:{seed}:{identity}:{key}".encode()).hexdigest()
-    return (f"PANO_DECOY_{identity}_{digest}"[:length]).encode("ascii")
+    identity_digest = hashlib.sha256(identity.encode()).hexdigest()[:8]
+    return f'PANO_DECOY_{identity_digest}_{digest[:16]} +/="'.encode()
 
 
 def generate_decoy_home(

@@ -84,10 +84,33 @@ def _unquote(value: str) -> str | None:
 
 def _args(raw: str) -> tuple[str, ...]:
     out: list[str] = []
-    for part in re.split(r",\s*(?![^\[]*\])", raw):
-        part = part.strip()
-        if part:
-            out.append(part)
+    start = 0
+    depth = 0
+    quoted = False
+    escaped = False
+    for index, character in enumerate(raw):
+        if quoted:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                quoted = False
+            continue
+        if character == '"':
+            quoted = True
+        elif character in "([{":
+            depth += 1
+        elif character in ")]}":
+            depth = max(0, depth - 1)
+        elif character == "," and depth == 0:
+            part = raw[start:index].strip()
+            if part:
+                out.append(part)
+            start = index + 1
+    part = raw[start:].strip()
+    if part:
+        out.append(part)
     return tuple(out)
 
 
@@ -95,12 +118,21 @@ def _event(
     pid: int, ts: float, name: str, args: tuple[str, ...], result: int | None, tail: str
 ) -> TraceEvent:
     op = _SUPPORTED[name]
-    path = (
-        _unquote(args[0])
-        if args
-        and name in {"open", "openat", "stat", "newfstatat", "readlink", "execve", "execveat"}
-        else None
-    )
+    if name in {"open", "openat"} and any(
+        flag in args[-1] for flag in ("O_WRONLY", "O_RDWR", "O_CREAT", "O_TRUNC", "O_APPEND")
+    ):
+        op = "write"
+    path_indexes = {
+        "open": 0,
+        "openat": 1,
+        "stat": 0,
+        "newfstatat": 1,
+        "readlink": 0,
+        "execve": 0,
+        "execveat": 1,
+    }
+    path_index = path_indexes.get(name)
+    path = _unquote(args[path_index]) if path_index is not None and len(args) > path_index else None
     peer = tail.strip() or None
     if name in {"connect", "bind"} and len(args) > 1:
         peer = args[1]
@@ -135,7 +167,7 @@ def parse_strace(text: str) -> TraceResult:
         if body.endswith(" <unfinished ...>"):
             start = body.index("(")
             name = body[:start]
-            pending[(pid, name)] = (ts, body[: start + 1])
+            pending[(pid, name)] = (ts, body.removesuffix(" <unfinished ...>"))
             continue
         resumed = re.match(r"<\.\.\.\s+(\w+) resumed>\s*(.*)$", body)
         if resumed:

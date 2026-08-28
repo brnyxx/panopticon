@@ -45,7 +45,7 @@ def test_arrays_tuples_required_objects_and_call_index_order() -> None:
     assert generate_arguments(schema).value == {"id": 1, "tags": ["tag"]}
     assert generate_arguments(
         {"type": "array", "prefixItems": [{"const": 1}, {"const": 2}], "items": False}
-    ).value == [1]
+    ).value == [1, 2]
     assert generate_arguments({"type": "string"}, call_index=2).value == "panopticon-probe-2"
     assert (
         generate_arguments(

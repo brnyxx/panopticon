@@ -35,7 +35,7 @@ def render_model(
     labels = _LABELS.get(locale, _LABELS["en"])
     lines = [f"{labels['status']}: {model.status}", f"{labels['reason']}: {model.reason_code}"]
     lines.append(f"{labels['coverage']}:")
-    for stage in model.stages:
+    for stage in sorted(model.stages, key=lambda item: item.name):
         lines.append(f"  {stage.name}: {stage.status} ({stage.reason_code})")
     lines.extend(
         (

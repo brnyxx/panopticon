@@ -59,6 +59,13 @@ class ArgumentGenerator:
         if typ == "array":
             if s.get("maxItems", 1) < 1:
                 raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+            prefix_items = s.get("prefixItems")
+            if isinstance(prefix_items, list):
+                return [
+                    self._gen(item, idx, (*stack, sid))
+                    for item in prefix_items
+                    if isinstance(item, dict)
+                ]
             item = self._gen(s.get("items", {}), idx, (*stack, sid))
             return [item]
         if typ in ("integer", "number"):

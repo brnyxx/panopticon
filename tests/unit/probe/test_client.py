@@ -65,7 +65,7 @@ async def test_modern_initialize_records_metadata_and_sends_initialized() -> Non
 @pytest.mark.asyncio
 async def test_initialize_retries_legacy_version_after_modern_error() -> None:
     stream = Stream()
-    client = McpClient(stream)
+    client = McpClient(stream, stream)
     task = asyncio.create_task(client.initialize())
     await stream.write_event.wait()
     req = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
@@ -84,7 +84,7 @@ async def test_initialize_retries_legacy_version_after_modern_error() -> None:
 @pytest.mark.asyncio
 async def test_fragmented_content_length_and_out_of_order_ids() -> None:
     stream = Stream()
-    client = McpClient(stream)
+    client = McpClient(stream, stream)
     first = asyncio.create_task(client.request("a"))
     second = asyncio.create_task(client.request("b"))
     await stream.write_event.wait()
@@ -99,7 +99,7 @@ async def test_fragmented_content_length_and_out_of_order_ids() -> None:
 @pytest.mark.asyncio
 async def test_malformed_batch_oversized_timeout_cancellation_and_early_exit() -> None:
     stream = Stream()
-    client = McpClient(stream, max_frame=256, timeout=0.01)
+    client = McpClient(stream, stream, max_frame=256, timeout=0.01)
     malformed = asyncio.create_task(client.request("bad"))
     await stream.write_event.wait()
     req = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
@@ -107,12 +107,13 @@ async def test_malformed_batch_oversized_timeout_cancellation_and_early_exit() -
     assert (await malformed).reason_code == "MALFORMED_FRAME"
     assert (await client.notify("x", {"value": "x" * 1000})).reason_code == "REQUEST_TOO_LARGE"
     assert (await client.request("never")).reason_code == "TIMEOUT"
+    stream.write_event.clear()
     pending = asyncio.create_task(client.request("cancel"))
     await stream.write_event.wait()
     pending.cancel()
-    assert (await asyncio.gather(pending, return_exceptions=False)).status is ProbeStatus.CANCELLED
+    assert (await pending).status is ProbeStatus.CANCELLED
     early_stream = Stream()
-    early = McpClient(early_stream)
+    early = McpClient(early_stream, early_stream)
     early_task = asyncio.create_task(early.request("early"))
     await early_stream.write_event.wait()
     await early_stream.chunks.put(b"")
@@ -125,7 +126,7 @@ async def test_malformed_batch_oversized_timeout_cancellation_and_early_exit() -
 @pytest.mark.asyncio
 async def test_capability_gated_lists_and_duplicate_cursor() -> None:
     stream = Stream()
-    client = McpClient(stream)
+    client = McpClient(stream, stream)
     assert (await client.list_paginated("tools/list")).reason_code == "CAPABILITY_UNSUPPORTED"
     client.capabilities = {"tools": {}}
     task = asyncio.create_task(client.list_paginated("tools/list"))
