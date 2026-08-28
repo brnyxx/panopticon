@@ -1,10 +1,21 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import pytest
 
-from panopticon.engine.watch_local import LocalRun
-from panopticon.engine.watch_model import TargetMode, TargetSelection, WatchOptions, WatchRequest
-from panopticon.engine.watch_remote import RemoteRun
+from panopticon.engine.watch_local import LocalRun, LocalTarget
+from panopticon.engine.watch_model import (
+    Evidence,
+    PersistenceCandidate,
+    TargetMode,
+    TargetSelection,
+    WatchOptions,
+    WatchRequest,
+    WatchTarget,
+)
+from panopticon.engine.watch_remote import RemoteRun, RemoteTarget
 from panopticon.engine.watch_stages import WatchDependencies, WatchStages
 
 
@@ -19,165 +30,245 @@ class Target:
 
 
 class Inventory:
-    def __init__(self, *targets):
+    def __init__(self, *targets: WatchTarget) -> None:
         self.targets = targets
 
-    def select(self, selection):
+    def select(self, selection: TargetSelection) -> tuple[WatchTarget, ...]:
         return self.targets
 
 
 class Local:
-    def __init__(self, available=True, run=None):
-        self.ok, self.result, self.cleaned, self.args = available, run, 0, None
+    def __init__(self, available: bool = True, result: LocalRun | None = None) -> None:
+        self.ok = available
+        self.result = result
+        self.cleaned = 0
+        self.target: LocalTarget | None = None
+        self.options: tuple[float, bool, Mapping[str, str]] | None = None
 
-    def available(self):
+    def available(self) -> bool:
         return self.ok
 
-    def run(self, target, **kwargs):
-        self.args = (target, kwargs)
+    def run(
+        self,
+        target: LocalTarget,
+        *,
+        timeout: float,
+        read_only: bool,
+        env: Mapping[str, str],
+    ) -> LocalRun:
+        self.target = target
+        self.options = (timeout, read_only, env)
+        if self.result is None:
+            raise RuntimeError("missing fixture result")
         return self.result
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         self.cleaned += 1
 
 
 class Remote:
-    def __init__(self, result):
-        self.result, self.closed, self.args = result, 0, None
+    def __init__(self, result: RemoteRun) -> None:
+        self.result = result
+        self.closed = 0
+        self.target: RemoteTarget | None = None
 
-    def observe(self, target, **kwargs):
-        self.args = (target, kwargs)
+    def observe(
+        self,
+        target: RemoteTarget,
+        *,
+        calls: int,
+        timeout: float,
+        idle: float,
+        headers: Mapping[str, str],
+    ) -> RemoteRun:
+        self.target = target
         return self.result
 
-    def close(self):
+    def close(self) -> None:
         self.closed += 1
 
 
 class Decoy:
-    def manifest(self):
+    def manifest(self) -> Mapping[str, str]:
         return {"TOKEN": "secret", "OTHER": "x"}
 
-    def archive(self):
+    def archive(self) -> bytes:
         return b"archive"
 
 
 class Stage:
-    def __init__(self, value):
-        self.value, self.calls = value, 0
+    def __init__(self, value: PersistenceCandidate) -> None:
+        self.value = value
+        self.calls = 0
 
-    def collect(self, evidence):
+    def collect(self, evidence: Evidence) -> PersistenceCandidate:
         self.calls += 1
         return self.value
 
-    def extract(self, evidence):
+    def extract(self, evidence: Evidence) -> PersistenceCandidate:
         self.calls += 1
         return self.value
 
-    def apply(self, value, *, target):
+    def apply(
+        self,
+        declared: PersistenceCandidate,
+        *,
+        target: WatchTarget,
+    ) -> PersistenceCandidate:
         self.calls += 1
         return self.value
 
-    def evaluate(self, evidence, *, target):
+    def evaluate(
+        self,
+        evidence: Evidence,
+        *,
+        target: WatchTarget,
+    ) -> tuple[PersistenceCandidate, ...]:
         self.calls += 1
         return (self.value,)
 
-    def drive(self, evidence, **kwargs):
+    def drive(
+        self,
+        evidence: Evidence,
+        *,
+        calls: int,
+        args: tuple[str, ...],
+        timeout: float,
+        idle: float,
+    ) -> Evidence:
         self.calls += 1
         return self.value
 
 
 class Cancel:
-    def __init__(self, value=True):
+    def __init__(self, value: bool = True) -> None:
         self.value = value
 
-    def cancelled(self):
+    def cancelled(self) -> bool:
         return self.value
 
 
-def request(**kwargs):
-    return WatchRequest(TargetSelection(TargetMode.ALL), WatchOptions(**kwargs))
-
-
-def test_local_pipeline_coverage_and_cleanup():
-    local = Local(
-        run=LocalRun("PARTIAL", "partial", "raw", {"file": "COMPLETE", "bad": "wat"}, ("diag",))
+def request(
+    *,
+    real_env: bool = False,
+    args: tuple[str, ...] = (),
+    headers: tuple[str, ...] = (),
+) -> WatchRequest:
+    return WatchRequest(
+        TargetSelection(TargetMode.ALL),
+        WatchOptions(real_env=real_env, args=args, headers=headers),
     )
-    spans, events, declared, auth, rules, mcp = [
-        Stage(x) for x in ("span", "event", "decl", "auth", "finding", "driven")
+
+
+def test_local_pipeline_coverage_and_cleanup() -> None:
+    local = Local(
+        result=LocalRun(
+            "PARTIAL",
+            "partial",
+            "raw",
+            {"file": "COMPLETE", "bad": "wat"},
+            ("diag",),
+        )
+    )
+    spans, events, declared, authority, rules, mcp = [
+        Stage(value) for value in ("span", "event", "decl", "auth", "finding", "driven")
     ]
-    d = WatchDependencies(
+    dependencies = WatchDependencies(
         Inventory(Target("local")),
         local=local,
         decoy=Decoy(),
         spans=spans,
         events=events,
         declared=declared,
-        authority=auth,
+        authority=authority,
         rules=rules,
         mcp=mcp,
         environment={"ENV": "1"},
     )
-    out = WatchStages(d).run(request(real_env=True, args=("a",), headers=("X",)))[0]
-    assert out.status == "PARTIAL" and out.reason == "partial" and out.findings == ("finding",)
-    assert out.persistence == ("span", "event", "auth") and out.coverage["bad"].value == "UNKNOWN"
-    assert local.cleaned == 1 and local.args[0].env["TOKEN"] == "secret"
+    outcome = WatchStages(dependencies).run(request(real_env=True, args=("a",), headers=("X",)))[0]
+    assert outcome.status == "PARTIAL"
+    assert outcome.reason == "partial"
+    assert outcome.findings == ("finding",)
+    assert outcome.persistence == ("span", "event", "auth")
+    assert outcome.coverage["bad"].value == "UNKNOWN"
+    assert local.cleaned == 1
+    assert local.target is not None and local.target.env["TOKEN"] == "secret"
 
 
-def test_target_guard_outcomes_and_cancellation():
-    targets = [
+def test_target_guard_outcomes_and_cancellation() -> None:
+    targets = (
         Target("destructive", destructive=True),
         Target("missing", command=None),
         Target("remote", transport="http"),
-    ]
-    out = WatchStages(
+    )
+    outcome = WatchStages(
         WatchDependencies(Inventory(*targets), local=Local(False), cancellation=Cancel())
     ).run(request(real_env=True))[0]
-    assert (out.status, out.reason) == ("INCOMPLETE", "CANCELLED")
-    out = WatchStages(WatchDependencies(Inventory(targets[0]), local=Local(True))).run(
+    assert (outcome.status, outcome.reason) == ("INCOMPLETE", "CANCELLED")
+    outcome = WatchStages(WatchDependencies(Inventory(targets[0]), local=Local(True))).run(
         request(real_env=True)
     )[0]
-    assert (out.status, out.reason) == ("SKIPPED", "SKIPPED_DESTRUCTIVE")
-    out = WatchStages(WatchDependencies(Inventory(targets[1]), local=Local(True))).run(request())[0]
-    assert out.reason == "UNINSTRUMENTABLE_LOCAL_TARGET"
-    out = WatchStages(WatchDependencies(Inventory(targets[2]))).run(request())[0]
-    assert out.reason == "UNSUPPORTED_TRANSPORT"
-    out = WatchStages(WatchDependencies(Inventory(Target("none")), local=None)).run(request())[0]
-    assert out.reason == "RUNTIME_UNAVAILABLE"
+    assert (outcome.status, outcome.reason) == ("SKIPPED", "SKIPPED_DESTRUCTIVE")
+    outcome = WatchStages(WatchDependencies(Inventory(targets[1]), local=Local(True))).run(
+        request()
+    )[0]
+    assert outcome.reason == "UNINSTRUMENTABLE_LOCAL_TARGET"
+    outcome = WatchStages(WatchDependencies(Inventory(targets[2]))).run(request())[0]
+    assert outcome.reason == "UNSUPPORTED_TRANSPORT"
+    outcome = WatchStages(WatchDependencies(Inventory(Target("none")))).run(request())[0]
+    assert outcome.reason == "RUNTIME_UNAVAILABLE"
 
 
-def test_remote_pipeline_and_failure_cleanup():
+def test_remote_pipeline_and_failure_cleanup() -> None:
     remote = Remote(
         RemoteRun("COMPLETE", "ok", "evidence", {"file": "COMPLETE", "process": "PARTIAL"})
     )
     stage = Stage("candidate")
-    out = WatchStages(
+    outcome = WatchStages(
         WatchDependencies(
-            Inventory(Target("r", transport="http", url="u")), remote=remote, rules=stage
+            Inventory(Target("r", transport="http", url="u")),
+            remote=remote,
+            rules=stage,
         )
     ).run(request(headers=("Auth",)))[0]
-    assert (
-        out.status == "COMPLETE"
-        and out.coverage["file"].value == "UNSUPPORTED"
-        and out.coverage["process"].value == "UNSUPPORTED"
-    )
+    assert outcome.status == "COMPLETE"
+    assert outcome.coverage["file"].value == "UNSUPPORTED"
+    assert outcome.coverage["process"].value == "UNSUPPORTED"
     assert remote.closed == 1 and stage.calls == 1
 
     class Boom(Local):
-        def run(self, *a, **k):
+        def run(
+            self,
+            target: LocalTarget,
+            *,
+            timeout: float,
+            read_only: bool,
+            env: Mapping[str, str],
+        ) -> LocalRun:
             raise TimeoutError
 
     local = Boom(True)
-    out = WatchStages(WatchDependencies(Inventory(Target("x")), local=local)).run(request())[0]
-    assert (out.status, out.reason) == ("INCOMPLETE", "TIMEOUT") and local.cleaned == 1
+    outcome = WatchStages(WatchDependencies(Inventory(Target("x")), local=local)).run(request())[0]
+    assert (outcome.status, outcome.reason) == ("INCOMPLETE", "TIMEOUT")
+    assert local.cleaned == 1
 
 
 @pytest.mark.parametrize("error", (RuntimeError, TypeError, ValueError))
-def test_local_stage_errors_become_crash_and_cleanup(error):
+def test_local_stage_errors_become_crash_and_cleanup(error: type[Exception]) -> None:
     class Broken(Local):
-        def run(self, *args, **kwargs):
+        def run(
+            self,
+            target: LocalTarget,
+            *,
+            timeout: float,
+            read_only: bool,
+            env: Mapping[str, str],
+        ) -> LocalRun:
             raise error("boom")
 
     local = Broken(True)
-    out = WatchStages(WatchDependencies(Inventory(Target("broken")), local=local)).run(request())[0]
-    assert (out.status, out.reason) == ("INCOMPLETE", "CRASH")
+    outcome = WatchStages(WatchDependencies(Inventory(Target("broken")), local=local)).run(
+        request()
+    )[0]
+    assert (outcome.status, outcome.reason) == ("INCOMPLETE", "CRASH")
     assert local.cleaned == 1

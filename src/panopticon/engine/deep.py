@@ -6,9 +6,10 @@ import asyncio
 import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Protocol
 
 from panopticon.analyzers.semantic.reviewer import (
-    SemanticReviewer,
+    ReviewOutcome,
     SemanticStatus,
 )
 from panopticon.models.common import PersistedPath
@@ -32,6 +33,12 @@ from .scan import DeepDimension, DeepDimensionStatus, ScanFinding
 
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _INSTALLATION = InstallationId("inst_0000000000000000")
+
+
+class SemanticReviewPort(Protocol):
+    root: Path
+
+    async def review(self, findings: tuple[Finding, ...]) -> ReviewOutcome: ...
 
 
 def _severity(value: str) -> FindingSeverity:
@@ -87,7 +94,7 @@ def _finding(value: ScanFinding) -> Finding:
 
 
 class SemanticDeepPort:
-    def __init__(self, reviewer: SemanticReviewer) -> None:
+    def __init__(self, reviewer: SemanticReviewPort) -> None:
         self.reviewer = reviewer
 
     def analyze(
