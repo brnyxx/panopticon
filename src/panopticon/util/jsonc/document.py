@@ -48,21 +48,10 @@ class SourceDocument:
 
 def source_location(source: bytes, offset: int, bom_length: int) -> tuple[int, int]:
     """Return one-based line and column for a byte offset."""
-    line = 1
-    line_start = 0
-    index = 0
-    while index < offset:
-        if source[index] == 0x0D:
-            if index + 1 < offset and source[index + 1] == 0x0A:
-                index += 1
-            line += 1
-            line_start = index + 1
-        elif source[index] == 0x0A:
-            line += 1
-            line_start = index + 1
-        index += 1
-    if line == 1:
-        line_start = bom_length
+    prefix = source[bom_length:offset]
+    line = 1 + prefix.count(b"\n") + prefix.count(b"\r") - prefix.count(b"\r\n")
+    last_newline = max(prefix.rfind(b"\n"), prefix.rfind(b"\r"))
+    line_start = bom_length if last_newline < 0 else bom_length + last_newline + 1
     return line, max(1, offset - line_start + 1)
 
 

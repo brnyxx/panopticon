@@ -19,7 +19,7 @@ foundation:
 	uv run python scripts/check_engine_loc.py  # 250 pure LOC maximum
 
 test:
-	uv run pytest -m "not docker and not network"
+	uv run pytest -m "not docker and not network" --cov=panopticon --cov-report=term
 
 test-docker:
 	uv run pytest -m docker

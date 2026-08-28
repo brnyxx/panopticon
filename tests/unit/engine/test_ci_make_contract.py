@@ -31,30 +31,32 @@ def test_ci_workflow_is_parseable() -> None:
     assert isinstance(document, dict)
 
 
-def test_ci_has_all_strict_foundation_checks_without_enabling_self_scan() -> None:
+def test_ci_has_all_strict_checks_and_enabled_trusted_self_scan() -> None:
     # Given: the workflow text and its parsed machine shape.
     text = CI_PATH.read_text(encoding="utf-8")
     document = yaml.load(text, Loader=yaml.BaseLoader)
     assert isinstance(document, dict)
 
-    # Then: every affected foundation check is present and unfinished self-scan stays disabled.
+    # Then: every affected check is present and self-scan is restricted to trusted events.
     for check in REQUIRED_CHECKS:
         assert check in text
     assert "check-no-excuse-rules.py" in text or "check_no_excuse" in text
     assert "250" in text
     assert "self-scan:" in text
-    assert "if: false" in text
+    assert "if: github.event_name != 'pull_request'" in text
+    assert "uses: ./" in text
 
 
-def test_ci_jobs_keep_docker_and_unfinished_scan_separate() -> None:
+def test_ci_jobs_keep_docker_and_self_scan_separate() -> None:
     # Given: the workflow source.
     text = CI_PATH.read_text(encoding="utf-8")
 
-    # Then: Docker remains its own job while the unfinished analyze job is not enabled.
+    # Then: Docker remains its own job while self-scan uses the local action.
     assert "test-docker:" in text
     self_scan_start = text.index("self-scan:")
     self_scan = text[self_scan_start:]
-    assert "if: false" in self_scan
+    assert "uses: ./" in self_scan
+    assert "if: always()" in self_scan
 
 
 async def test_make_ci_dry_run_runs_schema_validator_on_real_surface() -> None:

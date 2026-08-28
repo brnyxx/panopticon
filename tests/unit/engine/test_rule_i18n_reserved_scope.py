@@ -88,15 +88,26 @@ def test_current_manifests_activate_cfg_hist_and_watch_catalog() -> None:
         + [f"HIST-{index:03d}" for index in range(1, 5)]
         + [f"WATCH-{index:03d}" for index in range(1, 15)]
     )
-    # Then: both declare the same active scope with no reserved rules.
+    document_ids = (
+        *expected,
+        "FIX-001",
+        "FIX-002",
+        "FIX-004",
+        "FIX-005",
+        "FIX-008",
+        "FIX-010",
+        *(f"SENT-{index:03d}" for index in range(1, 12)),
+    )
+    # Then: observable and documentation scopes are independently explicit.
     for manifest, issue in loaded:
         assert issue is None
         assert manifest is not None
         assert manifest.staged is True
-        assert manifest.expected_ids == expected
         assert getattr(manifest, "reserved_ids", None) == ()
+    assert loaded[0][0] is not None and loaded[0][0].expected_ids == expected
+    assert loaded[1][0] is not None and loaded[1][0].expected_ids == document_ids
 
-    inventory = RuleScopeInventory(expected, expected, expected, expected, expected)
+    inventory = RuleScopeInventory(expected, document_ids, document_ids, expected, expected)
     assert (
         check_rules.repository_issues(
             ROOT,
@@ -237,7 +248,7 @@ def test_manifest_without_reserved_ids_is_invalid(tmp_path: Path) -> None:
     assert issue.code is ScopeIssueCode.INVALID_SCOPE_MANIFEST
 
 
-def test_rule_and_i18n_reserved_scope_must_match(tmp_path: Path) -> None:
+def test_rule_and_i18n_reserved_scopes_are_validated_independently(tmp_path: Path) -> None:
     # Given: rule and i18n manifests that differ only in their reserved IDs.
     rule_manifest = tmp_path / "rules" / "expected_scope.yaml"
     i18n_manifest = tmp_path / "i18n" / "expected_rules.yaml"
@@ -260,8 +271,10 @@ def test_rule_and_i18n_reserved_scope_must_match(tmp_path: Path) -> None:
         RuleScopeInventory((), (), (), (), ()),
     )
 
-    # Then: the mismatch is reported before inventory semantics are evaluated.
-    assert ScopeIssueCode.MANIFEST_SCOPE_MISMATCH in _codes(issues)
+    # Then: each scope reports its own missing bilingual assets.
+    assert ScopeIssueCode.MANIFEST_SCOPE_MISMATCH not in _codes(issues)
+    assert ScopeIssueCode.MISSING_RESERVED_KO_ID in _codes(issues)
+    assert ScopeIssueCode.MISSING_RESERVED_EN_ID in _codes(issues)
 
 
 def test_promoting_reserved_id_to_expected_requires_active_assets() -> None:

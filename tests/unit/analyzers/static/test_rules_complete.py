@@ -33,14 +33,17 @@ def _context(
     tmp_path: Path,
     source: str,
     *,
-    options: StaticRuleOptions = StaticRuleOptions(),
+    options: StaticRuleOptions | None = None,
     permissions=None,
 ):
     path = tmp_path / "server.py"
     path.write_text(source, encoding="utf-8")
     tree = ast.parse(source)
     parsed = ParsedPythonFile(path, "server.py", source, tree)
-    config = StaticConfiguration(tmp_path, ScannerConfig(rule_options=options))
+    config = StaticConfiguration(
+        tmp_path,
+        ScannerConfig(rule_options=options or StaticRuleOptions()),
+    )
     if permissions is not None:
         config = SimpleNamespace(
             scan_root=tmp_path, scanner=config.scanner, permissions=permissions
@@ -49,7 +52,16 @@ def _context(
 
 
 def test_ast_utils_regions_aliases_ranges_and_module_names(tmp_path: Path) -> None:
-    source = """import foo.bar as fb\nfrom typing import Any as Anything\n@mcp.tool(name='renamed')\ndef fn(x): return x\n@mcp.call_tool\ndef dispatch(name, arguments):\n    if name == 'echo': return arguments['x']\n@mcp.prompt\ndef prompt(): pass\n"""
+    source = """import foo.bar as fb
+from typing import Any as Anything
+@mcp.tool(name='renamed')
+def fn(x): return x
+@mcp.call_tool
+def dispatch(name, arguments):
+    if name == 'echo': return arguments['x']
+@mcp.prompt
+def prompt(): pass
+"""
     context = _context(tmp_path, source)
     file = context.files.python_files[0]
     regions = discover_tool_regions(file)
@@ -117,9 +129,16 @@ def dispatch(name, arguments):
 
 
 def test_sent004_prompt_taint_sink_and_sanitized_exemption(tmp_path: Path) -> None:
-    source = """@mcp.prompt()\ndef bad():\n    value = tool.call_tool()\n    client.chat.completions.create(messages=value)\n@ mcp.prompt()\ndef clean():\n    value = tool.call_tool()\n    value = sanitize(value)\n    return value\n""".replace(
-        "@ mcp", "@mcp"
-    )
+    source = """@mcp.prompt()
+def bad():
+    value = tool.call_tool()
+    client.chat.completions.create(messages=value)
+@ mcp.prompt()
+def clean():
+    value = tool.call_tool()
+    value = sanitize(value)
+    return value
+""".replace("@ mcp", "@mcp")
     state = RuleRunState()
     sent004.detect(
         _context(tmp_path, source, options=StaticRuleOptions(sanitizers=("server.sanitize",))),
@@ -153,7 +172,18 @@ def test_sent005_redacts_secret_and_honors_allowlist_and_reserved(tmp_path: Path
 
 
 def test_sent006_routes_public_verified_and_missing_auth(tmp_path: Path) -> None:
-    source = """from fastapi import APIRouter, Depends\nrouter=APIRouter()\ndef auth(token):\n    jwt.decode(token, 'k'); raise ValueError()\n@router.get('/public')\ndef a(): pass\n@router.post('/private', dependencies=[Depends(auth)])\ndef b(): pass\n@router.get('/open')\ndef c(): pass\n"""
+    source = """from fastapi import APIRouter, Depends
+router=APIRouter()
+def auth(token):
+    jwt.decode(token, 'k')
+    raise ValueError()
+@router.get('/public')
+def a(): pass
+@router.post('/private', dependencies=[Depends(auth)])
+def b(): pass
+@router.get('/open')
+def c(): pass
+"""
     options = StaticRuleOptions(public_routes=("GET public",))
     state = RuleRunState()
     sent006.detect(_context(tmp_path, source, options=options), state)
@@ -162,7 +192,13 @@ def test_sent006_routes_public_verified_and_missing_auth(tmp_path: Path) -> None
 
 
 def test_sent007_manifest_verification_and_invalid_anchor(tmp_path: Path) -> None:
-    source = """import json, hashlib\ndef load_manifest():\n    json.load(open('manifest.json'))\ndef verified_manifest():\n    hashlib.sha256(b'x')\n    json.loads('{}')\n"""
+    source = """import json, hashlib
+def load_manifest():
+    json.load(open('manifest.json'))
+def verified_manifest():
+    hashlib.sha256(b'x')
+    json.loads('{}')
+"""
     (tmp_path / "sentinel.integrity.yaml").write_text(
         "version: 1\nmanifests: {}\n", encoding="utf-8"
     )
@@ -172,7 +208,7 @@ def test_sent007_manifest_verification_and_invalid_anchor(tmp_path: Path) -> Non
     (tmp_path / "sentinel.integrity.yaml").write_text(
         "version: 2\nmanifests: {}\n", encoding="utf-8"
     )
-    with pytest.raises(ValueError, match="invalid sentinel.integrity.yaml"):
+    with pytest.raises(ValueError, match=r"invalid sentinel\.integrity\.yaml"):
         sent007.detect(_context(tmp_path, source), RuleRunState())
 
 

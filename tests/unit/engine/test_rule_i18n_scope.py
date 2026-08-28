@@ -278,10 +278,20 @@ def test_repository_with_active_cfg_hist_manifests_is_green() -> None:
         + [f"HIST-{index:03d}" for index in range(1, 5)]
         + [f"WATCH-{index:03d}" for index in range(1, 15)]
     )
+    document_ids = (
+        *active,
+        "FIX-001",
+        "FIX-002",
+        "FIX-004",
+        "FIX-005",
+        "FIX-008",
+        "FIX-010",
+        *(f"SENT-{index:03d}" for index in range(1, 12)),
+    )
     inventory = RuleScopeInventory(
         registered_ids=active,
-        ko_ids=active,
-        en_ids=active,
+        ko_ids=document_ids,
+        en_ids=document_ids,
         positive_fixture_ids=active,
         negative_fixture_ids=active,
     )
