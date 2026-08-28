@@ -42,7 +42,13 @@ def _context(tmp_path: Path) -> WatchTargetContext:
     )
 
 
-def _result(tmp_path: Path, *, legacy: bool = False, outside: bool = False) -> LocalWatchResult:
+def _result(
+    tmp_path: Path,
+    *,
+    legacy: bool = False,
+    outside: bool = False,
+    early: bool = False,
+) -> LocalWatchResult:
     context = _context(tmp_path)
     manifest = generate_decoy_home("seed", str(context.target.installation_id))
     marker = manifest.markers[0]
@@ -66,7 +72,7 @@ def _result(tmp_path: Path, *, legacy: bool = False, outside: bool = False) -> L
         "OK",
         SpanKind.CALL,
     )
-    timestamp = (NOW + timedelta(seconds=3 if outside else 1.5)).timestamp()
+    timestamp = (NOW + timedelta(seconds=3 if outside else 0.96 if early else 1.5)).timestamp()
     trace = TraceResult(
         (
             TraceEvent(
@@ -197,3 +203,11 @@ def test_unassigned_events_and_legacy_fallback_remain_visible(tmp_path: Path) ->
     assert build.observation.protocol.era.value == "legacy"
     assert build.observation.state.stages.version_discovery.status is StageStatus.PARTIAL
     assert build.observation.state.stages.handshake.status is StageStatus.COMPLETE
+
+
+def test_call_events_allow_bounded_clock_skew(tmp_path: Path) -> None:
+    build = build_watch_observation(_result(tmp_path, early=True))
+
+    assert build.observation is not None
+    call = next(span for span in build.observation.spans if span.tool == "read_data")
+    assert any(event.root.kind == "file" for event in call.events)

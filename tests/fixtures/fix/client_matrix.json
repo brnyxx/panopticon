@@ -1,0 +1,25 @@
+{
+  "clients": ["claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic"],
+  "config": {
+    "mcpServers": {
+      "target": {
+        "command": "node",
+        "args": ["@fixture/server@latest", "--config", "/"],
+        "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"},
+        "headers": {"Authorization": "Bearer synthetic-header-value"},
+        "url": "http://127.0.0.1:8765/mcp",
+        "disabled": true
+      },
+      "keep": {"command": "node", "args": ["keep-server@1.2.3"]},
+      "remote": {"command": "node", "url": "https://remote.invalid/mcp"}
+    }
+  },
+  "applicable": {
+    "FIX-001": ["claude-code", "cursor", "vscode", "windsurf", "generic"],
+    "FIX-002": ["claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic"],
+    "FIX-004": ["claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic"],
+    "FIX-005": ["claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic"],
+    "FIX-008": ["claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic"],
+    "FIX-010": ["claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic"]
+  }
+}

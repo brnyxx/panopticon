@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal, cast
 
 from panopticon import __version__
@@ -84,8 +84,15 @@ def _decoy_paths(result: LocalWatchResult) -> dict[str, str]:
 
 
 def _span_boundaries(spans: tuple[LocalSpan, ...]) -> tuple[SpanBoundary, ...]:
+    tolerance = timedelta(milliseconds=50)
     return tuple(
-        SpanBoundary(span.span_id, span.started_at, span.ended_at, span.kind) for span in spans
+        SpanBoundary(
+            span.span_id,
+            span.started_at - tolerance if span.kind.value == "call" else span.started_at,
+            span.ended_at + tolerance if span.kind.value == "call" else span.ended_at,
+            span.kind,
+        )
+        for span in spans
     )
 
 
@@ -99,10 +106,16 @@ def _assigned_events(
         if event.child_pid is not None
     )
     context = AttributionContext(boundaries, parents)
+    call_context = AttributionContext(
+        tuple(boundary for boundary in boundaries if boundary.kind.value == "call"),
+        parents,
+    )
     assigned: dict[str, list[TraceEvent]] = {span.span_id: [] for span in result.spans}
     uncovered = 0
     for event in result.trace.events if result.trace is not None else ():
-        attribution = attribute_event(event.timestamp, event.pid, context)
+        attribution = attribute_event(event.timestamp, event.pid, call_context)
+        if attribution.span_id is None:
+            attribution = attribute_event(event.timestamp, event.pid, context)
         if attribution.span_id is None:
             uncovered += 1
         else:

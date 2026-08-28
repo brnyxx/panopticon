@@ -55,6 +55,11 @@ class McpClient(StdioTransport):
             self._record_server(legacy.result)
             await self.notify("notifications/initialized", {}, modern_metadata=False)
             return ProbeResult(ProbeStatus.COMPLETE, "LEGACY_FALLBACK", legacy.result)
+        if (
+            modern.reason_code == "PROTOCOL_VERSION_MISMATCH"
+            and legacy.reason_code == "PROTOCOL_VERSION_MISMATCH"
+        ):
+            return ProbeResult(ProbeStatus.UNSUPPORTED, "PROTOCOL_VERSION_MISMATCH")
         return ProbeResult(ProbeStatus.UNSUPPORTED, "PROTOCOL_UNSUPPORTED")
 
     async def _initialize_version(
@@ -74,6 +79,16 @@ class McpClient(StdioTransport):
             timeout=timeout,
             modern_metadata=modern,
         )
+        # A successful JSON-RPC response is not sufficient: MCP negotiation
+        # must echo a protocol revision supported by this request.  Treat an
+        # echoed (or selected) different revision as a typed mismatch so the
+        # caller can perform the legacy retry rather than entering the wrong
+        # era.
+        if result.status is ProbeStatus.COMPLETE:
+            payload = result.result
+            selected = payload.get("protocolVersion") if isinstance(payload, dict) else None
+            if selected is not None and selected != version:
+                return ProbeResult(ProbeStatus.UNSUPPORTED, "PROTOCOL_VERSION_MISMATCH", payload)
         if result.status is ProbeStatus.COMPLETE and modern:
             self.era = ProtocolEra.MODERN
             await self.notify("notifications/initialized", {})

@@ -13,6 +13,7 @@ from panopticon.engine.watch_local_model import LocalWatchStatus
 from panopticon.engine.watch_local_production import LocalRuntime, run_local_production
 from panopticon.engine.watch_model import TargetMode, TargetSelection, WatchOptions
 from panopticon.engine.watch_observation import build_watch_observation
+from panopticon.models.event import LeakEvent
 from panopticon.models.ids import derive_span_id
 from panopticon.sandbox.docker import DockerRuntime
 from panopticon.store.contracts import PersistSuccess
@@ -66,7 +67,38 @@ async def test_real_python_mcp_is_observed_and_cleaned_up(tmp_path: Path) -> Non
     repository = ArtifactRepository(tmp_path / "store")
     persisted = repository.persist_observation(built.observation)
     assert isinstance(persisted, PersistSuccess)
+    assert str(Path.home()) not in built.observation.model_dump_json()
     loaded = repository.load_observation(persisted.target)
     assert loaded.status is LoadStatus.AVAILABLE
     assert loaded.observation == built.observation
     assert await _running(runtime.executable) == before
+
+
+@pytest.mark.docker
+async def test_response_leak_persists_only_decoy_key_and_sink(tmp_path: Path) -> None:
+    root = Path(__file__).parents[2]
+    runtime: LocalRuntime = DockerRuntime()
+    inventory = ProductionWatchInventory(
+        DiscoveryEnv(tmp_path, root, "darwin"),
+        self_command=("python3", "/self/tests/fixtures/mcp/evil/decoy_leak.py"),
+    )
+    context = inventory.select(TargetSelection(TargetMode.SELF)).contexts[0]
+    result = await run_local_production(
+        context,
+        WatchOptions(calls=1, timeout=20, offline=True),
+        runtime=runtime,
+        self_source=root,
+    )
+    built = build_watch_observation(result)
+    assert built.observation is not None
+    leaks = [
+        event.root
+        for span in built.observation.spans
+        for event in span.events
+        if isinstance(event.root, LeakEvent)
+    ]
+    assert all(event.sink in {"stderr", "notification", "response"} for event in leaks)
+    assert all("PANO_DECOY_VALUE" not in event.decoy_key for event in leaks)
+    encoded = built.observation.model_dump_json()
+    assert "fixture-decoy-value" not in encoded
+    assert str(Path.home()) not in encoded

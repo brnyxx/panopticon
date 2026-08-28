@@ -166,6 +166,11 @@ def apply_behavior_rules(
         }
     )
     findings: dict[str, Finding] = {}
+    prior_suppressed = {
+        finding.rule_id: finding.suppressed_by
+        for finding in observation.findings
+        if finding.suppressed_by is not None
+    }
     diagnostics: list[str] = []
     for tool in call_tools or (None,):
         span_ids = {
@@ -179,6 +184,7 @@ def apply_behavior_rules(
             coverage=_coverage_map(observation),
             complete_spans=build.uncovered_events == 0,
             withheld=observation.declared.completeness.value != "COMPLETE",
+            suppressed_rule_ids=frozenset(prior_suppressed),
             current_tool=tool,
             server_id=result.context.target.server_id,
             installation_id=result.context.target.installation_id,
@@ -191,10 +197,21 @@ def apply_behavior_rules(
             line="observe",
             server_id=str(observation.server_id),
         )
-        findings.update((str(finding.id), finding) for finding in produced)
+        for finding in produced:
+            # Re-analysis must not silently clear an existing suppression reason.
+            reason = prior_suppressed.get(finding.rule_id)
+            if reason is not None and finding.suppressed_by != reason:
+                finding = finding.model_copy(update={"suppressed_by": reason})
+            findings[str(finding.id)] = finding
         diagnostics.extend(
             f"{diagnostic.rule_id}:{diagnostic.code}" for diagnostic in rule_diagnostics
         )
+    # A suppressed finding is durable state. Keep it when a subsequent
+    # evaluation withholds a verdict (for example WATCH-010 under suppression)
+    # rather than silently deleting the user's suppression record.
+    for prior in observation.findings:
+        if prior.suppressed_by is not None and str(prior.id) not in findings:
+            findings[str(prior.id)] = prior
     updated = observation.model_copy(
         update={"findings": tuple(findings[key] for key in sorted(findings))}
     )

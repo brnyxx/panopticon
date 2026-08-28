@@ -28,3 +28,16 @@ def test_real_home_and_env_are_rejected_before_persistence() -> None:
             real_environment_value,
             LeakContext(secrets=(real_environment_value,)),
         )
+
+
+@pytest.mark.docker
+def test_decoy_archive_has_no_real_home_path() -> None:
+    """The archive mounted into a sandbox never embeds the host home path."""
+    home = str(Path.home()).encode()
+    manifest = generate_decoy_home(
+        "container-boundary-seed",
+        "container-boundary-run",
+        project_filenames=("src/server.py",),
+    )
+    archive = decoy_archive(manifest)
+    assert home not in archive

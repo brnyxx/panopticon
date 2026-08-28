@@ -105,6 +105,7 @@ def _findings(rule_id: str, context: RuleContext) -> Iterable[Finding]:
                 first_seen=value.observed_at,
                 span_ref=SpanId(span_id) if span_id is not None else None,
                 declared_source="tool" if value.current_tool is not None else None,
+                suppressed_by=rule_id if match.suppressed else None,
             )
         ),
     )

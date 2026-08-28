@@ -64,6 +64,7 @@ class ArgumentGenerator:
         call_index: int,
         stack: tuple[int, ...],
         depth: int,
+        name_hint: str | None = None,
     ) -> JsonValue:
         if schema is False:
             raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
@@ -74,7 +75,7 @@ class ArgumentGenerator:
         next_stack = (*stack, id(schema))
         if "$ref" in schema:
             target = self._resolve_ref(schema["$ref"], root)
-            return self._generate(target, root, call_index, next_stack, depth + 1)
+            return self._generate(target, root, call_index, next_stack, depth + 1, name_hint)
         if "const" in schema:
             return json_value(schema["const"])
         if "enum" in schema:
@@ -90,7 +91,7 @@ class ArgumentGenerator:
                 return self._combinator(schema, branches, root, call_index, next_stack, depth)
         if isinstance(schema.get("allOf"), list):
             merged = merge_all_of(schema)
-            return self._generate(merged, root, call_index, next_stack, depth + 1)
+            return self._generate(merged, root, call_index, next_stack, depth + 1, name_hint)
         kind = schema_type(schema)
         if kind == "object":
             return self._object(schema, root, call_index, next_stack, depth)
@@ -103,7 +104,7 @@ class ArgumentGenerator:
         if kind == "null":
             return None
         if kind == "string" or "format" in schema or "pattern" in schema:
-            return self._string(schema, call_index)
+            return self._string(schema, call_index, name_hint)
         return {}
 
     def _combinator(
@@ -114,12 +115,13 @@ class ArgumentGenerator:
         call_index: int,
         stack: tuple[int, ...],
         depth: int,
+        name_hint: str | None = None,
     ) -> JsonValue:
         for branch in branches:
             if not isinstance(branch, (bool, dict)):
                 continue
             try:
-                candidate = self._generate(branch, root, call_index, stack, depth + 1)
+                candidate = self._generate(branch, root, call_index, stack, depth + 1, name_hint)
                 Draft202012Validator(schema).validate(candidate)
             except (ValidationError, UnsupportedSchemaError):
                 continue
@@ -145,7 +147,7 @@ class ArgumentGenerator:
             child = properties[raw_name]
             if not isinstance(child, (bool, dict)):
                 raise UnsupportedSchemaError("INVALID_SCHEMA")
-            output[raw_name] = self._generate(child, root, call_index, stack, depth + 1)
+            output[raw_name] = self._generate(child, root, call_index, stack, depth + 1, raw_name)
         return output
 
     def _array(
@@ -177,12 +179,30 @@ class ArgumentGenerator:
             output.append(self._generate(child, root, call_index + index, stack, depth + 1))
         return output
 
-    def _string(self, schema: dict[str, object], call_index: int) -> str:
+    def _string(
+        self, schema: dict[str, object], call_index: int, name_hint: str | None = None
+    ) -> str:
         minimum = non_negative_int(schema.get("minLength"), default=0)
         maximum = non_negative_int(schema.get("maxLength"), default=max(64, minimum))
         if minimum > maximum:
             raise UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
-        value = formatted_string(schema.get("format")) or self._seeded_text(call_index)
+        value = formatted_string(schema.get("format"))
+        if not value:
+            lowered = (name_hint or "").lower()
+            if any(token in lowered for token in ("path", "file", "dir")):
+                value = "~/project/README.md"
+            elif lowered in {"url", "uri"}:
+                value = "https://example.com/pano"
+            elif any(token in lowered for token in ("query", "search", "q")):
+                value = "panopticon"
+            else:
+                value = self._seeded_text(call_index)
+        if call_index > 1 and value in {
+            "~/project/README.md",
+            "https://example.com/pano",
+            "panopticon",
+        }:
+            value = f"{value}-{call_index}"
         pattern = schema.get("pattern")
         candidates = (
             value,

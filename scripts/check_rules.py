@@ -28,7 +28,10 @@ I18N_SCOPE: Final = ROOT / "src" / "panopticon" / "i18n" / "expected_rules.yaml"
 
 def import_all_rules() -> None:
     for module in pkgutil.walk_packages(analyzers.__path__, analyzers.__name__ + "."):
-        if module.name.endswith(".rules"):
+        # Rule implementations are split between evaluator modules and the
+        # decorator-based registry modules. Import both so scope inventory
+        # reflects every executable CFG/HIST/WATCH registration.
+        if module.name.endswith((".rules", ".registry_rules")):
             importlib.import_module(module.name)
 
 

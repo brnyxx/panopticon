@@ -79,8 +79,16 @@ def _recheck(selection: MutationSelection, plan: FixPlan) -> bool:
             logical_path=plan.logical_target,
         )
         actual = value_at(current.value, decode_pointer(selection.pointer))
-    except (OSError, JsoncPatchError):
+    except JsoncPatchError:
+        # A valid document with a missing pointer is the expected post-state
+        # for removals.  Read/parse failures are not evidence of resolution:
+        # treating a deleted or concurrently-corrupted file as resolved would
+        # incorrectly commit the transaction.
         return plan.patches[0].operation is PatchOperation.REMOVE
+    except ValueError:
+        return False
+    except OSError:
+        return False
     return actual == plan.patches[0].value
 
 
