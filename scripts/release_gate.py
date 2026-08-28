@@ -52,6 +52,10 @@ def build_commands(temporary: Path) -> list[CommandSpec]:
             (
                 "uv",
                 "run",
+                "--with",
+                "semgrep==1.170.0",
+                "--with",
+                "mcp==1.23.3",
                 "pytest",
                 "-c",
                 "tests/upstream/pytest.ini",
