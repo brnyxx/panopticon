@@ -1,1 +1,68 @@
-"""Declared-scope extractors (panopticon-buildplan.md §13)."""
+"""Typed declared-scope extraction and authority API."""
+
+from .authority import compose, match_env, match_host, match_network, match_path, match_process
+from .extract import (
+    ConfigExtractor,
+    ManifestExtractor,
+    ReadmeExtractor,
+    RegistryExtractor,
+    SelfDeclExtractor,
+    ToolDescExtractor,
+)
+from .model import (
+    Authority,
+    Capability,
+    Completeness,
+    Coverage,
+    DeclaredScope,
+    Diagnostic,
+    Match,
+    ScopeGrant,
+    ScopeReason,
+    ScopeStatus,
+    SourceKind,
+)
+from .normalize import (
+    host_matches,
+    host_port,
+    normalize_env,
+    normalize_host,
+    normalize_path,
+    normalize_port,
+    normalize_process,
+    path_matches,
+)
+
+__all__ = [
+    "Authority",
+    "Capability",
+    "Completeness",
+    "ConfigExtractor",
+    "Coverage",
+    "DeclaredScope",
+    "Diagnostic",
+    "ManifestExtractor",
+    "Match",
+    "ReadmeExtractor",
+    "RegistryExtractor",
+    "ScopeGrant",
+    "ScopeReason",
+    "ScopeStatus",
+    "SelfDeclExtractor",
+    "SourceKind",
+    "ToolDescExtractor",
+    "compose",
+    "host_matches",
+    "host_port",
+    "match_env",
+    "match_host",
+    "match_network",
+    "match_path",
+    "match_process",
+    "normalize_env",
+    "normalize_host",
+    "normalize_path",
+    "normalize_port",
+    "normalize_process",
+    "path_matches",
+]
