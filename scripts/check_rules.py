@@ -121,18 +121,24 @@ def repository_issues(
     if rule_scope is None or i18n_scope is None:
         return (ScopeIssue(ScopeIssueCode.INVALID_SCOPE_MANIFEST),)
     issues: list[ScopeIssue] = []
-    if (
-        rule_scope.staged,
-        rule_scope.expected_ids,
-        rule_scope.reserved_ids,
-    ) != (
-        i18n_scope.staged,
-        i18n_scope.expected_ids,
-        i18n_scope.reserved_ids,
-    ):
-        issues.append(ScopeIssue(ScopeIssueCode.MANIFEST_SCOPE_MISMATCH))
     observed = _inventory(root) if inventory is None else inventory
-    issues.extend(check_scope(rule_scope, observed))
+    observable_docs = frozenset((*rule_scope.expected_ids, *rule_scope.reserved_ids))
+    observable_inventory = RuleScopeInventory(
+        registered_ids=observed.registered_ids,
+        ko_ids=tuple(rule_id for rule_id in observed.ko_ids if rule_id in observable_docs),
+        en_ids=tuple(rule_id for rule_id in observed.en_ids if rule_id in observable_docs),
+        positive_fixture_ids=observed.positive_fixture_ids,
+        negative_fixture_ids=observed.negative_fixture_ids,
+    )
+    issues.extend(check_scope(rule_scope, observable_inventory))
+    i18n_inventory = RuleScopeInventory(
+        registered_ids=i18n_scope.expected_ids,
+        ko_ids=observed.ko_ids,
+        en_ids=observed.en_ids,
+        positive_fixture_ids=i18n_scope.expected_ids,
+        negative_fixture_ids=i18n_scope.expected_ids,
+    )
+    issues.extend(check_scope(i18n_scope, i18n_inventory))
     return tuple(issues)
 
 

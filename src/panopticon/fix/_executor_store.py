@@ -6,7 +6,7 @@ import stat
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Protocol
 
 from panopticon.models.common import NonEmptyStr, PersistedPathValue, StrictModel
 from panopticon.secrets.backup import save_encrypted_backup
@@ -26,8 +26,12 @@ from panopticon.store.repository import ArtifactRepository
 from panopticon.util.leak_check import LeakContext, find_leaks
 
 from .backup import backup_target, encrypted_backup_request
-from .cli_model import FixSelection
 from .model import BackupRequest, FixPlan, digest
+
+
+class MutationIdentity(Protocol):
+    @property
+    def fix_id(self) -> str: ...
 
 
 class JournalStatus(StrEnum):
@@ -69,7 +73,7 @@ def persist_backup(
     repository: ArtifactRepository,
     store: SecretStore | None,
     plan: FixPlan,
-    selection: FixSelection,
+    selection: MutationIdentity,
     transaction_id: str,
     context: LeakContext,
 ) -> StoredBackup | None:

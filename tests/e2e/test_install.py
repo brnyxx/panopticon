@@ -1,101 +1,222 @@
+from __future__ import annotations
+
+import asyncio
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from panopticon.discovery.base import DiscoveryEnv
 from panopticon.discovery.generic import GenericAdapter
-from panopticon.fix.cli_model import FixOutcomeStatus
-from panopticon.fix.service import TransactionReceipt
-from panopticon.install import service
+from panopticon.engine.install import recheck_install
+from panopticon.fix.executor import FixTransactionExecutor
 from panopticon.install.model import InstallAction, InstallRequest, InstallStatus
+from panopticon.install.service import execute
+from panopticon.secrets.memory import InMemorySecretStore
+from panopticon.store.repository import ArtifactRepository
 
-
-class RecordingTransaction:
-    def __init__(self) -> None:
-        self.calls = []
-
-    def apply(self, plan, selection, *, recheck: bool):
-        self.calls.append((plan, selection, recheck))
-        return TransactionReceipt(
-            FixOutcomeStatus.RECHECKED, "TRANSACTION_COMPLETE", transaction_id="tx-1"
-        )
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "discovery"
+CLIENTS = (
+    "claude-desktop",
+    "claude-code",
+    "cursor",
+    "vscode",
+    "windsurf",
+    "generic",
+)
 
 
 def _env(tmp_path: Path) -> DiscoveryEnv:
-    return DiscoveryEnv(tmp_path, tmp_path, "linux", {})
+    home = tmp_path / "home"
+    cwd = tmp_path / "project"
+    home.mkdir()
+    cwd.mkdir()
+    return DiscoveryEnv(home, cwd, "linux", {})
 
 
-def test_install_launch_uninstall_restores_original_hash(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    config = tmp_path / "client.jsonc"
+def _executor(tmp_path: Path) -> FixTransactionExecutor:
+    return FixTransactionExecutor(
+        ArtifactRepository((tmp_path / "store").resolve()),
+        lambda: datetime(2026, 1, 1, tzinfo=UTC),
+        secret_store=InMemorySecretStore(),
+        rechecker=recheck_install,
+    )
+
+
+def _pano() -> str:
+    executable = Path(sys.executable).with_name("pano")
+    assert executable.is_file()
+    return str(executable)
+
+
+async def _launch(command: str, args: list[str], payload: bytes) -> tuple[int, bytes]:
+    process = await asyncio.create_subprocess_exec(
+        command,
+        *args,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, _stderr = await process.communicate(payload)
+    return process.returncode or 0, stdout
+
+
+def test_install_launch_uninstall_restores_original_hash(tmp_path: Path) -> None:
+    env = _env(tmp_path)
+    child = tmp_path / "relay.py"
+    child.write_text(
+        "import sys\n"
+        "data=sys.stdin.buffer.read()\n"
+        "sys.stdout.buffer.write(data)\n"
+        "raise SystemExit(7)\n"
+    )
+    config = env.cwd / "generic.json"
     original = (
-        b'{\n  // preserved\n  "mcpServers": '
-        b'{"demo": {"command": "node", "args": ["server.js"]}}\n}\n'
+        b'{\n  // preserved\n  "mcpServers": {"demo": {"command": "'
+        + sys.executable.encode()
+        + b'", "args": ["'
+        + str(child).encode()
+        + b'"]}}\n}\n'
     )
     config.write_bytes(original)
-    monkeypatch.setattr(service, "registered_adapters", lambda env: (GenericAdapter(config, env),))
-    tx = RecordingTransaction()
-    request = InstallRequest("generic", dry_run=True, pano_command="/usr/bin/python3")
-    planned = service.execute(request, _env(tmp_path), transaction=tx)
-    assert planned.successful and planned.outcomes[0].status is InstallStatus.PLANNED
-    assert config.read_bytes() == original and tx.calls == []
-    # Applying is delegated to the injected transaction and rechecked exactly once.
-    applied = service.execute(
-        request.__class__("generic", dry_run=False, yes=True, pano_command="/usr/bin/python3"),
-        _env(tmp_path),
-        transaction=tx,
+    transaction = _executor(tmp_path)
+    request = InstallRequest(
+        "generic",
+        config_path=config,
+        dry_run=False,
+        yes=True,
+        pano_command=_pano(),
     )
-    assert applied.outcomes[0].status is InstallStatus.RECHECKED
-    assert tx.calls and tx.calls[0][2] is True
-    assert tx.calls[0][0].original_hash
-    # The generated uninstall plan carries the recorded command/argv and removes metadata.
-    config.write_bytes(
-        b'{"mcpServers":{"demo":{"command":"shim","args":["wrap"],"_pano_original":{"v":1,"command":"node","args":["server.js"]}}}}'
+
+    installed = execute(request, env, transaction=transaction)
+
+    assert installed.successful
+    assert installed.outcomes[0].status is InstallStatus.RECHECKED
+    wrapped = GenericAdapter(config, env).parse(config).entries[0].raw
+    command, args = wrapped["command"], wrapped["args"]
+    assert isinstance(command, str) and isinstance(args, list)
+    assert all(isinstance(argument, str) for argument in args)
+    exit_code, stdout = asyncio.run(
+        _launch(
+            command,
+            [argument for argument in args if isinstance(argument, str)],
+            b"\x00mcp\xff",
+        )
     )
-    uninstall = service.execute(
-        InstallRequest("generic", action=InstallAction.UNINSTALL, pano_command="/usr/bin/python3"),
-        _env(tmp_path),
-        transaction=tx,
+    assert (exit_code, stdout) == (7, b"\x00mcp\xff")
+
+    uninstalled = execute(
+        InstallRequest(
+            "generic",
+            action=InstallAction.UNINSTALL,
+            config_path=config,
+            dry_run=False,
+            yes=True,
+            pano_command=_pano(),
+        ),
+        env,
+        transaction=transaction,
     )
-    assert uninstall.outcomes[0].status is InstallStatus.PLANNED
+
+    assert uninstalled.successful
+    assert config.read_bytes() == original
+
+
+def _target(client: str, env: DiscoveryEnv) -> Path:
+    return {
+        "claude-desktop": env.home / ".config/Claude/claude_desktop_config.json",
+        "claude-code": env.home / ".claude.json",
+        "cursor": env.home / ".cursor/mcp.json",
+        "vscode": env.home / ".config/Code/User/settings.json",
+        "windsurf": env.home / ".codeium/windsurf/mcp_config.json",
+        "generic": env.cwd / "generic.json",
+    }[client]
+
+
+@pytest.mark.parametrize("client", CLIENTS)
+def test_every_client_fixture_install_uninstall_restores_exact_bytes(
+    tmp_path: Path,
+    client: str,
+) -> None:
+    env = _env(tmp_path)
+    target = _target(client, env)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fixture_client = client.replace("-", "_")
+    target.write_bytes((FIXTURES / fixture_client / "clean.json").read_bytes())
+    original = target.read_bytes()
+    generic = target if client == "generic" else None
+    transaction = _executor(tmp_path)
+
+    installed = execute(
+        InstallRequest(
+            client,
+            config_path=generic,
+            dry_run=False,
+            yes=True,
+            pano_command=_pano(),
+        ),
+        env,
+        transaction=transaction,
+    )
+    assert installed.successful
+
+    uninstalled = execute(
+        InstallRequest(
+            client,
+            action=InstallAction.UNINSTALL,
+            config_path=generic,
+            dry_run=False,
+            yes=True,
+            pano_command=_pano(),
+        ),
+        env,
+        transaction=transaction,
+    )
+    assert uninstalled.successful
+    assert target.read_bytes() == original
 
 
 def test_wrapped_remote_and_concurrent_entries_have_no_collateral_changes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
 ) -> None:
-    config = tmp_path / "client.json"
-    original = b'{"mcpServers":{"local":{"command":"node","args":["a"]},"remote":{"url":"https://example.test"},"disabled":{"command":"node","args":[],"disabled":true}}}'
+    env = _env(tmp_path)
+    config = env.cwd / "generic.json"
+    original = (
+        b'{"mcpServers":{"local":{"command":"node","args":["a"]},'
+        b'"remote":{"url":"https://example.test"},'
+        b'"disabled":{"command":"node","args":[],"disabled":true}}}'
+    )
     config.write_bytes(original)
-    monkeypatch.setattr(service, "registered_adapters", lambda env: (GenericAdapter(config, env),))
-    tx = RecordingTransaction()
-    planned = service.execute(
-        InstallRequest("generic", only="local", pano_command="/usr/bin/python3"),
-        _env(tmp_path),
-        transaction=tx,
-    )
-    assert len(planned.outcomes) == 1 and planned.outcomes[0].server_name == "local"
-    assert config.read_bytes() == original
-    # A concurrent edit is detected by the transaction boundary; no other entries are selected.
-    config.write_bytes(original.replace(b'"a"', b'"edited"'))
-    applied = service.execute(
+    transaction = _executor(tmp_path)
+    planned = execute(
         InstallRequest(
-            "generic", only="local", dry_run=False, yes=True, pano_command="/usr/bin/python3"
+            "generic",
+            only="local",
+            config_path=config,
+            pano_command=_pano(),
         ),
-        _env(tmp_path),
-        transaction=tx,
+        env,
+        transaction=transaction,
     )
-    assert len(applied.outcomes) == 1 and len(tx.calls) == 1
-    assert config.read_bytes() != original
-    remote = service.execute(
-        InstallRequest("generic", only="remote", pano_command="/usr/bin/python3"),
-        _env(tmp_path),
-        transaction=tx,
+    assert planned.successful and config.read_bytes() == original
+
+    plan = planned.outcomes[0].plan
+    assert plan is not None
+    config.write_bytes(original.replace(b'"a"', b'"edited"'))
+    conflict = transaction.apply(plan.fix_plan, plan.selection, recheck=True)
+    assert conflict.status.value == "CONFLICT"
+    assert b'"edited"' in config.read_bytes()
+
+    remote = execute(
+        InstallRequest("generic", only="remote", config_path=config, pano_command=_pano()),
+        env,
+        transaction=transaction,
+    )
+    disabled = execute(
+        InstallRequest("generic", only="disabled", config_path=config, pano_command=_pano()),
+        env,
+        transaction=transaction,
     )
     assert remote.outcomes[0].reason_code == "REMOTE_NOT_TARGET"
-    disabled = service.execute(
-        InstallRequest("generic", only="disabled", pano_command="/usr/bin/python3"),
-        _env(tmp_path),
-        transaction=tx,
-    )
     assert disabled.outcomes[0].reason_code == "DISABLED"

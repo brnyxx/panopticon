@@ -26,7 +26,7 @@ from panopticon.fix.cli_model import (
     FixRequest,
     FixSelection,
 )
-from panopticon.fix.executor import FixTransactionExecutor
+from panopticon.fix.executor import FixTransactionExecutor, MutationSelection
 from panopticon.fix.https import HttpxTransport
 from panopticon.fix.model import FixPlan
 from panopticon.fix.plan import apply_bytes, unified_diff
@@ -71,7 +71,7 @@ def _secret_store() -> SecretStore:
     return LinuxSecretServiceAdapter()
 
 
-def _recheck(selection: FixSelection, plan: FixPlan) -> bool:
+def _recheck(selection: MutationSelection, plan: FixPlan) -> bool:
     try:
         current = parse_document(
             selection.config_path.read_bytes(),

@@ -10,6 +10,8 @@ from pathlib import Path
 from panopticon.models.ids import JsonPointer
 from panopticon.util.jsonc.patch import JsoncPatch
 
+from .model import FixPlan
+
 
 class FixChoice(StrEnum):
     APPLY = "APPLY"
@@ -42,6 +44,9 @@ class FixSelection:
     def __post_init__(self) -> None:
         if re.fullmatch(r"FIX-(001|002|004|005|008|010)", self.fix_id) is None:
             raise ValueError("UNKNOWN_FIX_ID")
+
+    def bind_transaction(self, plan: FixPlan, transaction_id: str) -> FixPlan:
+        return plan
 
 
 @dataclass(frozen=True, slots=True)

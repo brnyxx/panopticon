@@ -49,6 +49,7 @@ class FixPlan:
     mode: int | None = None
     source_identity: tuple[int, int] | None = None
     encoding: str = "utf-8"
+    exact_replacement: bytes | None = None
 
     @property
     def original_hash(self) -> str:
@@ -59,7 +60,8 @@ class FixPlan:
             f"FixPlan(target={str(self.target)!r}, "
             f"logical_target={str(self.logical_target)!r}, "
             f"original_hash={self.original_hash!r}, "
-            f"patches={len(self.patches)}, prompts={len(self.prompts)})"
+            f"patches={len(self.patches)}, prompts={len(self.prompts)}, "
+            f"exact_replacement={self.exact_replacement is not None})"
         )
 
 

@@ -15,13 +15,19 @@ from panopticon.engine import foundation as engine
 from panopticon.engine.baseline import BaselineRequest, run_baseline
 from panopticon.engine.diff import DiffRequest, run_diff
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
+from panopticon.engine.explain import explain_rule
 from panopticon.engine.fix import FixCommandRequest, run_fix
+from panopticon.engine.install import InstallAction, InstallRequest, run_install, run_uninstall
+from panopticon.engine.scan import ScanMode, ScanRequest, run_scan
 from panopticon.engine.wrap import WrapRequest, run_wrap
 from panopticon.reporters import doctor as doctor_reporter
 from panopticon.reporters import foundation as reporters
 from panopticon.reporters.baseline import render as render_baseline
 from panopticon.reporters.diff import render as render_diff
+from panopticon.reporters.explain import render as render_explain
 from panopticon.reporters.fix import render as render_fix
+from panopticon.reporters.install import render as render_install
+from panopticon.reporters.scan import render_cli as render_scan
 from panopticon.reporters.wrap import render as render_wrap
 
 __all__ = ["NOT_IMPLEMENTED_EXIT"]
@@ -121,15 +127,56 @@ def wrap(
 
 
 @app.command()
-def install(client: str, only: str | None = typer.Option(None)) -> None:
+def install(
+    client: str,
+    only: str | None = typer.Option(None),
+    config: Path | None = typer.Option(None, "--config"),
+    yes: bool = typer.Option(False, "--yes"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    pano_command: str | None = typer.Option(None, "--pano-command"),
+) -> None:
     """Inject `pano wrap` into a client's stdio servers (dry-run, backup, undo). (E15)"""
-    raise typer.Exit(_not_implemented("install", "E15"))
+    rendered = render_install(
+        run_install(
+            InstallRequest(
+                client,
+                only=only,
+                config_path=config,
+                dry_run=dry_run or not yes,
+                yes=yes,
+                pano_command=pano_command,
+            )
+        )
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()
-def uninstall(client: str) -> None:
+def uninstall(
+    client: str,
+    only: str | None = typer.Option(None),
+    config: Path | None = typer.Option(None, "--config"),
+    yes: bool = typer.Option(False, "--yes"),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+) -> None:
     """Restore original commands replaced by `pano install`. (E15)"""
-    raise typer.Exit(_not_implemented("uninstall", "E15"))
+    rendered = render_install(
+        run_uninstall(
+            InstallRequest(
+                client,
+                action=InstallAction.UNINSTALL,
+                only=only,
+                config_path=config,
+                dry_run=dry_run or not yes,
+                yes=yes,
+            )
+        )
+    )
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()
@@ -199,9 +246,16 @@ def baseline(
 
 
 @app.command()
-def explain(rule_id: str, lang: str = typer.Option("ko", help="ko|en")) -> None:
+def explain(
+    rule_id: str,
+    lang: str | None = typer.Option(None, help="ko|en"),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
     """Explain a rule: problem, impact, evidence, action, verification, limits. (E18)"""
-    raise typer.Exit(_not_implemented("explain", "E18"))
+    rendered = render_explain(explain_rule(rule_id, locale=lang), json_output=json_out)
+    typer.echo(rendered.stdout, nl=False)
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()
@@ -212,9 +266,13 @@ def scan(
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Static / semantic / dynamic analysis of an MCP source tree (upstream line). (E16)"""
-    rendered = reporters.render(
-        engine.run_scan(engine.ScanRequest(path=path, mode=mode)),
-        json_output=json_out,
+    try:
+        selected_mode = ScanMode(mode)
+    except ValueError:
+        raise typer.BadParameter("mode must be quick or standard") from None
+    rendered = render_scan(
+        run_scan(ScanRequest(path=Path(path), mode=selected_mode)),
+        sarif=sarif or json_out,
     )
     typer.echo(rendered.stdout, nl=False)
     typer.echo(rendered.stderr, err=True, nl=False)

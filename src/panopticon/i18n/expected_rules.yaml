@@ -31,4 +31,21 @@ expected_ids:
   - WATCH-012
   - WATCH-013
   - WATCH-014
+  - FIX-001
+  - FIX-002
+  - FIX-004
+  - FIX-005
+  - FIX-008
+  - FIX-010
+  - SENT-001
+  - SENT-002
+  - SENT-003
+  - SENT-004
+  - SENT-005
+  - SENT-006
+  - SENT-007
+  - SENT-008
+  - SENT-009
+  - SENT-010
+  - SENT-011
 reserved_ids: []

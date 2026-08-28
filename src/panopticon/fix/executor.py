@@ -6,9 +6,11 @@ import hashlib
 import re
 from dataclasses import replace
 from datetime import datetime
+from pathlib import Path
 from typing import Protocol
 
 from panopticon.models.common import PersistedPath
+from panopticon.models.ids import JsonPointer
 from panopticon.secrets.backup import decrypt_backup
 from panopticon.secrets.contracts import BackupDecrypted, BackupDecryptRequest, SecretStore
 from panopticon.store.repository import ArtifactRepository
@@ -32,8 +34,24 @@ from .service import TransactionReceipt
 from .transaction import apply, confirm, prepare
 
 
+class MutationSelection(Protocol):
+    @property
+    def fix_id(self) -> str: ...
+
+    @property
+    def config_path(self) -> Path: ...
+
+    @property
+    def pointer(self) -> JsonPointer: ...
+
+    @property
+    def value(self) -> str | None: ...
+
+    def bind_transaction(self, plan: FixPlan, transaction_id: str) -> FixPlan: ...
+
+
 class Rechecker(Protocol):
-    def __call__(self, selection: FixSelection, plan: FixPlan) -> bool: ...
+    def __call__(self, selection: MutationSelection, plan: FixPlan) -> bool: ...
 
 
 class Clock(Protocol):
@@ -44,12 +62,12 @@ class SecretProvisioner(Protocol):
     def provision(self, key: str, value: str) -> bool: ...
 
 
-def _transaction_id(plan: FixPlan, selection: FixSelection, now: datetime) -> str:
-    raw = f"{selection.fix_id}\0{plan.original_hash}\0{now.isoformat()}"
+def _transaction_id(plan: FixPlan, selection: MutationSelection, now: datetime) -> str:
+    raw = f"{selection.fix_id}\0{selection.pointer}\0{plan.original_hash}\0{now.isoformat()}"
     return hashlib.sha256(raw.encode()).hexdigest()[:20]
 
 
-def _secret_value(plan: FixPlan, selection: FixSelection) -> str | None:
+def _secret_value(plan: FixPlan, selection: MutationSelection) -> str | None:
     if selection.fix_id != "FIX-001" or selection.value is None:
         return None
     document = parse_document(
@@ -82,14 +100,15 @@ class FixTransactionExecutor:
     def apply(
         self,
         plan: FixPlan,
-        selection: FixSelection,
+        selection: MutationSelection,
         *,
         recheck: bool,
     ) -> TransactionReceipt:
+        transaction_id = _transaction_id(plan, selection, self.clock())
+        plan = selection.bind_transaction(plan, transaction_id)
         candidate = apply(plan, confirm(prepare(plan)), plan.original)
         if candidate.apply_hash is None:
             return TransactionReceipt(FixOutcomeStatus.CONFLICT, candidate.reason)
-        transaction_id = _transaction_id(plan, selection, self.clock())
         backup = persist_backup(
             self.repository,
             self.secret_store,
@@ -154,6 +173,43 @@ class FixTransactionExecutor:
 
     def undo(self, selection: FixSelection) -> TransactionReceipt:
         transaction_id = selection.value or ""
+        return self.restore_transaction(transaction_id, selection)
+
+    def preview_restore(self, transaction_id: str, plan: FixPlan) -> FixPlan | None:
+        if re.fullmatch(r"[0-9a-f]{20}", transaction_id) is None:
+            return None
+        journal_path = journal_target(self.repository, transaction_id)
+        try:
+            journal = FixJournal.model_validate_json(journal_path.read_bytes())
+        except (OSError, ValueError):
+            return None
+        backup_path = self.repository.root / "fix" / "backups" / journal.backup_name
+        try:
+            backup = backup_path.read_bytes()
+        except OSError:
+            return None
+        if journal.encrypted:
+            if self.secret_store is None:
+                return None
+            decrypted = decrypt_backup(BackupDecryptRequest(backup), self.secret_store)
+            if not isinstance(decrypted, BackupDecrypted):
+                return None
+            original = decrypted.plaintext
+        else:
+            original = backup
+        current = snapshot(plan.target)
+        if current is None or hashlib.sha256(current[0]).hexdigest() not in {
+            journal.apply_hash,
+            journal.original_hash,
+        }:
+            return None
+        return replace(plan, patches=(), exact_replacement=original)
+
+    def restore_transaction(
+        self,
+        transaction_id: str,
+        selection: MutationSelection,
+    ) -> TransactionReceipt:
         if re.fullmatch(r"[0-9a-f]{20}", transaction_id) is None:
             return TransactionReceipt(FixOutcomeStatus.GUIDANCE, "INVALID_TRANSACTION_ID")
         journal_path = journal_target(self.repository, transaction_id)
@@ -196,4 +252,4 @@ class FixTransactionExecutor:
         )
 
 
-__all__ = ["FixTransactionExecutor", "SecretProvisioner"]
+__all__ = ["FixTransactionExecutor", "MutationSelection", "SecretProvisioner"]

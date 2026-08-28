@@ -47,10 +47,13 @@ def plan_hash(plan: FixPlan) -> str:
     payload = repr(
         tuple((p.operation.value, str(p.pointer), p.value) for p in plan.patches)
     ).encode()
-    return hashlib.sha256(plan.original + payload).hexdigest()
+    replacement = plan.exact_replacement or b""
+    return hashlib.sha256(plan.original + payload + replacement).hexdigest()
 
 
 def apply_bytes(plan: FixPlan) -> bytes:
+    if plan.exact_replacement is not None:
+        return plan.exact_replacement
     document = parse_document(
         plan.original,
         path=plan.target,
