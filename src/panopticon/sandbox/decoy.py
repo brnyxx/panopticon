@@ -19,7 +19,7 @@ class DecoySource(StrEnum):
 
 class DecoySensitivity(StrEnum):
     PUBLIC = "public"
-    SECRET = "secret"
+    SENSITIVE = "sensitive"
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,12 +92,16 @@ def generate_decoy_home(
         if sum(len(v) for v in files.values()) + len(content) <= max_bytes:
             files[str(PurePosixPath(path))] = content
             markers.append(
-                DecoyMarker(f"{identity}:{key}", value, source, True, DecoySensitivity.SECRET)
+                DecoyMarker(f"{identity}:{key}", value, source, True, DecoySensitivity.SENSITIVE)
             )
     env_value = _token(seed, identity, "env")
     markers.append(
         DecoyMarker(
-            f"{identity}:env", env_value, DecoySource.ENVIRONMENT, True, DecoySensitivity.SECRET
+            f"{identity}:env",
+            env_value,
+            DecoySource.ENVIRONMENT,
+            True,
+            DecoySensitivity.SENSITIVE,
         )
     )
     return DecoyManifest(identity, seed, dict(sorted(files.items())), tuple(markers))

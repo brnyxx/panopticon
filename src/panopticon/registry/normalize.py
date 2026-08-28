@@ -68,11 +68,12 @@ def _select(spec: str, versions: list[str]) -> str | None:
     # npm tags and a small deterministic range subset (>=, >, <=, <, ^, ~).
     if spec and not any(c in spec for c in "<>=^~*|"):
         return None
-    candidates = [
-        (v, tuple(map(int, _VERSION.fullmatch(v).groups()[:3])))
-        for v in versions
-        if _VERSION.fullmatch(v)
-    ]
+    candidates: list[tuple[str, tuple[int, int, int]]] = []
+    for version in versions:
+        matched_version = _VERSION.fullmatch(version)
+        if matched_version is not None:
+            major, minor, patch = matched_version.groups()[:3]
+            candidates.append((version, (int(major), int(minor), int(patch))))
     if not candidates:
         return None
     checks = re.findall(r"(>=|<=|>|<|\^|~)?\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?", spec)
@@ -103,19 +104,19 @@ def _result(ecosystem: str, name: str, spec: str, **kwargs: Any) -> NormalizedHi
 
 
 def normalize_npm(
-    payload: Mapping[str, Any], *, name: str, spec: str, now: datetime | None = None
+    payload: object, *, name: str, spec: str, now: datetime | None = None
 ) -> NormalizedHistory:
     return _normalize_registry("npm", payload, name=name, spec=spec, now=now)
 
 
 def normalize_pypi(
-    payload: Mapping[str, Any], *, name: str, spec: str, now: datetime | None = None
+    payload: object, *, name: str, spec: str, now: datetime | None = None
 ) -> NormalizedHistory:
     return _normalize_registry("pypi", payload, name=name, spec=spec, now=now)
 
 
 def normalize_github(
-    payload: Mapping[str, Any], *, name: str, spec: str, now: datetime | None = None
+    payload: object, *, name: str, spec: str, now: datetime | None = None
 ) -> NormalizedHistory:
     now = now or datetime.now(UTC)
     if not isinstance(payload, Mapping) or not isinstance(payload.get("releases"), list):
@@ -170,7 +171,7 @@ normalize_github_history = normalize_github
 
 def normalize_registry_history(
     ecosystem: str,
-    payload: Mapping[str, Any],
+    payload: object,
     *,
     name: str,
     spec: str,
@@ -193,7 +194,12 @@ def normalize_registry_history(
 
 
 def _normalize_registry(
-    ecosystem: str, payload: Mapping[str, Any], *, name: str, spec: str, now: datetime | None
+    ecosystem: str,
+    payload: object,
+    *,
+    name: str,
+    spec: str,
+    now: datetime | None,
 ) -> NormalizedHistory:
     now = now or datetime.now(UTC)
     if not isinstance(payload, Mapping):

@@ -20,27 +20,25 @@ class ArgumentGenerator:
     def generate(self, schema: dict[str, Any] | None, *, call_index: int = 1) -> ArgumentResult:
         try:
             return ArgumentResult(self._gen(schema or {}, call_index, ()))
-        except _Unsupported as exc:
+        except _UnsupportedSchemaError as exc:
             return ArgumentResult({}, str(exc), False)
 
     def _gen(self, s: dict[str, Any], idx: int, stack: tuple[int, ...]) -> Any:
-        if not isinstance(s, dict):
-            return {}
         sid = id(s)
         if sid in stack:
-            raise _Unsupported("UNSUPPORTED_RECURSION")
+            raise _UnsupportedSchemaError("UNSUPPORTED_RECURSION")
         if "const" in s:
             return s["const"]
         if "enum" in s:
             vals = s["enum"]
             if not vals:
-                raise _Unsupported("UNSATISFIABLE_SCHEMA")
+                raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
             return vals[0]
         for comb in ("oneOf", "anyOf"):
             if comb in s:
                 branches = s[comb]
                 if not branches:
-                    raise _Unsupported("UNSATISFIABLE_SCHEMA")
+                    raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
                 return self._gen(branches[0], idx, stack)
         if "default" in s:
             return s["default"]
@@ -55,18 +53,18 @@ class ArgumentGenerator:
             out = {}
             for name in required:
                 if name not in props:
-                    raise _Unsupported("UNSATISFIABLE_SCHEMA")
-                out[name] = self._gen(props[name], idx, stack + (sid,))
+                    raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+                out[name] = self._gen(props[name], idx, (*stack, sid))
             return out
         if typ == "array":
             if s.get("maxItems", 1) < 1:
-                raise _Unsupported("UNSATISFIABLE_SCHEMA")
-            item = self._gen(s.get("items", {}), idx, stack + (sid,))
+                raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
+            item = self._gen(s.get("items", {}), idx, (*stack, sid))
             return [item]
         if typ in ("integer", "number"):
             value = s.get("minimum", s.get("exclusiveMinimum", 1))
             if s.get("maximum") is not None and value > s["maximum"]:
-                raise _Unsupported("UNSATISFIABLE_SCHEMA")
+                raise _UnsupportedSchemaError("UNSATISFIABLE_SCHEMA")
             return value
         if typ == "boolean":
             return False
@@ -105,7 +103,7 @@ class ArgumentGenerator:
         return {}
 
 
-class _Unsupported(Exception):
+class _UnsupportedSchemaError(Exception):
     pass
 
 

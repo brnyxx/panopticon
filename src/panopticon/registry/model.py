@@ -79,7 +79,8 @@ class CacheRecord(BaseModel):
 
     @model_validator(mode="after")
     def utc_fetched_at(self) -> CacheRecord:
-        if self.fetched_at.utcoffset() is None or self.fetched_at.utcoffset().total_seconds() != 0:
+        offset = self.fetched_at.utcoffset()
+        if offset is None or offset.total_seconds() != 0:
             raise ValueError("fetched_at must be UTC")
         return self
 
