@@ -113,6 +113,13 @@ async def test_collect_logs_parses_timestamped_stdout_and_stderr_as_complete() -
                     out=b"2026-01-02T03:04:05Z query[A] example.test from 10.0.0.1\n",
                     err=b"2026-01-02T03:04:06Z query[AAAA] example.test from 10.0.0.1\n",
                 )
+            if argv[0] == "exec":
+                return result(
+                    out=(
+                        b"2026-01-02T03:04:07+00:00 CONNECT proxy.test:443\n"
+                        b"2026-01-02T03:04:08Z Established connection to host other.test:80\n"
+                    )
+                )
             return result(
                 out=b"2026-01-02T03:04:07+00:00 CONNECT proxy.test:443\n",
                 err=b"2026-01-02T03:04:08Z Established connection to host other.test:80\n",
@@ -124,7 +131,8 @@ async def test_collect_logs_parses_timestamped_stdout_and_stderr_as_complete() -
     logs = await fake.collect_logs(
         NetworkSession("n", "e", "proxy-id", "dns-id", "1", "2", plan_network(rootless=False))
     )
-    assert all(call[:4] == ["logs", "--timestamps", "--tail", "10000"] for call in fake.argv)
+    assert fake.argv[0][:4] == ["logs", "--timestamps", "--tail", "10000"]
+    assert fake.argv[1][:3] == ["exec", "proxy-id", "cat"]
     assert logs.dns.status is NetworkLogStatus.COMPLETE
     assert logs.dns.reason_code is NetworkLogReason.COMPLETED
     assert logs.dns.events[0].timestamp is not None
@@ -142,7 +150,8 @@ async def test_collect_logs_empty_nonzero_and_malformed_outputs_are_failed_or_pa
             self.responses = responses
 
         async def _command(self, argv: list[str]) -> ExecResult:
-            return self.responses[argv[-1]]
+            key = argv[1] if argv[0] == "exec" else argv[-1]
+            return self.responses[key]
 
     from panopticon.sandbox.network import NetworkSession
 

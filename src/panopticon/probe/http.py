@@ -110,6 +110,7 @@ class StreamableHttpClient(SseFallbackMixin):
             timeout=self.timeout if timeout is None else timeout,
             resolver=self._resolver,
             max_redirects=self._max_redirects,
+            max_response=self.max_response,
         )
         if isinstance(result, ProbeResult):
             return result

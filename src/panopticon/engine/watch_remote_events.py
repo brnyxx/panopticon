@@ -69,6 +69,7 @@ class ExchangeRecorder:
                 truncated = True
                 break
         if truncated:
+            response.extensions["pano_truncated"] = True
             await response.aclose()
         response._content = b"".join(chunks)
         started, request = self._started.pop(id(response.request), (datetime.now(UTC), b""))

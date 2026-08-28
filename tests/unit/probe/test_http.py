@@ -212,8 +212,8 @@ async def test_redirect_blocked_resolver_and_transport_cancel_paths() -> None:
         raise asyncio.CancelledError
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(cancelled)) as transport:
-        result = await StreamableHttpClient("https://mcp.example/rpc", transport).request("x")
-    assert result.reason_code == "CANCELLED"
+        with pytest.raises(asyncio.CancelledError):
+            await StreamableHttpClient("https://mcp.example/rpc", transport).request("x")
 
 
 def test_sse_response_payload_and_endpoint_parsing() -> None:

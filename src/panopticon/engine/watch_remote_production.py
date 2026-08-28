@@ -77,7 +77,7 @@ async def run_remote_production(
         event_hooks={"request": [recorder.request], "response": [recorder.response]},
     ) as http:
         client = StreamableHttpClient(
-            decision.transport_url,
+            decision.url,
             http,
             timeout=options.timeout,
             headers=headers,

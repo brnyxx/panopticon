@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Awaitable
 from typing import Any, Protocol
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
 from .argument_schema import JsonValue
 from .http_redirect import read_sse_events
 from .protocol import LEGACY_PROTOCOL, MAX_FRAME, ProbeResult, ProbeStatus, ProtocolEra
-from .remote_security import Resolver, validate_url
+from .remote_security import Resolver, same_origin, validate_url
 
 
 class _SseClient(Protocol):
@@ -39,6 +39,8 @@ def _set_cursor(client: _SseClient, event_id: str) -> None:
 
 
 class SseFallbackMixin:
+    session_id: str | None
+
     async def _legacy_sse_fallback(
         self: Any, result: ProbeResult
     ) -> tuple[ProbeResult, ProtocolEra]:
@@ -49,8 +51,29 @@ class SseFallbackMixin:
                 stream_headers = {**self._headers, "Accept": "text/event-stream"}
                 if self.last_event_id:
                     stream_headers["Last-Event-ID"] = self.last_event_id
+                stream_decision = validate_url(self.endpoint, self._resolver)
+                if not stream_decision.allowed:
+                    return (
+                        ProbeResult(
+                            ProbeStatus.UNSUPPORTED,
+                            "REDIRECT_" + stream_decision.reason,
+                        ),
+                        era,
+                    )
+                logical_host = urlsplit(stream_decision.url).hostname
+                transport_host = urlsplit(stream_decision.transport_url).hostname
+                if (
+                    logical_host
+                    and transport_host
+                    and logical_host.casefold() != transport_host.casefold()
+                ):
+                    stream_headers["Host"] = urlsplit(stream_decision.url).netloc
                 async with self.client.stream(
-                    "GET", self.endpoint, headers=stream_headers, timeout=self.timeout
+                    "GET",
+                    stream_decision.transport_url,
+                    headers=stream_headers,
+                    timeout=self.timeout,
+                    extensions={"sni_hostname": logical_host} if logical_host else None,
                 ) as stream:
                     if stream.status_code >= 400:
                         break
@@ -68,7 +91,15 @@ class SseFallbackMixin:
                         continue
                     decision = validate_url(urljoin(self.endpoint, endpoint), self._resolver)
                     if decision.allowed:
-                        self.endpoint = decision.transport_url
+                        if not same_origin(self.endpoint, decision.url):
+                            self._headers = {
+                                name: value
+                                for name, value in self._headers.items()
+                                if name.casefold()
+                                not in {"authorization", "cookie", "mcp-session-id"}
+                            }
+                            self.session_id = None
+                        self.endpoint = decision.url
                         result = await self.request(
                             "initialize",
                             {

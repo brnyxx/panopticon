@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from collections.abc import Mapping
 from urllib.parse import urljoin, urlsplit
@@ -22,6 +21,7 @@ async def post_with_redirects(
     timeout: float,
     resolver: Resolver | None,
     max_redirects: int,
+    max_response: int,
 ) -> tuple[httpx.Response, str, dict[str, str]] | ProbeResult:
     redirects = 0
     try:
@@ -42,13 +42,28 @@ async def post_with_redirects(
                 and logical_host.casefold() != transport_host.casefold()
             ):
                 request_headers["Host"] = logical_parts.netloc
-            response = await client.post(
+            request = client.build_request(
+                "POST",
                 decision.transport_url,
                 json=message,
                 headers=request_headers,
                 timeout=timeout,
                 extensions={"sni_hostname": logical_host} if logical_host else None,
             )
+            response = await client.send(request, stream=True)
+            if response.extensions.get("pano_truncated") is True:
+                await response.aclose()
+                return ProbeResult(ProbeStatus.ERROR, "RESPONSE_TOO_LARGE")
+            if not response.is_stream_consumed:
+                captured = bytearray()
+                async for chunk in response.aiter_bytes():
+                    if len(captured) + len(chunk) > max_response:
+                        await response.aclose()
+                        return ProbeResult(ProbeStatus.ERROR, "RESPONSE_TOO_LARGE")
+                    captured.extend(chunk)
+                response._content = bytes(captured)
+            elif len(response.content) > max_response:
+                return ProbeResult(ProbeStatus.ERROR, "RESPONSE_TOO_LARGE")
             if response.status_code not in {301, 302, 303, 307, 308}:
                 return response, decision.url, headers
             redirects += 1
@@ -69,8 +84,6 @@ async def post_with_redirects(
         return ProbeResult(ProbeStatus.INCOMPLETE, "TIMEOUT")
     except httpx.TransportError:
         return ProbeResult(ProbeStatus.INCOMPLETE, "TRANSPORT_ERROR")
-    except asyncio.CancelledError:
-        return ProbeResult(ProbeStatus.CANCELLED, "CANCELLED")
 
 
 def response_payload(response: httpx.Response) -> object:
