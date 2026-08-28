@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -59,6 +60,9 @@ def run_command(argv: list[str], root: Path) -> CommandEvidence:
         diagnostic = (completed.stdout + completed.stderr)[-8_000:]
         summary = diagnostic.rpartition("short test summary info")[2]
         diagnostic = summary or diagnostic
+        failed_nodes = re.findall(r"^FAILED ([^ ]+)", diagnostic, flags=re.MULTILINE)
+        if failed_nodes:
+            diagnostic = "\n".join(f"FAILED {node}" for node in failed_nodes) + "\n"
         homes = tuple(value for key in ("HOME", "USERPROFILE") if (value := os.getenv(key)))
         for home in homes:
             diagnostic = diagnostic.replace(home, "~")

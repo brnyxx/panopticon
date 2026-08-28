@@ -96,7 +96,7 @@ async def test_wrap_cli_preserves_bytes_and_child_exit(tmp_path: Path) -> None:
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        env={**os.environ, "HOME": str(tmp_path)},
+        env={**os.environ, "HOME": str(tmp_path), "USERPROFILE": str(tmp_path)},
     )
     wire = b'{"jsonrpc":"2.0","id":1,"method":"tools/call"}\n'
     stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
@@ -124,7 +124,7 @@ async def test_wrap_cli_persists_correlated_record_through_store(tmp_path: Path)
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        env={**os.environ, "HOME": str(tmp_path)},
+        env={**os.environ, "HOME": str(tmp_path), "USERPROFILE": str(tmp_path)},
     )
     wire = b'{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"ping"}}\n'
     stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
