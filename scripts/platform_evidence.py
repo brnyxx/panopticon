@@ -57,7 +57,11 @@ def run_command(argv: list[str], root: Path) -> CommandEvidence:
         }
     if completed.returncode:
         diagnostic = (completed.stdout + completed.stderr)[-8_000:]
+        summary = diagnostic.rpartition("short test summary info")[2]
+        diagnostic = summary or diagnostic
         homes = tuple(value for key in ("HOME", "USERPROFILE") if (value := os.getenv(key)))
+        for home in homes:
+            diagnostic = diagnostic.replace(home, "~")
         if not find_leaks(diagnostic, LeakContext(home_paths=homes)):
             sys.stderr.write(diagnostic)
     return {
