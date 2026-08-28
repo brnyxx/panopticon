@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 
 import httpx
@@ -45,6 +46,7 @@ async def run_remote_production(
     *,
     resolver: Resolver | None = None,
     transport: httpx.AsyncBaseTransport | None = None,
+    run_identity: str | None = None,
 ) -> RemoteWatchResult:
     target = context.target
     if target.transport not in {Transport.HTTP, Transport.SSE} or target.url is None:
@@ -57,7 +59,10 @@ async def run_remote_production(
         return RemoteWatchResult(LocalWatchStatus.INCOMPLETE, "DNS_FAILED")
     if not decision.allowed:
         return RemoteWatchResult(LocalWatchStatus.UNSUPPORTED, decision.reason)
-    manifest = generate_decoy_home(str(target.installation_id), str(target.installation_id))
+    manifest = generate_decoy_home(
+        str(target.installation_id),
+        run_identity or os.urandom(8).hex(),
+    )
     headers, secrets = request_headers(
         context,
         options,

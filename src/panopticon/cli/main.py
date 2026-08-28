@@ -12,7 +12,7 @@ from typing import Literal, cast
 import typer
 
 from panopticon import SCHEMA_VERSION, __version__
-from panopticon.cli import analysis_commands
+from panopticon.cli import analysis_commands, watch_command
 from panopticon.engine import foundation as engine
 from panopticon.engine.badge import run_badge
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
@@ -20,7 +20,6 @@ from panopticon.engine.fix import FixCommandRequest, run_fix
 from panopticon.engine.install import InstallAction, InstallRequest, run_install, run_uninstall
 from panopticon.engine.wrap import WrapRequest, run_wrap
 from panopticon.reporters import doctor as doctor_reporter
-from panopticon.reporters import watch as watch_reporter
 from panopticon.reporters.fix import render as render_fix
 from panopticon.reporters.install import render as render_install
 from panopticon.reporters.wrap import render as render_wrap
@@ -70,81 +69,7 @@ def doctor(
     raise typer.Exit(rendered.exit_code)
 
 
-@app.command()
-def watch(
-    target: str | None = typer.Argument(None, help="Server name."),
-    all_targets: bool = typer.Option(False, "--all"),
-    self_target: bool = typer.Option(False, "--self"),
-    calls: int = typer.Option(1, help="Calls per tool."),
-    timeout: int = typer.Option(20, help="Per-call timeout in seconds."),
-    idle: float = typer.Option(0.0, help="Idle observation seconds."),
-    arg: list[str] | None = typer.Option(None, "--arg", help="Per-tool JSON override."),
-    real_env: str | None = typer.Option(
-        None, "--real-env", help="Pass selected environment keys (comma-separated)."
-    ),
-    real_env_all: bool = typer.Option(
-        False, "--real-env-all", help="Pass all declared environment values (unsafe)."
-    ),
-    header: list[str] | None = typer.Option(None, "--header"),
-    allow_destructive: bool = typer.Option(False, "--allow-destructive"),
-    offline: bool = typer.Option(False, "--offline"),
-    runtime: str | None = typer.Option(None, "--runtime"),
-    json_out: bool = typer.Option(False, "--json"),
-    png: bool = typer.Option(False, "--png", help="Persist a PNG evidence card."),
-) -> None:
-    """Run an MCP in the decoy sandbox and record what it does per tool call. (E05-E10, E12)"""
-    selected = sum((target is not None, all_targets, self_target))
-    if selected != 1:
-        raise typer.BadParameter("select one server name, --all, or --self")
-    real_keys = tuple(
-        dict.fromkeys(key.strip() for key in (real_env or "").split(",") if key.strip())
-    )
-    if real_env is not None and not real_keys:
-        raise typer.BadParameter("--real-env requires at least one key")
-    if (real_keys or real_env_all) and self_target:
-        raise typer.BadParameter("--real-env cannot be combined with --self")
-    if real_keys and real_env_all:
-        raise typer.BadParameter("--real-env and --real-env-all are mutually exclusive")
-    if real_env_all:
-        typer.echo(
-            "WARNING: --real-env-all exposes all declared environment values to the target.",
-            err=True,
-        )
-    if runtime not in {None, "docker", "podman"}:
-        raise typer.BadParameter("--runtime must be docker or podman")
-    mode = (
-        engine.TargetMode.ALL
-        if all_targets
-        else engine.TargetMode.SELF
-        if self_target
-        else engine.TargetMode.NAME
-    )
-    name = target if mode is engine.TargetMode.NAME else None
-    rendered = watch_reporter.render(
-        engine.run_watch(
-            engine.WatchRequest(
-                engine.TargetSelection(mode, name),
-                engine.WatchOptions(
-                    calls=calls,
-                    timeout=timeout,
-                    idle=idle,
-                    args=tuple(arg or ()),
-                    real_env=real_keys,
-                    real_env_all=real_env_all,
-                    headers=tuple(header or ()),
-                    allow_destructive=allow_destructive,
-                    self_read_only=self_target,
-                    offline=offline,
-                    runtime=runtime,
-                    png=png,
-                ),
-            )
-        ),
-        json_output=json_out,
-    )
-    typer.echo(rendered.stdout, nl=False)
-    typer.echo(rendered.stderr, err=True, nl=False)
-    raise typer.Exit(rendered.exit_code)
+watch_command.register(app)
 
 
 @app.command()

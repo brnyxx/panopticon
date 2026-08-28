@@ -11,6 +11,19 @@ from panopticon.probe.http_redirect import response_payload, sse_endpoint
 from panopticon.probe.protocol import ProbeStatus, ProtocolEra
 
 
+class _Stream(httpx.AsyncByteStream):
+    def __init__(self, *chunks: bytes) -> None:
+        self.chunks = chunks
+        self.closed = False
+
+    async def __aiter__(self):
+        for chunk in self.chunks:
+            yield chunk
+
+    async def aclose(self) -> None:
+        self.closed = True
+
+
 @pytest.mark.asyncio
 async def test_modern_http_initialize_metadata_session_and_era_cache() -> None:
     requests: list[httpx.Request] = []
@@ -247,3 +260,183 @@ async def test_legacy_sse_endpoint_redirects_initialize_over_mock_transport() ->
     assert result.status is ProbeStatus.COMPLETE
     assert client.endpoint == "https://mcp.example/messages"
     assert [request.method for request in requests[:3]] == ["POST", "GET", "POST"]
+
+
+@pytest.mark.asyncio
+async def test_sse_discovery_preserves_event_cursor_and_last_event_id_on_reconnect() -> None:
+    requests: list[httpx.Request] = []
+    streams: list[_Stream] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.method == "POST":
+            payload = json.loads(request.content)
+            if len(requests) == 1:
+                return httpx.Response(400, request=request)
+            if "id" not in payload:
+                return httpx.Response(202, request=request)
+            return httpx.Response(
+                200,
+                json={"jsonrpc": "2.0", "id": payload["id"], "result": {"capabilities": {}}},
+                request=request,
+            )
+        stream = (
+            _Stream(
+                b"id: cursor-1\n",
+                b"data: not-an-endpoint\n\n",
+            )
+            if len(streams) == 0
+            else _Stream(
+                b"id: cursor-2\n",
+                b"event: endpoint\n",
+                b"data: /messages\n\n",
+            )
+        )
+        streams.append(stream)
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=stream,
+            request=request,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport, max_reconnects=2)
+        result = await client.initialize()
+
+    assert result.reason_code == "LEGACY_FALLBACK"
+    assert client.endpoint == "https://mcp.example/messages"
+    assert client.last_event_id == "cursor-2"
+    assert requests[1].method == "GET"
+    assert requests[2].headers["Last-Event-ID"] == "cursor-1"
+    assert streams[0].closed and streams[1].closed
+
+
+@pytest.mark.asyncio
+async def test_sse_reconnect_limit_and_stream_bounds_are_typed() -> None:
+    async def no_endpoint(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            payload = json.loads(request.content)
+            return httpx.Response(
+                400 if payload["method"] == "initialize" else 202, request=request
+            )
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=_Stream(b"data: still-not-an-endpoint\n\n"),
+            request=request,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(no_endpoint)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport, max_reconnects=1)
+        result = await client.initialize()
+    assert result.reason_code == "RECONNECT_LIMIT"
+
+    async def huge(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=_Stream(b"data: " + b"x" * 32 + b"\n\n"),
+            request=request,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(huge)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport, max_response=16)
+        result = await client.request("x")
+    assert result.reason_code == "RESPONSE_TOO_LARGE"
+
+
+@pytest.mark.asyncio
+async def test_sse_malformed_utf8_frame_and_cursor_limits_are_typed() -> None:
+    async def malformed(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=_Stream(b"data: \xff\n\n"),
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(malformed)) as transport:
+        result = await StreamableHttpClient("https://mcp.example/rpc", transport).request("x")
+    assert result.reason_code == "MALFORMED_RESPONSE"
+
+    async def long_cursor(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=_Stream(b"id: " + b"x" * 257 + b"\ndata: /messages\n\n"),
+            request=request,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(long_cursor)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport)
+        result = await client.request("x")
+    assert result.reason_code == "CURSOR_TOO_LARGE"
+
+
+@pytest.mark.asyncio
+async def test_sse_stream_frame_errors_close_stream_and_bound_retries() -> None:
+    streams: list[_Stream] = []
+
+    async def malformed(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            return httpx.Response(400, request=request)
+        stream = _Stream(b"data: /messages")  # no terminating newline
+        streams.append(stream)
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=stream,
+            request=request,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(malformed)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport, max_reconnects=0)
+        result = await client.initialize()
+    assert result.reason_code == "MALFORMED_SSE"
+    assert streams[0].closed
+
+    async def oversized(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            return httpx.Response(400, request=request)
+        stream = _Stream(b"x" * 20)
+        streams.append(stream)
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=stream,
+            request=request,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(oversized)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport, max_response=16)
+        result = await client.initialize()
+    assert result.reason_code == "RESPONSE_TOO_LARGE"
+    assert streams[-1].closed
+
+
+@pytest.mark.asyncio
+async def test_sse_stream_timeout_and_transport_errors_use_reconnect_limit() -> None:
+    calls = 0
+
+    async def failing(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        if request.method == "POST":
+            return httpx.Response(400, request=request)
+        calls += 1
+        raise httpx.ReadTimeout("stream timeout", request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(failing)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport, max_reconnects=1)
+        result = await client.initialize()
+    assert result.reason_code == "RECONNECT_LIMIT"
+    assert calls == 2
+
+    async def transport_error(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            return httpx.Response(400, request=request)
+        raise httpx.ConnectError("stream down", request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport_error)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport, max_reconnects=0)
+        result = await client.initialize()
+    assert result.reason_code == "RECONNECT_LIMIT"

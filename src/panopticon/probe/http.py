@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from urllib.parse import urljoin
 
 import httpx
 
 from .argument_schema import JsonValue, UnsupportedSchemaError, json_value
-from .http_redirect import post_with_redirects, response_payload, sse_endpoint
+from .http_redirect import post_with_redirects, response_payload
+from .http_sse import SseFallbackMixin
 from .pagination import list_paginated
 from .protocol import (
     LEGACY_PROTOCOL,
@@ -19,7 +19,7 @@ from .protocol import (
     ProtocolEra,
     ProtocolError,
 )
-from .remote_security import Resolver, validate_url
+from .remote_security import Resolver
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,7 +35,7 @@ class TransportEraCache:
         return TransportEraCache(tuple(sorted(values.items())))
 
 
-class StreamableHttpClient:
+class StreamableHttpClient(SseFallbackMixin):
     def __init__(
         self,
         endpoint: str,
@@ -47,10 +47,11 @@ class StreamableHttpClient:
         headers: tuple[tuple[str, str], ...] = (),
         resolver: Resolver | None = None,
         max_redirects: int = 5,
+        max_reconnects: int = 3,
     ) -> None:
         if not endpoint.startswith(("http://", "https://")):
             raise ValueError("MCP HTTP endpoint must be HTTP(S)")
-        if timeout <= 0 or max_response < 1 or max_redirects < 0:
+        if timeout <= 0 or max_response < 1 or max_redirects < 0 or max_reconnects < 0:
             raise ValueError("HTTP transport bounds must be positive")
         self.endpoint = endpoint
         self.client = client
@@ -60,6 +61,7 @@ class StreamableHttpClient:
         self._headers = dict(headers)
         self._resolver = resolver
         self._max_redirects = max_redirects
+        self._max_reconnects = max_reconnects
         self.era: ProtocolEra | None = self.era_cache.get(endpoint)
         self.session_id: str | None = None
         self.capabilities: dict[str, JsonValue] = {}
@@ -67,6 +69,7 @@ class StreamableHttpClient:
         self._next_id = 1
         self._closed = False
         self.close_reason: str | None = None
+        self.last_event_id: str | None = None
 
     async def request(
         self,
@@ -122,6 +125,16 @@ class StreamableHttpClient:
             self.session_id = session
         self.endpoint = endpoint
         try:
+            media_type = (
+                response.headers.get("content-type", "").partition(";")[0].strip().casefold()
+            )
+            if media_type == "text/event-stream":
+                for line in response.text.splitlines():
+                    if line.startswith("id:"):
+                        cursor = line.partition(":")[2].strip()
+                        if len(cursor) > 256:
+                            return ProbeResult(ProbeStatus.ERROR, "CURSOR_TOO_LARGE")
+                        self.last_event_id = cursor
             payload = response_payload(response)
         except (ValueError, UnicodeDecodeError, UnsupportedSchemaError):
             return ProbeResult(ProbeStatus.ERROR, "MALFORMED_RESPONSE")
@@ -188,37 +201,33 @@ class StreamableHttpClient:
                 modern_metadata=era is ProtocolEra.MODERN,
             )
             if result.reason_code == "HTTP_ERROR" and era is ProtocolEra.MODERN:
-                # Deprecated SSE servers expose a GET stream first and accept
-                # JSON-RPC messages at the endpoint announced by its `endpoint`
-                # event. Keep this fallback bounded and use the same instrumented
-                # client so the handshake remains observable.
-                try:
-                    stream = await self.client.get(
-                        self.endpoint,
-                        headers={**self._headers, "Accept": "text/event-stream"},
-                        timeout=self.timeout,
+                result, era = await self._legacy_sse_fallback(result)
+            if result.status is ProbeStatus.COMPLETE and era is ProtocolEra.MODERN:
+                selected = (
+                    result.result.get("protocolVersion")
+                    if isinstance(result.result, dict)
+                    else None
+                )
+                if selected != MODERN_PROTOCOL:
+                    result = ProbeResult(
+                        ProbeStatus.UNSUPPORTED,
+                        "PROTOCOL_VERSION_MISMATCH",
+                        result.result,
                     )
-                    if stream.status_code < 400:
-                        endpoint = sse_endpoint(stream.text)
-                        if endpoint is not None:
-                            decision = validate_url(
-                                urljoin(self.endpoint, endpoint), self._resolver
-                            )
-                            if decision.allowed:
-                                self.endpoint = decision.transport_url
-                                result = await self.request(
-                                    "initialize",
-                                    {
-                                        "protocolVersion": version,
-                                        "capabilities": {},
-                                        "clientInfo": {"name": "panopticon", "version": "0"},
-                                    },
-                                    modern_metadata=False,
-                                )
-                except (httpx.TimeoutException, httpx.TransportError):
-                    pass
+            elif (
+                result.status is ProbeStatus.ERROR
+                and result.error is not None
+                and result.error.code == -32602
+            ):
+                result = ProbeResult(
+                    ProbeStatus.UNSUPPORTED,
+                    "PROTOCOL_VERSION_MISMATCH",
+                    error=result.error,
+                )
             if result.status is not ProbeStatus.COMPLETE:
-                continue
+                if era is ProtocolEra.MODERN and result.reason_code == "PROTOCOL_VERSION_MISMATCH":
+                    continue
+                return result
             self.era = era
             self.era_cache = self.era_cache.with_entry(self.endpoint, era)
             self._record_server(result.result)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
@@ -13,7 +14,12 @@ from panopticon.sandbox.base import Container, ContainerSpec, InteractiveSession
 from panopticon.sandbox.decoy import decoy_archive, generate_decoy_home
 from panopticon.sandbox.image_catalog import DEFAULT_IMAGE_CATALOG, ImageCatalog
 from panopticon.sandbox.netlog import NetworkLogStatus
-from panopticon.sandbox.network import NetworkController, NetworkServices, NetworkSession
+from panopticon.sandbox.network import (
+    CapabilityStatus,
+    NetworkController,
+    NetworkServices,
+    NetworkSession,
+)
 
 from .watch_inventory import WatchTargetContext
 from .watch_local_collect import collect_local_session
@@ -40,6 +46,7 @@ async def run_local_production(
     network: NetworkController | None = None,
     rootless: bool = False,
     clock: Clock | None = None,
+    run_identity: str | None = None,
 ) -> LocalWatchResult:
     target = context.target
     if target.transport is not Transport.STDIO or target.command is None:
@@ -72,7 +79,7 @@ async def run_local_production(
         names = ()
     manifest = generate_decoy_home(
         str(target.installation_id),
-        str(target.installation_id),
+        run_identity or os.urandom(8).hex(),
         project_filenames=names,
     )
     environment = target_environment(context, manifest.env, options, real_env)
@@ -86,6 +93,13 @@ async def run_local_production(
     container: Container | None = None
     session: InteractiveSession | None = None
     client: McpClient | None = None
+
+    async def cancel_cleanup() -> tuple[str, ...]:
+        task = asyncio.create_task(
+            cleanup_local(client, session, container, controller, network_session)
+        )
+        return await asyncio.shield(task)
+
     try:
         if not options.offline:
             await runtime.pull(image)
@@ -99,7 +113,11 @@ async def run_local_production(
         )
         if controller is not None and not options.offline:
             network_session = await controller.start(
-                NetworkServices(image, f"pano-{str(target.installation_id)[:24]}", rootless)
+                NetworkServices(
+                    image,
+                    f"pano-{str(target.installation_id)[:24]}",
+                    rootless or runtime.name.lower() == "podman",
+                )
             )
             spec = network_session.apply(spec)
         container = await runtime.run(spec)
@@ -119,10 +137,7 @@ async def run_local_production(
             overrides=overrides,
         )
     except asyncio.CancelledError:
-        cleanup = asyncio.create_task(
-            cleanup_local(client, session, container, controller, network_session)
-        )
-        await asyncio.shield(cleanup)
+        await cancel_cleanup()
         raise
     except (OSError, SandboxError, TimeoutError) as error:
         reason = str(error) if isinstance(error, SandboxError) else "LOCAL_RUNTIME_FAILED"
@@ -135,15 +150,21 @@ async def run_local_production(
             offline=options.offline,
         )
     except BaseException:
-        cleanup = asyncio.create_task(
-            cleanup_local(client, session, container, controller, network_session)
-        )
-        await asyncio.shield(cleanup)
+        await cancel_cleanup()
         raise
-    if network_session is not None and controller is not None:
-        try:
+    try:
+        if network_session is not None and controller is not None:
             logs = await controller.collect_logs(network_session)
             events = (*logs.dns.events, *logs.proxy.events, *logs.blocked_egress.events)
+            plan = network_session.plan
+            dns_complete = (
+                plan.dns is CapabilityStatus.COMPLETE
+                and logs.dns.status is NetworkLogStatus.COMPLETE
+            )
+            proxy_complete = (
+                plan.proxy is CapabilityStatus.COMPLETE
+                and logs.proxy.status is NetworkLogStatus.COMPLETE
+            )
             diagnostics = (
                 *tuple(
                     f"NETWORK_{source}_{item}"
@@ -155,30 +176,26 @@ async def run_local_production(
             result = replace(
                 result,
                 status=(
-                    result.status
-                    if logs.dns.status is NetworkLogStatus.COMPLETE
-                    and logs.proxy.status is NetworkLogStatus.COMPLETE
-                    else LocalWatchStatus.PARTIAL
+                    result.status if dns_complete and proxy_complete else LocalWatchStatus.PARTIAL
                 ),
                 reason_code=(
-                    result.reason_code
-                    if logs.dns.status is NetworkLogStatus.COMPLETE
-                    and logs.proxy.status is NetworkLogStatus.COMPLETE
-                    else "PARTIAL_COVERAGE"
+                    result.reason_code if dns_complete and proxy_complete else "PARTIAL_COVERAGE"
                 ),
                 network_events=events,
                 diagnostics=(*result.diagnostics, *diagnostics),
                 coverage={
                     **result.coverage,
-                    "dns": Coverage.COMPLETE
-                    if logs.dns.status is NetworkLogStatus.COMPLETE
-                    else Coverage.UNKNOWN,
-                    "proxy": Coverage.COMPLETE
-                    if logs.proxy.status is NetworkLogStatus.COMPLETE
-                    else Coverage.UNKNOWN,
+                    "dns": Coverage.COMPLETE if dns_complete else Coverage.UNKNOWN,
+                    "proxy": Coverage.COMPLETE if proxy_complete else Coverage.UNKNOWN,
                 },
             )
-        except (OSError, SandboxError):
+        elif options.offline:
+            result = replace(result, diagnostics=(*result.diagnostics, "DIRECT_EGRESS_UNKNOWN"))
+    except asyncio.CancelledError:
+        await cancel_cleanup()
+        raise
+    except (OSError, SandboxError):
+        if network_session is not None and controller is not None:
             result = replace(
                 result,
                 diagnostics=(
@@ -187,11 +204,7 @@ async def run_local_production(
                     "DIRECT_EGRESS_UNKNOWN",
                 ),
             )
-    elif options.offline:
-        result = replace(result, diagnostics=(*result.diagnostics, "DIRECT_EGRESS_UNKNOWN"))
-    cleanup_diagnostics = await cleanup_local(
-        client, session, container, controller, network_session
-    )
+    cleanup_diagnostics = await cancel_cleanup()
     if cleanup_diagnostics:
         return replace(
             result,

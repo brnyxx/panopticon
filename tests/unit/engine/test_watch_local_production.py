@@ -152,6 +152,27 @@ async def test_offline_local_watch_calls_real_transport_without_pull(tmp_path: P
     assert runtime.specs[0].network == "pano-net"
 
 
+@pytest.mark.asyncio
+async def test_local_watch_regenerates_decoys_per_run(tmp_path: Path) -> None:
+    first = FakeRuntime()
+    second = FakeRuntime()
+
+    await run_local_production(
+        _context(tmp_path),
+        WatchOptions(offline=True),
+        runtime=cast(LocalRuntime, first),
+        run_identity="run-one",
+    )
+    await run_local_production(
+        _context(tmp_path),
+        WatchOptions(offline=True),
+        runtime=cast(LocalRuntime, second),
+        run_identity="run-two",
+    )
+
+    assert first.specs[0].decoy_archive != second.specs[0].decoy_archive
+
+
 def test_image_and_environment_selection_do_not_expose_real_values(tmp_path: Path) -> None:
     original = _context(tmp_path)
     context = WatchTargetContext(

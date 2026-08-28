@@ -61,7 +61,27 @@ def validate_url(url: str, resolver: Resolver | None = None) -> SecurityDecision
     normalized = urlunsplit(
         (p.scheme.casefold(), f"{host}:{port}" if p.port else host, p.path or "/", "", "")
     )
-    return SecurityDecision(True, "OK", normalized, urlunsplit(p))
+    # Keep the logical URL (and therefore Host/TLS identity) separate from the
+    # socket destination.  Callers must connect to this validated address
+    # rather than resolving the hostname again during connect.
+    transport = normalized
+    if resolver is not None and addresses:
+        address = addresses[0]
+        try:
+            ip = ipaddress.ip_address(address)
+            transport_host = f"[{ip}]" if ip.version == 6 else str(ip)
+            transport = urlunsplit(
+                (
+                    p.scheme.casefold(),
+                    f"{transport_host}:{port}" if p.port else transport_host,
+                    p.path or "/",
+                    p.query,
+                    "",
+                )
+            )
+        except ValueError:
+            pass
+    return SecurityDecision(True, "OK", normalized, transport)
 
 
 def same_origin(a: str, b: str) -> bool:

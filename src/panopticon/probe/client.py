@@ -90,7 +90,7 @@ class McpClient(StdioTransport):
         if result.status is ProbeStatus.COMPLETE:
             payload = result.result
             selected = payload.get("protocolVersion") if isinstance(payload, dict) else None
-            if selected is not None and selected != version:
+            if selected != version:
                 return ProbeResult(ProbeStatus.UNSUPPORTED, PROTOCOL_VERSION_MISMATCH, payload)
         if (
             result.status is ProbeStatus.ERROR

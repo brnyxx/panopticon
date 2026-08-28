@@ -8,7 +8,15 @@ import pytest
 from typer.testing import CliRunner
 
 from panopticon.cli.main import app
+from panopticon.engine import foundation as engine
+from panopticon.engine.contracts import (
+    CompleteResult,
+    EngineDiagnostic,
+    FailedResult,
+)
 from panopticon.engine.watch_model import TargetMode, TargetSelection, WatchOptions, WatchRequest
+from panopticon.engine.watch_service import WatchServiceOutcome
+from panopticon.engine.watch_service_targets import WatchTargetReceipt
 from panopticon.engine.watch_stages import WatchDependencies, WatchStages
 
 
@@ -148,3 +156,109 @@ def test_real_cli_self_watch_persists_observation_and_png(
     cards = tuple((home / ".panopticon" / "cards").glob("*.png"))
     assert len(observations) == len(cards) == 1
     assert "real-environment-value" not in observations[0].read_text(encoding="utf-8")
+
+
+def test_cli_raw_and_selective_environment_are_forwarded_with_deduplication(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: list[WatchRequest] = []
+
+    def run_watch(request: WatchRequest) -> WatchServiceOutcome:
+        captured.append(request)
+        return WatchServiceOutcome(CompleteResult())
+
+    monkeypatch.setattr(engine, "run_watch", run_watch)
+    result = CliRunner().invoke(
+        app,
+        [
+            "watch",
+            "demo",
+            "--raw",
+            "--real-env",
+            " TOKEN ,HOME,TOKEN,, ",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured[0].selection == TargetSelection(TargetMode.NAME, "demo")
+    assert captured[0].options.raw is True
+    assert captured[0].options.real_env == ("TOKEN", "HOME")
+    assert "TOKEN" in result.stderr and "HOME" in result.stderr
+    assert "real-environment-value" not in result.stderr
+
+
+def test_cli_rejects_empty_environment_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(engine, "run_watch", lambda request: WatchServiceOutcome(CompleteResult()))
+    result = CliRunner().invoke(app, ["watch", "demo", "--real-env", " , "])
+    assert result.exit_code != 0
+    assert "requires at least one key" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "message"),
+    [
+        (["watch", "--self", "--real-env", "A"], "cannot be combined"),
+        (["watch", "--self", "--real-env-all"], "cannot be combined"),
+        (["watch", "demo", "--real-env", "A", "--real-env-all"], "mutually exclusive"),
+    ],
+)
+def test_cli_rejects_environment_selection_conflicts(args: list[str], message: str) -> None:
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code != 0
+    assert message in result.stderr
+
+
+def test_cli_real_environment_all_warns_without_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: list[WatchRequest] = []
+    monkeypatch.setattr(
+        engine,
+        "run_watch",
+        lambda request: captured.append(request) or WatchServiceOutcome(CompleteResult()),
+    )
+    result = CliRunner().invoke(app, ["watch", "--all", "--real-env-all"])
+    assert result.exit_code == 0
+    assert captured[0].options.real_env_all is True
+    assert "--real-env-all exposes all declared environment values" in result.stderr
+    assert "real-environment-value" not in result.stderr
+
+
+def test_cli_rejects_invalid_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(engine, "run_watch", lambda request: WatchServiceOutcome(CompleteResult()))
+    result = CliRunner().invoke(app, ["watch", "demo", "--runtime", "containerd"])
+    assert result.exit_code != 0
+    assert "runtime must be docker or podman" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "selection"),
+    [
+        (["watch", "--all"], TargetSelection(TargetMode.ALL)),
+        (["watch", "demo"], TargetSelection(TargetMode.NAME, "demo")),
+        (["watch", "--self"], TargetSelection(TargetMode.SELF)),
+    ],
+)
+def test_cli_selection_modes(monkeypatch: pytest.MonkeyPatch, args, selection) -> None:
+    captured: list[WatchRequest] = []
+    monkeypatch.setattr(
+        engine,
+        "run_watch",
+        lambda request: captured.append(request) or WatchServiceOutcome(CompleteResult()),
+    )
+    assert CliRunner().invoke(app, args).exit_code == 0
+    assert captured[0].selection == selection
+
+
+def test_cli_json_and_target_outcome_exit(monkeypatch: pytest.MonkeyPatch) -> None:
+    outcome = WatchServiceOutcome(
+        FailedResult(diagnostics=(EngineDiagnostic("TARGET_PARTIAL", "target incomplete"),)),
+        targets=(WatchTargetReceipt("demo", "FAILED", "TARGET_PARTIAL"),),
+    )
+    monkeypatch.setattr(engine, "run_watch", lambda request: outcome)
+    result = CliRunner().invoke(app, ["watch", "demo", "--json"])
+    assert result.exit_code != 0
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "FAILED"
+    assert payload["targets"][0]["name"] == "demo"
+    assert payload["diagnostics"] == [{"code": "TARGET_PARTIAL", "detail": "target incomplete"}]

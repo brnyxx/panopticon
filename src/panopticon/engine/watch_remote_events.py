@@ -44,15 +44,33 @@ class Exchange:
 
 
 class ExchangeRecorder:
+    _MAX_REQUEST = 1_048_576
+    _MAX_RESPONSE = 4_194_304
+
     def __init__(self) -> None:
         self._started: dict[int, tuple[datetime, bytes]] = {}
         self.exchanges: list[Exchange] = []
 
     async def request(self, request: httpx.Request) -> None:
-        self._started[id(request)] = (datetime.now(UTC), request.content[:1_048_576])
+        self._started[id(request)] = (datetime.now(UTC), request.content[: self._MAX_REQUEST])
 
     async def response(self, response: httpx.Response) -> None:
-        await response.aread()
+        chunks: list[bytes] = []
+        total = 0
+        truncated = False
+        async for chunk in response.aiter_bytes():
+            remaining = self._MAX_RESPONSE - total
+            if remaining <= 0:
+                truncated = True
+                break
+            chunks.append(chunk[:remaining])
+            total += min(len(chunk), remaining)
+            if len(chunk) > remaining:
+                truncated = True
+                break
+        if truncated:
+            await response.aclose()
+        response._content = b"".join(chunks)
         started, request = self._started.pop(id(response.request), (datetime.now(UTC), b""))
         self.exchanges.append(
             Exchange(
@@ -61,18 +79,18 @@ class ExchangeRecorder:
                 str(response.request.url),
                 response.status_code,
                 request,
-                response.content[:4_194_304],
+                response.content,
                 tuple(sorted({name.casefold() for name in response.request.headers})),
                 tuple(sorted({name.casefold() for name in response.headers})),
                 len(response.request.content),
-                len(response.content),
+                total,
                 tuple(
                     sorted(
                         {
                             sanitized
                             for match in re.finditer(
                                 rb"https?://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+",
-                                response.content[:4_194_304],
+                                response.content,
                             )
                             if (
                                 sanitized := _sanitize_external_url(

@@ -75,7 +75,10 @@ async def test_initialize_retries_legacy_version_after_modern_error() -> None:
     req = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
     await stream.chunks.put(frame({"jsonrpc": "2.0", "id": req["id"], "error": {"code": -32602}}))
     stream.write_event.clear()
-    await stream.respond_to(1, {"capabilities": {}})
+    await stream.respond_to(
+        1,
+        {"protocolVersion": "2024-11-05", "capabilities": {}},
+    )
     result = await task
     assert result.status is ProbeStatus.COMPLETE
     assert result.reason_code == "LEGACY_FALLBACK"
@@ -98,7 +101,10 @@ async def test_advertised_server_discovery_is_capability_gated() -> None:
         frame(
             {
                 "id": initialize_id,
-                "result": {"capabilities": {"serverDiscovery": {}}},
+                "result": {
+                    "protocolVersion": "2026-07-28",
+                    "capabilities": {"serverDiscovery": {}},
+                },
             }
         )
     )

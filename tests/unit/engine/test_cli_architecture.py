@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[3]
 CLI_PATHS = (
     ROOT / "src" / "panopticon" / "cli" / "main.py",
     ROOT / "src" / "panopticon" / "cli" / "analysis_commands.py",
+    ROOT / "src" / "panopticon" / "cli" / "watch_command.py",
 )
 runner = CliRunner()
 FORBIDDEN_IMPORTS = (
@@ -44,7 +45,7 @@ def _command(trees: tuple[ast.Module, ...], name: str) -> ast.FunctionDef:
     matches = tuple(
         node
         for tree in trees
-        for node in tree.body
+        for node in ast.walk(tree)
         if isinstance(node, ast.FunctionDef) and node.name == name
     )
     assert len(matches) == 1

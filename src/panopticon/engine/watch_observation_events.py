@@ -11,6 +11,7 @@ from panopticon.models.ids import SpanId
 from panopticon.models.observation import Span, SpanResult
 from panopticon.probe.driver import CallStatus
 from panopticon.sandbox.decoy_specs import FILE_SPECS
+from panopticon.sandbox.netlog import NetworkEvent
 from panopticon.sandbox.trace_model import TraceEvent
 
 from .watch_events import convert_events, convert_network_events, persisted_path
@@ -121,7 +122,36 @@ def build_observation_events(
         )
         for operation, path in (result.snapshot.paths if result.snapshot else ())
     )
-    network_events = convert_network_events(result.network_events)
+    network_by_span: dict[str, list[NetworkEvent]] = {span.span_id: [] for span in result.spans}
+    session_spans = [span for span in result.spans if span.kind.value == "session"]
+    call_spans = [span for span in result.spans if span.kind.value == "call"]
+    other_spans = [span for span in result.spans if span.kind.value not in {"session", "call"}]
+    for network_event in result.network_events:
+        target = None
+        timestamp = getattr(network_event, "timestamp", None)
+        if timestamp is not None:
+            target = next(
+                (span for span in call_spans if span.started_at <= timestamp <= span.ended_at),
+                None,
+            )
+            if target is None:
+                target = next(
+                    (span for span in other_spans if span.started_at <= timestamp <= span.ended_at),
+                    None,
+                )
+            if target is None:
+                target = next(
+                    (
+                        span
+                        for span in session_spans
+                        if span.started_at <= timestamp <= span.ended_at
+                    ),
+                    None,
+                )
+        if target is None and timestamp is None and session_spans:
+            target = session_spans[0]
+        if target is not None:
+            network_by_span[target.span_id].append(network_event)
     leaks = leak_events_by_span(result)
     return tuple(
         Span(
@@ -138,7 +168,7 @@ def build_observation_events(
                     decoy_markers=result.manifest.markers if result.manifest else (),
                 ),
                 *(snapshot_events if span.kind.value == "session" else ()),
-                *(network_events if span.kind.value == "session" else ()),
+                *convert_network_events(network_by_span.get(span.span_id, ())),
                 *leaks.get(span.span_id, ()),
             ),
         )

@@ -185,7 +185,7 @@ class NetworkController:
 
     async def collect_logs(self, session: NetworkSession) -> NetworkLogs:
         async def logs(container_id: str) -> str:
-            result = await self._command(["logs", "--tail", "10000", container_id])
+            result = await self._command(["logs", "--timestamps", "--tail", "10000", container_id])
             if result.returncode:
                 return ""
             return result.stdout.data.decode(errors="replace") + result.stderr.data.decode(

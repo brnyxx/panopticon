@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 
 
@@ -35,6 +37,7 @@ class NetworkEvent:
     protocol: str | None = None
     query_type: str | None = None
     allowed: bool | None = None
+    timestamp: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,9 +83,16 @@ def _json_event(line: str, source: NetworkLogSource) -> NetworkEvent | None:
     query_type = raw_query_type.upper() if isinstance(raw_query_type, str) else None
     raw_allowed = value.get("allowed")
     allowed = raw_allowed if isinstance(raw_allowed, bool) else None
+    raw_timestamp = value.get("timestamp", value.get("time"))
+    timestamp = None
+    if isinstance(raw_timestamp, str):
+        with suppress(ValueError):
+            timestamp = datetime.fromisoformat(raw_timestamp.replace("Z", "+00:00")).astimezone(UTC)
     if source is NetworkLogSource.BLOCKED_EGRESS:
         allowed = False
-    return NetworkEvent(source, _clean_host(raw_host), port, protocol, query_type, allowed)
+    return NetworkEvent(
+        source, _clean_host(raw_host), port, protocol, query_type, allowed, timestamp
+    )
 
 
 def _dns_event(line: str) -> NetworkEvent | None:
@@ -151,7 +161,25 @@ def _parse(
     for line in text.splitlines():
         if not line.strip():
             continue
+        timestamp = None
+        prefix, separator, payload = line.partition(" ")
+        if separator:
+            try:
+                timestamp = datetime.fromisoformat(prefix.replace("Z", "+00:00")).astimezone(UTC)
+                line = payload
+            except ValueError:
+                pass
         event = parser(line)
+        if event is not None and timestamp is not None:
+            event = NetworkEvent(
+                event.source,
+                event.host,
+                event.port,
+                event.protocol,
+                event.query_type,
+                event.allowed,
+                timestamp,
+            )
         if event is None:
             malformed = True
             continue
@@ -167,6 +195,7 @@ def _parse(
             item.port or 0,
             item.protocol or "",
             item.query_type or "",
+            item.timestamp.isoformat() if item.timestamp else "",
         ),
     )
     diagnostics = tuple(

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Mapping
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
@@ -26,14 +26,36 @@ async def post_with_redirects(
     redirects = 0
     try:
         while True:
-            response = await client.post(endpoint, json=message, headers=headers, timeout=timeout)
+            decision = validate_url(endpoint, resolver)
+            if not decision.allowed:
+                # Keep the transport's historical typed policy result; callers
+                # treat all URL-policy failures as redirect-chain evidence.
+                return ProbeResult(ProbeStatus.UNSUPPORTED, "REDIRECT_" + decision.reason)
+            request_headers = dict(headers)
+            logical_parts = urlsplit(decision.url)
+            transport_parts = urlsplit(decision.transport_url)
+            logical_host = logical_parts.hostname
+            transport_host = transport_parts.hostname
+            if (
+                logical_host
+                and transport_host
+                and logical_host.casefold() != transport_host.casefold()
+            ):
+                request_headers["Host"] = logical_parts.netloc
+            response = await client.post(
+                decision.transport_url,
+                json=message,
+                headers=request_headers,
+                timeout=timeout,
+                extensions={"sni_hostname": logical_host} if logical_host else None,
+            )
             if response.status_code not in {301, 302, 303, 307, 308}:
-                return response, endpoint, headers
+                return response, decision.url, headers
             redirects += 1
             location = response.headers.get("location")
             if redirects > max_redirects or not location:
                 return ProbeResult(ProbeStatus.INCOMPLETE, "REDIRECT_LIMIT")
-            decision = validate_url(urljoin(endpoint, location), resolver)
+            decision = validate_url(urljoin(decision.url, location), resolver)
             if not decision.allowed:
                 return ProbeResult(ProbeStatus.UNSUPPORTED, "REDIRECT_" + decision.reason)
             if not same_origin(endpoint, decision.url):
@@ -42,7 +64,7 @@ async def post_with_redirects(
                     for name, value in headers.items()
                     if name.casefold() not in {"authorization", "cookie", "mcp-session-id"}
                 }
-            endpoint = decision.transport_url
+            endpoint = decision.url
     except httpx.TimeoutException:
         return ProbeResult(ProbeStatus.INCOMPLETE, "TIMEOUT")
     except httpx.TransportError:
@@ -70,3 +92,50 @@ def sse_endpoint(text: str) -> str | None:
             if value.startswith(("http://", "https://", "/")):
                 return value
     return None
+
+
+async def read_sse_events(
+    response: httpx.Response,
+    *,
+    max_response: int,
+    max_frame: int,
+) -> tuple[tuple[str | None, str], ...]:
+    """Read a bounded SSE stream, preserving event IDs for resume."""
+    if max_response < 1 or max_frame < 1:
+        raise ValueError("SSE bounds must be positive")
+    total = 0
+    frame = bytearray()
+    events: list[tuple[str | None, str]] = []
+    event_id: str | None = None
+    data: list[str] = []
+    async for chunk in response.aiter_bytes():
+        total += len(chunk)
+        if total > max_response:
+            raise ValueError("RESPONSE_TOO_LARGE")
+        frame.extend(chunk)
+        if len(frame) > max_frame:
+            raise ValueError("FRAME_TOO_LARGE")
+        while b"\n" in frame:
+            raw, _, rest = frame.partition(b"\n")
+            frame = bytearray(rest)
+            line = raw.rstrip(b"\r").decode("utf-8")
+            if not line:
+                if data:
+                    events.append((event_id, "\n".join(data)))
+                    data = []
+                continue
+            if line.startswith(":"):
+                continue
+            field, _, value = line.partition(":")
+            value = value[1:] if value.startswith(" ") else value
+            if field == "id":
+                event_id = value
+            elif field == "data":
+                data.append(value)
+                if sum(len(item) for item in data) > max_frame:
+                    raise ValueError("FRAME_TOO_LARGE")
+    if frame:
+        raise ValueError("MALFORMED_SSE")
+    if data:
+        events.append((event_id, "\n".join(data)))
+    return tuple(events)
