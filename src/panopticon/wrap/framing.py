@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 
+from pydantic import JsonValue, TypeAdapter, ValidationError
+
 DEFAULT_MAX_FRAME = 1_048_576
+_JSON: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
 
 
 class FrameError(ValueError):
@@ -15,13 +17,16 @@ class FrameError(ValueError):
 @dataclass(frozen=True, slots=True)
 class Frame:
     payload: bytes
-    message: object
+    message: JsonValue
 
 
 def encode(
-    message: object, *, content_length: bool = False, max_frame: int = DEFAULT_MAX_FRAME
+    message: JsonValue,
+    *,
+    content_length: bool = False,
+    max_frame: int = DEFAULT_MAX_FRAME,
 ) -> bytes:
-    payload = json.dumps(message, ensure_ascii=True, separators=(",", ":")).encode("ascii")
+    payload = _JSON.dump_json(message)
     if len(payload) > max_frame:
         raise FrameError("FRAME_TOO_LARGE")
     return (
@@ -37,7 +42,6 @@ class Decoder:
             raise ValueError("max_frame must be positive")
         self.max_frame = max_frame
         self._buf = bytearray()
-        self._content = False
 
     def feed(self, data: bytes) -> tuple[Frame, ...]:
         self._buf.extend(data)
@@ -65,8 +69,8 @@ class Decoder:
             else:
                 break
             try:
-                message = json.loads(payload)
-            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                message = _JSON.validate_json(payload)
+            except ValidationError as exc:
                 raise FrameError("MALFORMED_JSON") from exc
             out.append(Frame(payload, message))
         return tuple(out)

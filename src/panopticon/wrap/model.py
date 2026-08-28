@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Protocol
 
+from panopticon.models.event import Event
+
 
 class Coverage(StrEnum):
     COMPLETE = "COMPLETE"
@@ -54,7 +56,7 @@ class WrapRecordCandidate:
     server_id: str
     installation_id: str
     span: ToolSpan
-    events: tuple[object, ...] = ()
+    events: tuple[Event, ...] = ()
     coverage: Coverage = Coverage.COMPLETE
 
 

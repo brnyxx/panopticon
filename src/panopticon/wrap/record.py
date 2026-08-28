@@ -6,6 +6,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
+from urllib.parse import urlsplit
+
+from pydantic import JsonValue
 
 from .framing import Frame, FrameError
 from .model import AlertCandidate, Coverage, ToolSpan, WrapRecordCandidate
@@ -24,8 +27,20 @@ class Correlator:
         self._pending: dict[str, _Pending] = {}
         self.errors = 0
 
-    def observe(self, frame: Frame, now: datetime) -> WrapRecordCandidate | None:
-        message = frame.message
+    def observe(self, frame: Frame, now: datetime) -> tuple[WrapRecordCandidate, ...]:
+        messages = frame.message if isinstance(frame.message, list) else [frame.message]
+        records: list[WrapRecordCandidate] = []
+        for message in messages:
+            record = self._observe_message(message, now)
+            if record is not None:
+                records.append(record)
+        return tuple(records)
+
+    def _observe_message(
+        self,
+        message: JsonValue,
+        now: datetime,
+    ) -> WrapRecordCandidate | None:
         if not isinstance(message, Mapping):
             self.errors += 1
             raise FrameError("INVALID_MESSAGE")
@@ -83,7 +98,7 @@ class FirstSeen:
     def observe(
         self, installation_id: str, host: str, process: str, now: datetime
     ) -> AlertCandidate | None:
-        clean_host = host.split("/", 1)[0].split(":", 1)[0]
+        clean_host = (urlsplit(f"//{host}").hostname or "").casefold()
         clean_process = process.rsplit("/", 1)[-1]
         if not clean_host or not clean_process:
             return None
@@ -103,7 +118,5 @@ def parse_and_correlate(
     frames = decoder.feed(data)
     records: list[WrapRecordCandidate] = []
     for frame in frames:
-        record = correlator.observe(frame, now)
-        if record is not None:
-            records.append(record)
+        records.extend(correlator.observe(frame, now))
     return tuple(records)

@@ -9,7 +9,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from panopticon.baseline.migrate import migrate_baseline_json
-from panopticon.models.artifacts import Baseline
+from panopticon.models.artifacts import Baseline, WrapRecord
 from panopticon.models.ids import BaselineId, InstallationId
 from panopticon.models.observation import Observation
 from panopticon.store.contracts import (
@@ -106,6 +106,19 @@ class ArtifactRepository:
             return failure
         return persist(
             PersistRequest(target, ModelArtifact(SinkKind.BASELINE, baseline)),
+            self.context,
+        )
+
+    def persist_wrap_record(self, record: WrapRecord) -> PersistResult:
+        day = record.ts.date().isoformat()
+        target = (
+            self.root / "wrap" / str(record.installation_id) / day / f"{record.span.span_id}.json"
+        )
+        failure = self._prepare(target, SinkKind.WRAP_RECORD)
+        if failure is not None:
+            return failure
+        return persist(
+            PersistRequest(target, ModelArtifact(SinkKind.WRAP_RECORD, record)),
             self.context,
         )
 
