@@ -38,9 +38,13 @@ runs:
         case "$PANO_INPUT_SARIF" in
           *$'\n'*|*$'\r'*) exit 2 ;;
         esac
-        uvx panopticon-mcp ci "$PANO_INPUT_PATH" \
+        set +e
+        uv run --directory "$GITHUB_ACTION_PATH" pano ci "$PANO_INPUT_PATH" \
           --mode "$PANO_INPUT_MODE" \
           --sarif "$PANO_INPUT_SARIF" \
           --fail-on "$PANO_INPUT_FAIL_ON" \
           --config "$PANO_INPUT_CONFIG"
+        status=$?
+        set -e
         printf 'sarif=%s\n' "$PANO_INPUT_SARIF" >> "$GITHUB_OUTPUT"
+        exit "$status"

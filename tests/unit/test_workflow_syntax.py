@@ -39,3 +39,26 @@ def test_release_workflow_is_tag_only_with_build_and_publish_jobs() -> None:
     jobs = document["jobs"]
     assert isinstance(jobs, dict)
     assert {"build", "publish"}.issubset(jobs)
+
+
+def test_ci_self_scan_uses_trusted_local_action_and_pinned_upload() -> None:
+    document = yaml.load(
+        (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"),
+        Loader=yaml.BaseLoader,
+    )
+    assert isinstance(document, dict)
+    trigger = document["on"]
+    assert isinstance(trigger, dict)
+    assert "pull_request" not in trigger
+    assert "schedule" in trigger
+    self_scan = document["jobs"]["self-scan"]
+    assert self_scan["permissions"] == {
+        "contents": "read",
+        "security-events": "write",
+    }
+    steps = self_scan["steps"]
+    assert steps[0]["uses"].startswith("actions/checkout@")
+    assert steps[1]["uses"] == "./"
+    upload = steps[2]
+    assert upload["uses"].startswith("github/codeql-action/upload-sarif@")
+    assert upload["if"] == "always()"
