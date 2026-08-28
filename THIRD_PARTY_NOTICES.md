@@ -40,19 +40,17 @@ wheels.
 Official MCP server availability audit
 --------------------------------------
 The official server set is recorded in
-`tests/fixtures/mcp/official/manifest.json`. Filesystem and memory are pinned to
-the npm package `gitHead` commits and registry SHA-512 integrity values shown
-there. GitHub is not executed because its official package requires a
-`GITHUB_PERSONAL_ACCESS_TOKEN`, which is intentionally not provisioned in test
-environments. Fetch and SQLite have no package at the npm registry endpoints
-(`@modelcontextprotocol/server-fetch` and `@modelcontextprotocol/server-sqlite`
-return HTTP 404); they therefore cannot honestly be vendored or relabeled.
-Evidence endpoints (queried 2026-08-29):
-`https://registry.npmjs.org/@modelcontextprotocol%2Fserver-fetch` and
-`https://registry.npmjs.org/@modelcontextprotocol%2Fserver-sqlite`.
-These are external blockers, not compatible fixtures. The buildplan should
-carry a corrigendum removing the claim that all five official implementations
-are runnable until upstream packages and credential provisioning are available.
+`tests/fixtures/mcp/official/manifest.json`. Filesystem, memory, and fetch are
+pinned to the current official repository commit
+`cda92bdaacd558192fedf1a60d2bb27510792388`. GitHub and SQLite are pinned to the
+archived official commit `1f705677a930ec618b7a16d87d00cee7db747ff2`.
+The npm SHA-512 values are retained for the package-backed entries; source-only
+entries identify their immutable GitHub tree directly. Network acquisition is
+never implicit: `scripts/vendor_upstream.py` is the explicit acquisition step,
+and probes run only from its pinned local output or an audited cache artifact.
+The GitHub probe uses an enterprise-base-URL fixture with a synthetic token, so
+no personal credential is required. Missing local artifacts remain blockers;
+they are reported as provenance/cache gaps rather than npm availability claims.
 
 MIT License
 

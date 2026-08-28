@@ -9,9 +9,17 @@ from collections.abc import Iterable, Mapping
 from typing import Literal
 
 from panopticon.models.common import Host, PersistedPath
-from panopticon.models.event import Event, FileEvent, NetEvent, PlaintextHttpEvent, ProcessEvent
+from panopticon.models.event import (
+    BlockedEvent,
+    Event,
+    FileEvent,
+    NetEvent,
+    PlaintextHttpEvent,
+    ProcessEvent,
+)
 from panopticon.sandbox.decoy import DecoyMarker
 from panopticon.sandbox.matcher import DecoyMatcher
+from panopticon.sandbox.netlog import NetworkEvent
 from panopticon.sandbox.trace_model import TraceEvent
 
 
@@ -173,4 +181,54 @@ def convert_events(
     return tuple(output)
 
 
-__all__ = ["convert_events", "persisted_path"]
+def convert_network_events(events: Iterable[NetworkEvent]) -> tuple[Event, ...]:
+    counts: Counter[
+        tuple[
+            Literal["connect", "dns"],
+            str,
+            int | None,
+            Literal["proxy", "direct", "dns"],
+        ]
+    ] = Counter()
+    blocked: Counter[tuple[str, int]] = Counter()
+    for event in events:
+        if not event.host:
+            continue
+        if event.source.value == "blocked_egress":
+            if event.port is not None:
+                blocked[(event.host, event.port)] += 1
+        elif event.source.value == "dns":
+            counts[("dns", event.host, None, "dns")] += 1
+        else:
+            counts[("connect", event.host, event.port, "proxy")] += 1
+    output: list[Event] = [
+        Event(
+            NetEvent(
+                schema_version="1.0",
+                kind="net",
+                op=op,
+                host=Host(host),
+                port=port,
+                via=via,
+                count=count,
+            )
+        )
+        for (op, host, port, via), count in sorted(counts.items())
+    ]
+    output.extend(
+        Event(
+            BlockedEvent(
+                schema_version="1.0",
+                kind="blocked",
+                op="connect",
+                host=Host(host),
+                port=port,
+                count=count,
+            )
+        )
+        for (host, port), count in sorted(blocked.items())
+    )
+    return tuple(output)
+
+
+__all__ = ["convert_events", "convert_network_events", "persisted_path"]

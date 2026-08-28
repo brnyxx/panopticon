@@ -66,7 +66,11 @@ def test_data_driven_finding_sets(group: str) -> None:
             for match in matches
             if match.state is OutcomeState.MATCH and RULE_BY_ID[match.rule_id].kind == "confirmed"
         }
-        expected = set(case.get("expected", [])) if group == "evil" else set()
+        expected = (
+            {item["id"] if isinstance(item, dict) else item for item in case.get("expected", [])}
+            if group == "evil"
+            else set()
+        )
         assert confirmed == expected, case["name"]
 
 

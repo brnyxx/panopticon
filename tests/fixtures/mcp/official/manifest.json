@@ -5,14 +5,15 @@
     "license": "Apache-2.0/MIT transition terms",
     "license_file": "LICENSE",
     "license_sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a",
-    "provenance": "npm registry metadata (immutable package gitHead and sha512 integrity)"
+    "provenance": "GitHub source archives pinned by commit; npm integrity retained where applicable"
   },
   "servers": [
     {
       "name": "filesystem",
       "package": "@modelcontextprotocol/server-filesystem",
       "version": "2026.7.10",
-      "commit": "9a96ea6e5913736f92b88345bf51caeaaa8e719f",
+      "commit": "cda92bdaacd558192fedf1a60d2bb27510792388",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/cda92bdaacd558192fedf1a60d2bb27510792388/src/filesystem",
       "integrity": "sha512-Mmjg4anFBD5OzbPnGJOA0jPPN8645ERhQk38HQLpSenx1ox9bfdPkmAzUnNjeQtqQGFLtKe13J20RtLBmUKMZA==",
       "license": "Apache-2.0/MIT transition terms",
       "status": "available",
@@ -22,7 +23,8 @@
       "name": "memory",
       "package": "@modelcontextprotocol/server-memory",
       "version": "2026.7.4",
-      "commit": "6dd0a683e198783e30feabf7abaf42f925bd18b1",
+      "commit": "cda92bdaacd558192fedf1a60d2bb27510792388",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/cda92bdaacd558192fedf1a60d2bb27510792388/src/memory",
       "integrity": "sha512-D+NNzChsOHN72y58ngDmO+TzjJijGi/sSY/gBydhB3TJCcm1XQEozVWwEpruHeXt/HSkMV3Z/BpHDhdt1MLD5w==",
       "license": "Apache-2.0/MIT transition terms",
       "status": "available",
@@ -32,23 +34,28 @@
       "name": "github",
       "package": "@modelcontextprotocol/server-github",
       "version": "2025.4.8",
-      "commit": "73869dd6dc4ff3ffa4b79e12ad6c8ad619ba3a96",
+      "commit": "1f705677a930ec618b7a16d87d00cee7db747ff2",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/1f705677a930ec618b7a16d87d00cee7db747ff2/src/github",
       "integrity": "sha512-8N43bQw9MlUB0piTZHK2JMh8kYPKxH57d4Z7Wb8PS4by2MkZ0FzI5xPImg3xumpev82VZw2VWHQJJJYp+WkwEw==",
       "license": "MIT",
       "status": "blocked",
-      "blocker": "Requires GITHUB_PERSONAL_ACCESS_TOKEN; no credential is provisioned for tests."
+      "blocker": "Pinned source is available, but no local enterprise GitHub API fixture is vendored; tests must acquire one with the explicit vendor step."
     },
     {
       "name": "fetch",
-      "package": "@modelcontextprotocol/server-fetch",
+      "package": null,
+      "commit": "cda92bdaacd558192fedf1a60d2bb27510792388",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/cda92bdaacd558192fedf1a60d2bb27510792388/src/fetch",
       "status": "blocked",
-      "blocker": "Package is not present in the npm registry (HTTP 404); the upstream server was retired."
+      "blocker": "Pinned Python implementation exists at the current official commit, but no local vendored/cache artifact is present for offline execution."
     },
     {
       "name": "sqlite",
-      "package": "@modelcontextprotocol/server-sqlite",
+      "package": null,
+      "commit": "1f705677a930ec618b7a16d87d00cee7db747ff2",
+      "source": "https://github.com/modelcontextprotocol/servers/tree/1f705677a930ec618b7a16d87d00cee7db747ff2/src/sqlite",
       "status": "blocked",
-      "blocker": "Package is not present in the npm registry (HTTP 404); no official implementation can be pinned."
+      "blocker": "Pinned source is preserved in the archived official commit, but no local vendored/cache artifact is present for offline execution."
     }
   ]
 }

@@ -61,11 +61,37 @@ def _authority(tool: str, grant: ScopeGrant, read_only: bool | None) -> Behavior
     )
 
 
-def _authorities(result: LocalWatchResult, scope: DeclaredScope) -> tuple[BehaviorAuthority, ...]:
+def _authorities(
+    result: LocalWatchResult, scope: DeclaredScope, current_tool: str | None
+) -> tuple[BehaviorAuthority, ...]:
     hints = {tool.name: tool.read_only for tool in result.tools}
-    return tuple(
-        _authority(tool, grant, hints.get(tool)) for tool, grant in sorted(scope.tools.items())
+    server_active = bool(
+        scope.server.paths
+        or scope.server.hosts
+        or scope.server.env
+        or scope.server.processes
+        or scope.server.capabilities
+        or (scope.server.authority is Authority.AUTHORITATIVE and scope.server.complete)
     )
+    grants: tuple[tuple[str, ScopeGrant], ...]
+    if current_tool is not None:
+        selected = scope.tools.get(current_tool)
+        grants = (
+            ((current_tool, scope.server),)
+            if selected is None and server_active
+            else (
+                ((current_tool, selected), (current_tool, scope.server))
+                if selected is not None and server_active
+                else ((current_tool, selected),)
+                if selected is not None
+                else ()
+            )
+        )
+    else:
+        grants = ((("server", scope.server),) if server_active else ()) + tuple(
+            sorted(scope.tools.items())
+        )
+    return tuple(_authority(tool, grant, hints.get(tool)) for tool, grant in grants)
 
 
 def _evidence(result: LocalWatchResult, observation: Observation) -> tuple[WatchEvidence, ...]:
@@ -154,7 +180,6 @@ def apply_behavior_rules(
         return None
     register_rules()
     all_evidence = _evidence(result, observation)
-    authorities = _authorities(result, scope)
     call_tools = tuple(tool.name for tool in result.tools)
     reserved = {span.span_id for span in result.spans if span.kind.value != "call"}
     decoys = frozenset(
@@ -173,6 +198,7 @@ def apply_behavior_rules(
     }
     diagnostics: list[str] = []
     for tool in call_tools or (None,):
+        authorities = _authorities(result, scope, tool)
         span_ids = {
             span.span_id for span in result.spans if tool is None or span.tool == tool
         } | reserved

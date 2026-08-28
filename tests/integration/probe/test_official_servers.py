@@ -24,14 +24,25 @@ def test_official_manifest_has_immutable_provenance_and_explicit_blockers() -> N
     )
     names = {entry["name"] for entry in manifest["servers"]}
     assert names == {"filesystem", "github", "fetch", "memory", "sqlite"}
+    expected_commits = {
+        "filesystem": "cda92bdaacd558192fedf1a60d2bb27510792388",
+        "memory": "cda92bdaacd558192fedf1a60d2bb27510792388",
+        "fetch": "cda92bdaacd558192fedf1a60d2bb27510792388",
+        "github": "1f705677a930ec618b7a16d87d00cee7db747ff2",
+        "sqlite": "1f705677a930ec618b7a16d87d00cee7db747ff2",
+    }
     for entry in manifest["servers"]:
         assert entry["status"] in {"available", "blocked"}
+        assert entry["commit"] == expected_commits[entry["name"]]
+        assert entry["source"].startswith("https://github.com/modelcontextprotocol/servers/tree/")
         if entry["status"] == "available":
             assert len(entry["commit"]) == 40
             assert entry["integrity"].startswith("sha512-")
             assert entry["driver"]
         else:
             assert entry["blocker"]
+            assert "HTTP 404" not in entry["blocker"]
+            assert "npm registry" not in entry["blocker"]
 
 
 def test_available_driver_arguments_are_schema_shaped() -> None:

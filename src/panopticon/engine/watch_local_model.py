@@ -14,6 +14,7 @@ from panopticon.probe.driver import DriverResult
 from panopticon.probe.protocol import ProtocolEra
 from panopticon.sandbox.base import StreamResult
 from panopticon.sandbox.decoy import DecoyManifest
+from panopticon.sandbox.netlog import NetworkEvent
 from panopticon.sandbox.snapshot import SnapshotDiff
 from panopticon.sandbox.trace_model import TraceResult
 
@@ -80,6 +81,7 @@ class LocalWatchResult:
     coverage: Mapping[str, Coverage] = field(default_factory=dict)
     diagnostics: tuple[str, ...] = ()
     snapshot: SnapshotDiff | None = field(default=None, repr=False)
+    network_events: tuple[NetworkEvent, ...] = field(default=(), repr=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "coverage", MappingProxyType(dict(self.coverage)))

@@ -124,7 +124,7 @@ def test_missing_adapted_header_and_duplicate_test_ids_fail(
     assert "UPSTREAM_TEST_COUNT_MISMATCH" in errors
 
 
-def test_official_server_manifest_preserves_blocker_provenance() -> None:
+def test_official_server_manifest_preserves_source_provenance() -> None:
     manifest_path = (
         Path(__file__).resolve().parents[2]
         / "tests"
@@ -141,11 +141,16 @@ def test_official_server_manifest_preserves_blocker_provenance() -> None:
         "memory",
         "sqlite",
     }
-    blocked = {
-        entry["name"]: entry["blocker"]
-        for entry in manifest["servers"]
-        if entry["status"] == "blocked"
+    expected = {
+        "filesystem": "cda92bdaacd558192fedf1a60d2bb27510792388",
+        "memory": "cda92bdaacd558192fedf1a60d2bb27510792388",
+        "fetch": "cda92bdaacd558192fedf1a60d2bb27510792388",
+        "github": "1f705677a930ec618b7a16d87d00cee7db747ff2",
+        "sqlite": "1f705677a930ec618b7a16d87d00cee7db747ff2",
     }
-    assert "GITHUB_PERSONAL_ACCESS_TOKEN" in blocked["github"]
-    assert "HTTP 404" in blocked["fetch"]
-    assert "HTTP 404" in blocked["sqlite"]
+    for entry in manifest["servers"]:
+        assert entry["commit"] == expected[entry["name"]]
+        assert entry["source"].endswith(f"/src/{entry['name']}")
+        if entry["status"] == "blocked":
+            assert "HTTP 404" not in entry["blocker"]
+            assert "npm registry" not in entry["blocker"]

@@ -5,11 +5,20 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from enum import StrEnum
 
 from panopticon.sandbox.base import ContainerSpec, ExecResult, SandboxError
 from panopticon.sandbox.docker import is_pinned_image
+from panopticon.sandbox.netlog import (
+    NetworkLogReason,
+    NetworkLogResult,
+    NetworkLogStatus,
+    parse_blocked_egress_log,
+    parse_dns_log,
+    parse_proxy_log,
+)
 from panopticon.sandbox.streams import communicate
 
 
@@ -52,6 +61,13 @@ class NetworkSession:
             dns=self.dns_ip,
             proxy_url=f"http://{self.proxy_ip}:8888",
         )
+
+
+@dataclass(frozen=True, slots=True)
+class NetworkLogs:
+    dns: NetworkLogResult
+    proxy: NetworkLogResult
+    blocked_egress: NetworkLogResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,6 +182,37 @@ class NetworkController:
         if not isinstance(address, str) or not address:
             raise SandboxError("NETWORK_INSPECT_INVALID")
         return address
+
+    async def collect_logs(self, session: NetworkSession) -> NetworkLogs:
+        async def logs(container_id: str) -> str:
+            result = await self._command(["logs", "--tail", "10000", container_id])
+            if result.returncode:
+                return ""
+            return result.stdout.data.decode(errors="replace") + result.stderr.data.decode(
+                errors="replace"
+            )
+
+        dns_text, proxy_text = await asyncio.gather(logs(session.dns_id), logs(session.proxy_id))
+
+        def parsed(
+            text: str,
+            parser: Callable[[str], NetworkLogResult],
+        ) -> NetworkLogResult:
+            if not text:
+                return NetworkLogResult(
+                    (),
+                    NetworkLogStatus.FAILED,
+                    NetworkLogReason.MALFORMED_LINE,
+                    ("LOG_UNAVAILABLE",),
+                )
+            return parser(text)
+
+        return NetworkLogs(
+            parsed(dns_text, parse_dns_log),
+            parsed(proxy_text, parse_proxy_log),
+            # Direct-drop logging is runtime-specific and is not exposed by Docker/Podman.
+            parse_blocked_egress_log(""),
+        )
 
     async def start(self, services: NetworkServices) -> NetworkSession:
         if not is_pinned_image(services.image):

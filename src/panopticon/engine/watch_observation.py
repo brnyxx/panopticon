@@ -32,7 +32,7 @@ from panopticon.sandbox.decoy_specs import FILE_SPECS
 from panopticon.sandbox.trace_model import TraceEvent
 
 from .watch_declared import build_declared
-from .watch_events import convert_events, persisted_path
+from .watch_events import convert_events, convert_network_events, persisted_path
 from .watch_leaks import leak_events_by_span
 from .watch_local_model import LocalSpan, LocalWatchResult
 from .watch_state import build_state
@@ -184,6 +184,7 @@ def build_watch_observation(
         )
         for operation, path in (result.snapshot.paths if result.snapshot else ())
     )
+    network_events = convert_network_events(result.network_events)
     spans = tuple(
         Span(
             span_id=SpanId(span.span_id),
@@ -199,6 +200,7 @@ def build_watch_observation(
                     decoy_markers=result.manifest.markers if result.manifest else (),
                 ),
                 *(snapshot_events if span.kind.value == "session" else ()),
+                *(network_events if span.kind.value == "session" else ()),
                 *leak_events.get(span.span_id, ()),
             ),
         )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from dataclasses import replace
 from pathlib import Path
 
 from panopticon.models.inventory import Transport
@@ -11,6 +12,7 @@ from panopticon.probe.client import McpClient
 from panopticon.sandbox.base import Container, ContainerSpec, InteractiveSession, SandboxError
 from panopticon.sandbox.decoy import decoy_archive, generate_decoy_home
 from panopticon.sandbox.image_catalog import DEFAULT_IMAGE_CATALOG, ImageCatalog
+from panopticon.sandbox.netlog import NetworkLogStatus
 from panopticon.sandbox.network import NetworkController, NetworkServices, NetworkSession
 
 from .watch_inventory import WatchTargetContext
@@ -24,7 +26,7 @@ from .watch_local_evidence import (
 )
 from .watch_local_model import LocalWatchResult, LocalWatchStatus
 from .watch_local_runtime import LocalRuntime, cleanup_local, unsupported
-from .watch_model import WatchOptions
+from .watch_model import Coverage, WatchOptions
 
 
 async def run_local_production(
@@ -124,18 +126,64 @@ async def run_local_production(
         )
         await asyncio.shield(cleanup)
         raise
+    if network_session is not None and controller is not None:
+        try:
+            logs = await controller.collect_logs(network_session)
+            events = (*logs.dns.events, *logs.proxy.events, *logs.blocked_egress.events)
+            diagnostics = (
+                *tuple(
+                    f"NETWORK_{source}_{item}"
+                    for source, parsed in (("DNS", logs.dns), ("PROXY", logs.proxy))
+                    for item in parsed.diagnostics
+                ),
+                "DIRECT_EGRESS_UNKNOWN",
+            )
+            result = replace(
+                result,
+                status=(
+                    result.status
+                    if logs.dns.status is NetworkLogStatus.COMPLETE
+                    and logs.proxy.status is NetworkLogStatus.COMPLETE
+                    else LocalWatchStatus.PARTIAL
+                ),
+                reason_code=(
+                    result.reason_code
+                    if logs.dns.status is NetworkLogStatus.COMPLETE
+                    and logs.proxy.status is NetworkLogStatus.COMPLETE
+                    else "PARTIAL_COVERAGE"
+                ),
+                network_events=events,
+                diagnostics=(*result.diagnostics, *diagnostics),
+                coverage={
+                    **result.coverage,
+                    "dns": Coverage.COMPLETE
+                    if logs.dns.status is NetworkLogStatus.COMPLETE
+                    else Coverage.UNKNOWN,
+                    "proxy": Coverage.COMPLETE
+                    if logs.proxy.status is NetworkLogStatus.COMPLETE
+                    else Coverage.UNKNOWN,
+                },
+            )
+        except (OSError, SandboxError):
+            result = replace(
+                result,
+                diagnostics=(
+                    *result.diagnostics,
+                    "NETWORK_LOGS_UNAVAILABLE",
+                    "DIRECT_EGRESS_UNKNOWN",
+                ),
+            )
+    elif options.offline:
+        result = replace(result, diagnostics=(*result.diagnostics, "DIRECT_EGRESS_UNKNOWN"))
     cleanup_diagnostics = await cleanup_local(
         client, session, container, controller, network_session
     )
     if cleanup_diagnostics:
-        return LocalWatchResult(
-            context,
-            LocalWatchStatus.INCOMPLETE,
-            "CLEANUP_FAILED",
-            image=image,
-            runtime=runtime.name,
-            offline=options.offline,
-            diagnostics=cleanup_diagnostics,
+        return replace(
+            result,
+            status=LocalWatchStatus.INCOMPLETE,
+            reason_code="CLEANUP_FAILED",
+            diagnostics=(*result.diagnostics, *cleanup_diagnostics),
         )
     return result
 

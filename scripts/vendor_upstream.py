@@ -8,6 +8,8 @@ import subprocess
 from pathlib import Path
 
 COMMIT = "e717e955210b1d2a3e9fb1cdc266587c77ffebf3"
+OFFICIAL_CURRENT_COMMIT = "cda92bdaacd558192fedf1a60d2bb27510792388"
+OFFICIAL_ARCHIVE_COMMIT = "1f705677a930ec618b7a16d87d00cee7db747ff2"
 OFFICIAL_MANIFEST = Path("tests/fixtures/mcp/official/manifest.json")
 
 
@@ -81,14 +83,60 @@ def official_manifest(path: Path = OFFICIAL_MANIFEST) -> dict[str, object]:
     return value
 
 
+def vendor_official_sources(
+    current_clone: Path, archive_clone: Path, destination: Path
+) -> tuple[Path, ...]:
+    """Explicitly acquire the five official source trees into an offline cache.
+
+    The clones must already have been fetched by the caller. This function never
+    performs network access and accepts only the two audited repository commits.
+    """
+    if _git(current_clone, "rev-parse", "HEAD") != OFFICIAL_CURRENT_COMMIT:
+        raise ValueError("current official clone is not at the audited commit")
+    if _git(archive_clone, "rev-parse", "HEAD") != OFFICIAL_ARCHIVE_COMMIT:
+        raise ValueError("archived official clone is not at the audited commit")
+    for clone in (current_clone, archive_clone):
+        if _git(clone, "status", "--porcelain"):
+            raise ValueError("official clone must be clean")
+    destination.mkdir(parents=True, exist_ok=True)
+    copied: list[Path] = []
+    for name, clone in (
+        *((name, current_clone) for name in ("filesystem", "memory", "fetch")),
+        *((name, archive_clone) for name in ("github", "sqlite")),
+    ):
+        source = clone / "src" / name
+        if not source.exists():
+            continue
+        target = destination / name
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(source, target)
+        copied.extend(path for path in target.rglob("*") if path.is_file())
+    return tuple(copied)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-clone", type=Path, required=True)
     parser.add_argument("--destination", type=Path, default=Path("tests/upstream"))
+    parser.add_argument("--official-current-clone", type=Path)
+    parser.add_argument("--official-archive-clone", type=Path)
+    parser.add_argument(
+        "--official-destination", type=Path, default=Path("tests/fixtures/mcp/official/cache")
+    )
     args = parser.parse_args()
     official_manifest()
     copied = vendor(args.source_clone.resolve(), args.destination.resolve())
     print(f"vendored {len(copied)} exact files from {COMMIT}")
+    if args.official_current_clone is not None or args.official_archive_clone is not None:
+        if args.official_current_clone is None or args.official_archive_clone is None:
+            parser.error("--official-current-clone and --official-archive-clone are paired")
+        official = vendor_official_sources(
+            args.official_current_clone.resolve(),
+            args.official_archive_clone.resolve(),
+            args.official_destination.resolve(),
+        )
+        print(f"vendored {len(official)} official source files")
     return 0
 
 
