@@ -58,7 +58,14 @@ async def test_run_uses_isolation_flags_and_vector(
             return _Process(json.dumps([{"HostConfig": host_config}]).encode())
         return _Process(b"")
 
-    monkeypatch.setattr("panopticon.sandbox.docker.asyncio.create_subprocess_exec", fake_exec)
+    monkeypatch.setattr(
+        "panopticon.sandbox._docker_runtime.asyncio.create_subprocess_exec",
+        fake_exec,
+    )
+    monkeypatch.setattr(
+        "panopticon.sandbox._docker_container.asyncio.create_subprocess_exec",
+        fake_exec,
+    )
     image = "registry.example/pano@sha256:" + "a" * 64
     await DockerRuntime("docker").run(ContainerSpec(image, ["serve"], {}, decoy_home))
     command = next(call for call in calls if call[1] == "run")
@@ -116,7 +123,10 @@ async def test_cancelled_setup_removes_created_container(
 
     monkeypatch.setattr(runtime, "_ensure_network", available_network)
     monkeypatch.setattr(runtime, "_container", lambda _container_id: container)
-    monkeypatch.setattr("panopticon.sandbox.docker.asyncio.create_subprocess_exec", started)
+    monkeypatch.setattr(
+        "panopticon.sandbox._docker_runtime.asyncio.create_subprocess_exec",
+        started,
+    )
     task = asyncio.create_task(
         runtime.run(
             ContainerSpec(
@@ -144,7 +154,10 @@ async def test_lifecycle_methods_emit_vector_commands(monkeypatch: pytest.Monkey
         calls.append(tuple(str(arg) for arg in args))
         return _Process(b"")
 
-    monkeypatch.setattr("panopticon.sandbox.docker.asyncio.create_subprocess_exec", fake_exec)
+    monkeypatch.setattr(
+        "panopticon.sandbox._docker_container.asyncio.create_subprocess_exec",
+        fake_exec,
+    )
     container = DockerContainer("docker", "container-id")
 
     await container.terminate(3)

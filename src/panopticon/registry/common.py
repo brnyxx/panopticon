@@ -27,7 +27,9 @@ def safe_url(value: object) -> str | None:
         return None
 
 
-def parse_timestamp(value: object, *, now: datetime | None = None) -> tuple[datetime | None, HistoryReason | None]:
+def parse_timestamp(
+    value: object, *, now: datetime | None = None
+) -> tuple[datetime | None, HistoryReason | None]:
     if value is None:
         return None, HistoryReason.MISSING_TIMESTAMP
     if not isinstance(value, str):
@@ -87,42 +89,96 @@ def select(spec: str, versions: list[str]) -> str | None:
     def okay(target: tuple[int, int, int]) -> bool:
         for op, major, minor, patch in checks:
             base = (int(major), int(minor or 0), int(patch or 0))
-            if op == ">=" and not target >= base: return False
-            if op == "<=" and not target <= base: return False
-            if op == ">" and not target > base: return False
-            if op == "<" and not target < base: return False
-            if op == "^" and not (target >= base and target[0] == base[0]): return False
-            if op == "~" and not (target >= base and target[:2] == base[:2]): return False
+            if op == ">=" and not target >= base:
+                return False
+            if op == "<=" and not target <= base:
+                return False
+            if op == ">" and not target > base:
+                return False
+            if op == "<" and not target < base:
+                return False
+            if op == "^" and not (target >= base and target[0] == base[0]):
+                return False
+            if op == "~" and not (target >= base and target[:2] == base[:2]):
+                return False
         return True
 
-    matched = [item for item, target in sorted(candidates, key=lambda pair: pair[1]) if okay(target)]
-    return matched[-1] if matched else None
+    matching_versions = [
+        item for item, target in sorted(candidates, key=lambda pair: pair[1]) if okay(target)
+    ]
+    return matching_versions[-1] if matching_versions else None
 
 
-def resolve(spec: str, records: list[ReleaseRecord], tags: Mapping[str, object] | None = None) -> tuple[str | None, HistoryReason]:
+def resolve(
+    spec: str, records: list[ReleaseRecord], tags: Mapping[str, object] | None = None
+) -> tuple[str | None, HistoryReason]:
     effective = tags.get(spec, spec) if tags is not None else spec
     if not isinstance(effective, str):
         return None, HistoryReason.UNRESOLVED_SPEC
     exact = version(effective)
     if exact is not None:
-        selected = next((record for record in records if record.version == exact or record.version.removeprefix("v") == exact.removeprefix("v")), None)
-        if selected is None: return None, HistoryReason.UNRESOLVED_SPEC
-        if selected.yanked: return selected.version, HistoryReason.YANKED
-        if selected.deprecated: return selected.version, HistoryReason.DEPRECATED
+        selected = next(
+            (
+                record
+                for record in records
+                if record.version == exact
+                or record.version.removeprefix("v") == exact.removeprefix("v")
+            ),
+            None,
+        )
+        if selected is None:
+            return None, HistoryReason.UNRESOLVED_SPEC
+        if selected.yanked:
+            return selected.version, HistoryReason.YANKED
+        if selected.deprecated:
+            return selected.version, HistoryReason.DEPRECATED
         return selected.version, HistoryReason.OK
     usable = [record.version for record in records if not record.yanked and not record.deprecated]
-    selected = select(effective, usable)
-    return selected, HistoryReason.OK if selected else HistoryReason.UNRESOLVED_SPEC
+    resolved = select(effective, usable)
+    return resolved, HistoryReason.OK if resolved else HistoryReason.UNRESOLVED_SPEC
 
 
-def result(ecosystem: str, name: str, spec: str, *, status: HistoryStatus, reason_code: HistoryReason, resolved_version: str | None = None, source_url: str | None = None, latest: str | None = None, maintainers: tuple[str, ...] = (), archived: bool | None = None, releases: tuple[ReleaseRecord, ...] = ()) -> NormalizedHistory:
-    return NormalizedHistory(ecosystem=ecosystem, name=name, requested_spec=spec, status=status, reason_code=reason_code, resolved_version=resolved_version, source_url=source_url, latest=latest, maintainers=maintainers, archived=archived, releases=releases)
+def result(
+    ecosystem: str,
+    name: str,
+    spec: str,
+    *,
+    status: HistoryStatus,
+    reason_code: HistoryReason,
+    resolved_version: str | None = None,
+    source_url: str | None = None,
+    latest: str | None = None,
+    maintainers: tuple[str, ...] = (),
+    archived: bool | None = None,
+    releases: tuple[ReleaseRecord, ...] = (),
+) -> NormalizedHistory:
+    return NormalizedHistory(
+        ecosystem=ecosystem,
+        name=name,
+        requested_spec=spec,
+        status=status,
+        reason_code=reason_code,
+        resolved_version=resolved_version,
+        source_url=source_url,
+        latest=latest,
+        maintainers=maintainers,
+        archived=archived,
+        releases=releases,
+    )
 
 
-def normalize_registry(ecosystem: str, payload: object, *, name: str, spec: str, now: datetime | None) -> NormalizedHistory:
+def normalize_registry(
+    ecosystem: str, payload: object, *, name: str, spec: str, now: datetime | None
+) -> NormalizedHistory:
     now = now or datetime.now(UTC)
     if not isinstance(payload, Mapping):
-        return result(ecosystem, name, spec, status=HistoryStatus.INCOMPLETE, reason_code=HistoryReason.MALFORMED_INPUT)
+        return result(
+            ecosystem,
+            name,
+            spec,
+            status=HistoryStatus.INCOMPLETE,
+            reason_code=HistoryReason.MALFORMED_INPUT,
+        )
     tags: Mapping[str, object] | None = None
     maintainers: tuple[str, ...] = ()
     if ecosystem == "npm":
@@ -130,33 +186,87 @@ def normalize_registry(ecosystem: str, payload: object, *, name: str, spec: str,
         times = payload.get("time", {})
         repository = payload.get("repository")
         source = payload.get("homepage")
-        if not source and isinstance(repository, Mapping): source = repository.get("url")
+        if not source and isinstance(repository, Mapping):
+            source = repository.get("url")
         raw_tags = payload.get("dist-tags")
         tags = raw_tags if isinstance(raw_tags, Mapping) else None
         latest_value = tags.get("latest") if tags is not None else None
         latest = latest_value if isinstance(latest_value, str) else None
         raw = payload.get("maintainers")
-        if isinstance(raw, list): maintainers = tuple(sorted(m["name"] for m in raw if isinstance(m, Mapping) and isinstance(m.get("name"), str)))
+        if isinstance(raw, list):
+            maintainers = tuple(
+                sorted(
+                    m["name"]
+                    for m in raw
+                    if isinstance(m, Mapping) and isinstance(m.get("name"), str)
+                )
+            )
     else:
         info = payload.get("info", {})
         versions = payload.get("releases")
         release_mapping = versions if isinstance(versions, Mapping) else {}
-        times = {v: (items[0].get("upload_time_iso_8601") if items and isinstance(items[0], Mapping) else None) for v, items in release_mapping.items()}
+        times = {
+            v: (
+                items[0].get("upload_time_iso_8601")
+                if items and isinstance(items[0], Mapping)
+                else None
+            )
+            for v, items in release_mapping.items()
+        }
         source = info.get("project_url") if isinstance(info, Mapping) else None
-        latest = info.get("version") if isinstance(info, Mapping) and isinstance(info.get("version"), str) else None
+        latest = (
+            info.get("version")
+            if isinstance(info, Mapping) and isinstance(info.get("version"), str)
+            else None
+        )
     if not isinstance(versions, Mapping):
-        return result(ecosystem, name, spec, status=HistoryStatus.INCOMPLETE, reason_code=HistoryReason.MALFORMED_INPUT)
+        return result(
+            ecosystem,
+            name,
+            spec,
+            status=HistoryStatus.INCOMPLETE,
+            reason_code=HistoryReason.MALFORMED_INPUT,
+        )
     records: list[ReleaseRecord] = []
     for ver in sorted(versions):
-        if not version(ver): continue
-        timestamp, reason = parse_timestamp(times.get(ver) if isinstance(times, Mapping) else None, now=now)
-        if reason: return result(ecosystem, name, spec, status=HistoryStatus.INCOMPLETE, reason_code=reason)
+        if not version(ver):
+            continue
+        timestamp, reason = parse_timestamp(
+            times.get(ver) if isinstance(times, Mapping) else None, now=now
+        )
+        if reason:
+            return result(
+                ecosystem, name, spec, status=HistoryStatus.INCOMPLETE, reason_code=reason
+            )
         raw_meta = versions[ver]
         meta = raw_meta if isinstance(raw_meta, Mapping) else {}
         files = raw_meta if isinstance(raw_meta, list) else ()
-        yanked = any(isinstance(item, Mapping) and bool(item.get("yanked")) for item in files) if ecosystem == "pypi" else False
+        yanked = (
+            any(isinstance(item, Mapping) and bool(item.get("yanked")) for item in files)
+            if ecosystem == "pypi"
+            else False
+        )
         deprecated = bool(meta.get("deprecated")) if ecosystem == "npm" else False
-        records.append(ReleaseRecord(version=ver, published_at=timestamp, age_days=age(timestamp, now) if timestamp else None, yanked=yanked, deprecated=deprecated))
+        records.append(
+            ReleaseRecord(
+                version=ver,
+                published_at=timestamp,
+                age_days=age(timestamp, now) if timestamp else None,
+                yanked=yanked,
+                deprecated=deprecated,
+            )
+        )
     records.sort(key=lambda record: semver_key(record.version))
     resolved, reason = resolve(spec, records, tags if ecosystem == "npm" else None)
-    return result(ecosystem, name, spec, status=HistoryStatus.AVAILABLE if resolved else HistoryStatus.UNKNOWN, reason_code=reason, resolved_version=resolved, latest=latest, maintainers=maintainers, source_url=safe_url(source), releases=tuple(records))
+    return result(
+        ecosystem,
+        name,
+        spec,
+        status=HistoryStatus.AVAILABLE if resolved else HistoryStatus.UNKNOWN,
+        reason_code=reason,
+        resolved_version=resolved,
+        latest=latest,
+        maintainers=maintainers,
+        source_url=safe_url(source),
+        releases=tuple(records),
+    )

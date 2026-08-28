@@ -57,7 +57,7 @@ class RegistryClient:
         self.http = http
         self.clock = clock
         self.timeout = timeout
-        self.github_token = github_token
+        self._github_token = github_token
 
     async def fetch(
         self,
@@ -69,7 +69,7 @@ class RegistryClient:
         series = snapshots or SnapshotSeries()
         if offline:
             return self._offline(lookup, series)
-        request = _request(lookup, series, self.github_token)
+        request = _request(lookup, series, self._github_token)
         if request is None:
             return RegistryFetch(
                 _unavailable(lookup, HistoryStatus.INCOMPLETE, HistoryReason.MALFORMED_INPUT),

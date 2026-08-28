@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from .model import NormalizedHistory
 
@@ -32,6 +32,13 @@ class RegistrySnapshot(BaseModel):
     history: NormalizedHistory
     etag: str | None = None
     transition: HistoryTransition
+
+    @field_validator("observed_at")
+    @classmethod
+    def require_aware_observation(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        return value
 
 
 class SnapshotSeries(BaseModel):

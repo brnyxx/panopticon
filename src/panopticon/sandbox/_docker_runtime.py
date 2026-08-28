@@ -7,9 +7,9 @@ import re
 import shutil
 from collections.abc import Mapping
 
+from . import docker
 from ._docker_container import _CONTAINER_TMP, DockerContainer
 from .base import Container, ContainerSpec, ExecResult, SandboxError
-from . import docker
 from .streams import communicate
 
 
