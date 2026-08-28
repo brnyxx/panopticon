@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
+from types import MappingProxyType
 from typing import Protocol
 
 
@@ -56,6 +57,23 @@ class Coverage(StrEnum):
     UNSUPPORTED = "UNSUPPORTED"
 
 
+class WatchTarget(Protocol):
+    name: str
+    transport: str
+    destructive: bool
+    command: str | None
+    args: tuple[str, ...]
+    url: str | None
+
+
+class Evidence(Protocol):
+    """Opaque evidence value exchanged between injected stages."""
+
+
+class PersistenceCandidate(Protocol):
+    """Opaque, already-sanitized candidate for persistence."""
+
+
 @dataclass(frozen=True, slots=True)
 class WatchOutcome:
     target: str
@@ -63,20 +81,26 @@ class WatchOutcome:
     reason: str
     coverage: Mapping[str, Coverage] = field(default_factory=dict)
     diagnostics: tuple[str, ...] = ()
-    findings: tuple[object, ...] = ()
-    persistence: tuple[object, ...] = ()
+    findings: tuple[PersistenceCandidate, ...] = ()
+    persistence: tuple[PersistenceCandidate, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "coverage", MappingProxyType(dict(self.coverage)))
 
 
 class Inventory(Protocol):
-    def select(self, selection: TargetSelection) -> tuple[object, ...]: ...
+    def select(self, selection: TargetSelection) -> tuple[WatchTarget, ...]: ...
 
 
 __all__ = [
     "Coverage",
+    "Evidence",
     "Inventory",
+    "PersistenceCandidate",
     "TargetMode",
     "TargetSelection",
     "WatchOptions",
     "WatchOutcome",
     "WatchRequest",
+    "WatchTarget",
 ]

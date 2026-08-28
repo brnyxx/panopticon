@@ -22,33 +22,32 @@ def render(outcome: DoctorOutcome, *, json_output: bool = False) -> Render:
             exit_code=code,
         )
 
-    doctor = payload["doctor"]
     lines: list[str] = []
-    alerts = doctor["alerts"]
-    for alert in alerts:
+    for alert in outcome.data.alerts:
         lines.append(f"ALERT: {alert}")
-    for client in doctor["clients"]:
-        lines.append(f"{client['name']}: {client['status']}")
-        for group in client["groups"]:
-            lines.append(f"  {group['server_id']}:")
-            for item in group["installations"]:
-                lines.append(f"    {item['name']} [{item['transport']}] ({item['scope']})")
-                if item.get("command"):
-                    lines.append(f"      command: {item['command']}")
-                if item.get("url"):
-                    lines.append(f"      url: {item['url']}")
-                if item.get("env_keys"):
-                    lines.append(f"      env_keys: {', '.join(item['env_keys'])}")
-                if item.get("headers_keys"):
-                    lines.append(f"      headers_keys: {', '.join(item['headers_keys'])}")
-                if item.get("history") is not None:
-                    history = item["history"]
-                    lines.append(f"      history: {history.get('status', 'UNKNOWN')}")
-    lines.append(f"Status: {payload['status']}")
-    lines.append(f"Reason: {payload['reason_code']}")
-    diagnostics = payload["diagnostics"]
-    if diagnostics:
-        lines.append("Diagnostics: " + ", ".join(d["code"] for d in diagnostics))
+    for client in outcome.data.clients:
+        lines.append(f"{client.name}: {client.status}")
+        for group in client.groups:
+            lines.append(f"  {group.server_id}:")
+            for item in group.installations:
+                lines.append(f"    {item.name} [{item.transport}] ({item.scope})")
+                if item.command:
+                    lines.append(f"      command: {item.command}")
+                if item.url:
+                    lines.append(f"      url: {item.url}")
+                if item.env_keys:
+                    lines.append(f"      env_keys: {', '.join(item.env_keys)}")
+                if item.headers_keys:
+                    lines.append(f"      headers_keys: {', '.join(item.headers_keys)}")
+                if item.history is not None:
+                    lines.append(f"      history: {item.history.status.value}")
+    lines.append(f"Status: {outcome.result.status.value}")
+    lines.append(f"Reason: {outcome.result.reason_code.value}")
+    if outcome.result.diagnostics:
+        lines.append(
+            "Diagnostics: "
+            + ", ".join(diagnostic.code for diagnostic in outcome.result.diagnostics)
+        )
     return Render(stdout="\n".join(lines) + "\n", stderr="", exit_code=code)
 
 
