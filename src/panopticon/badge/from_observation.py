@@ -9,7 +9,7 @@ from typing import Literal
 from panopticon.models.observation import DeclaredCompleteness, Observation
 from panopticon.models.state import StageStatus
 from panopticon.reporters.visual import VisualFormat, persist_visual
-from panopticon.store.contracts import PersistFailure, PersistSuccess
+from panopticon.store.contracts import PersistFailure, PersistResult, PersistSuccess
 from panopticon.store.repository import ArtifactRepository, LoadStatus
 
 from .eligibility import badge_eligible
@@ -107,6 +107,19 @@ def persist_badge(repository: ArtifactRepository, target: Path, result: BadgeRes
     return BadgeResult(None, BadgeDiagnostic(code, "badge output unavailable"))
 
 
+def persist_observation_png(
+    repository: ArtifactRepository,
+    observation: Observation,
+) -> PersistResult:
+    target = repository.root / "cards" / f"{observation.observation_id}.png"
+    return persist_visual(
+        repository,
+        target,
+        model_from_observation(observation),
+        VisualFormat.PNG,
+    )
+
+
 def run_badge(path: Path, target: Path, *, locale: Literal["en", "ko"] = "en") -> BadgeResult:
     repository = ArtifactRepository()
     return persist_badge(repository, target, load_and_build(repository, path, locale=locale))
@@ -118,5 +131,6 @@ __all__ = [
     "load_and_build",
     "model_from_observation",
     "persist_badge",
+    "persist_observation_png",
     "run_badge",
 ]

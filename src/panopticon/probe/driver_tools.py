@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from .argument_schema import Schema
@@ -16,7 +17,7 @@ class ToolDefinition:
 
 
 def tool_definition(value: object) -> ToolDefinition | None:
-    if not isinstance(value, dict):
+    if not isinstance(value, Mapping):
         return None
     name = value.get("name")
     raw_schema = value.get("inputSchema", {})

@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Protocol
 
+from panopticon.analyzers.behavior.spans import SpanKind
 from panopticon.models.inventory import Transport
 from panopticon.probe.client import McpClient
 from panopticon.probe.driver import CallDriver, DriverStatus
@@ -15,9 +15,7 @@ from panopticon.sandbox.base import (
     Container,
     ContainerSpec,
     InteractiveSession,
-    Runtime,
     SandboxError,
-    StreamResult,
 )
 from panopticon.sandbox.decoy import decoy_archive, generate_decoy_home
 from panopticon.sandbox.image_catalog import DEFAULT_IMAGE_CATALOG, ImageCatalog
@@ -30,54 +28,16 @@ from .watch_local_evidence import (
     Clock,
     SpanRecorder,
     SystemClock,
+    argument_overrides,
     image_reference,
     local_protocol,
     normalize_tools,
+    reserved_span,
     target_environment,
 )
-from .watch_local_model import LocalWatchResult, LocalWatchStatus
+from .watch_local_model import LocalSpan, LocalWatchResult, LocalWatchStatus
+from .watch_local_runtime import LocalRuntime, bounded_stderr, cleanup_local, unsupported
 from .watch_model import Coverage, WatchOptions
-
-
-class LocalRuntime(Runtime, Protocol):
-    executable: str
-
-
-def _unsupported(context: WatchTargetContext, reason: str) -> LocalWatchResult:
-    return LocalWatchResult(context, LocalWatchStatus.UNSUPPORTED, reason)
-
-
-async def _bounded_stderr(container_session: InteractiveSession) -> StreamResult:
-    try:
-        return await asyncio.wait_for(container_session.read_stderr(), 0.2)
-    except TimeoutError:
-        return StreamResult(b"")
-
-
-async def _cleanup(
-    client: McpClient | None,
-    session: InteractiveSession | None,
-    container: Container | None,
-    controller: NetworkController | None,
-    network: NetworkSession | None,
-) -> tuple[str, ...]:
-    diagnostics: list[str] = []
-    try:
-        if client is not None:
-            await client.close()
-        if session is not None:
-            await session.cleanup()
-        elif container is not None:
-            await container.stop()
-            await container.rm()
-    except (OSError, SandboxError):
-        diagnostics.append("CONTAINER_CLEANUP_FAILED")
-    try:
-        if controller is not None and network is not None:
-            await controller.stop(network)
-    except (OSError, SandboxError):
-        diagnostics.append("NETWORK_CLEANUP_FAILED")
-    return tuple(diagnostics)
 
 
 async def run_local_production(
@@ -94,18 +54,31 @@ async def run_local_production(
 ) -> LocalWatchResult:
     target = context.target
     if target.transport is not Transport.STDIO or target.command is None:
-        return _unsupported(context, "UNSUPPORTED_LOCAL_COMMAND")
+        return unsupported(context, "UNSUPPORTED_LOCAL_COMMAND")
     image = image_reference(context, catalog, self_source)
     if image is None:
-        return _unsupported(context, "UNSUPPORTED_IMAGE")
+        return unsupported(context, "UNSUPPORTED_IMAGE")
     if not runtime.available():
-        return _unsupported(context, "RUNTIME_UNAVAILABLE")
+        return unsupported(context, "RUNTIME_UNAVAILABLE")
+    try:
+        overrides = argument_overrides(options.args)
+    except ValueError:
+        return LocalWatchResult(
+            context,
+            LocalWatchStatus.INCOMPLETE,
+            "ARG_OVERRIDE_INVALID",
+            image=image,
+            runtime=runtime.name,
+            offline=options.offline,
+        )
     manifest = generate_decoy_home(str(target.installation_id), str(target.installation_id))
     environment = target_environment(context, manifest.env, options, real_env)
     first_file = sorted(manifest.files)[0]
     environment["PANO_DECOY_FILE"] = f"/home/pano/{first_file}"
     environment["PANO_DECOY_VALUE"] = manifest.markers[0].text
     controller = network
+    session_clock = clock or SystemClock()
+    startup_started = session_clock.now()
     network_session: NetworkSession | None = None
     container: Container | None = None
     session: InteractiveSession | None = None
@@ -137,17 +110,35 @@ async def run_local_production(
                 if initialized.status is ProbeStatus.UNSUPPORTED
                 else LocalWatchStatus.INCOMPLETE
             )
-            result = LocalWatchResult(context, status, initialized.reason_code, image=image)
+            result = LocalWatchResult(
+                context,
+                status,
+                initialized.reason_code,
+                image=image,
+                runtime=runtime.name,
+                offline=options.offline,
+            )
         else:
             listed = await client.list_paginated("tools/list", timeout=options.timeout)
             if listed.status not in {ProbeStatus.COMPLETE, ProbeStatus.UNSUPPORTED}:
                 result = LocalWatchResult(
-                    context, LocalWatchStatus.INCOMPLETE, listed.reason_code, image=image
+                    context,
+                    LocalWatchStatus.INCOMPLETE,
+                    listed.reason_code,
+                    image=image,
+                    runtime=runtime.name,
+                    offline=options.offline,
                 )
             else:
                 values = listed.result.get("tools", []) if isinstance(listed.result, dict) else []
                 raw_tools, tools = normalize_tools(values)
-                recorder = SpanRecorder(clock or SystemClock())
+                startup = reserved_span(
+                    "startup",
+                    SpanKind.STARTUP,
+                    startup_started,
+                    session_clock.now(),
+                )
+                recorder = SpanRecorder(session_clock)
                 calls = await CallDriver(
                     client,
                     calls=options.calls,
@@ -155,11 +146,27 @@ async def run_local_production(
                     total_timeout=max(options.timeout, options.timeout * max(1, options.calls)),
                     allow_destructive=options.allow_destructive,
                     observer=recorder,
-                ).run(raw_tools)
+                ).run(raw_tools, overrides=overrides)
+                idle_span: tuple[LocalSpan, ...] = ()
                 if options.idle:
+                    idle_started = session_clock.now()
                     await asyncio.sleep(options.idle)
+                    idle_span = (
+                        reserved_span(
+                            "idle",
+                            SpanKind.IDLE,
+                            idle_started,
+                            session_clock.now(),
+                        ),
+                    )
                 trace = parse_strace((await container.trace()).data.decode(errors="replace"))
-                stderr = await _bounded_stderr(session)
+                stderr = await bounded_stderr(session)
+                session_span = reserved_span(
+                    "session",
+                    SpanKind.SESSION,
+                    startup_started,
+                    session_clock.now(),
+                )
                 complete = (
                     calls.status is DriverStatus.COMPLETE
                     and trace.status is TraceStatus.COMPLETE
@@ -194,10 +201,13 @@ async def run_local_production(
                     status=status,
                     reason_code=calls.reason_code if complete else "PARTIAL_COVERAGE",
                     image=image,
+                    runtime=runtime.name,
+                    offline=options.offline,
                     protocol=local_protocol(client),
                     tools=tools,
+                    raw_tools=raw_tools,
                     calls=calls,
-                    spans=tuple(recorder.spans),
+                    spans=(session_span, startup, *recorder.spans, *idle_span),
                     trace=trace,
                     stderr=stderr,
                     notifications=client.notifications,
@@ -207,26 +217,37 @@ async def run_local_production(
                 )
     except asyncio.CancelledError:
         cleanup = asyncio.create_task(
-            _cleanup(client, session, container, controller, network_session)
+            cleanup_local(client, session, container, controller, network_session)
         )
         await asyncio.shield(cleanup)
         raise
     except (OSError, SandboxError, TimeoutError) as error:
         reason = str(error) if isinstance(error, SandboxError) else "LOCAL_RUNTIME_FAILED"
-        result = LocalWatchResult(context, LocalWatchStatus.INCOMPLETE, reason, image=image)
+        result = LocalWatchResult(
+            context,
+            LocalWatchStatus.INCOMPLETE,
+            reason,
+            image=image,
+            runtime=runtime.name,
+            offline=options.offline,
+        )
     except BaseException:
         cleanup = asyncio.create_task(
-            _cleanup(client, session, container, controller, network_session)
+            cleanup_local(client, session, container, controller, network_session)
         )
         await asyncio.shield(cleanup)
         raise
-    cleanup_diagnostics = await _cleanup(client, session, container, controller, network_session)
+    cleanup_diagnostics = await cleanup_local(
+        client, session, container, controller, network_session
+    )
     if cleanup_diagnostics:
         return LocalWatchResult(
             context,
             LocalWatchStatus.INCOMPLETE,
             "CLEANUP_FAILED",
             image=image,
+            runtime=runtime.name,
+            offline=options.offline,
             diagnostics=cleanup_diagnostics,
         )
     return result

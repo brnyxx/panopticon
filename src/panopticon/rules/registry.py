@@ -85,13 +85,16 @@ def run_rules(
     context: RuleContext,
     *,
     at: datetime,
+    line: Line | None = None,
     suppressions: Iterable[Suppression] = (),
     server_id: str | None = None,
 ) -> tuple[tuple[Finding, ...], tuple[RuleDiagnostic, ...]]:
     suppression_map = {(s.rule_id, s.server_id): s for s in suppressions if s.active(at)}
     findings: list[Finding] = []
     diagnostics: list[RuleDiagnostic] = []
-    for rule_id, (_, fn) in all_rules().items():
+    for rule_id, (metadata, fn) in all_rules().items():
+        if line is not None and metadata.line != line:
+            continue
         try:
             produced = fn(context)
             for finding in produced:

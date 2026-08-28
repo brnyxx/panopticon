@@ -145,7 +145,7 @@ async def test_offline_local_watch_calls_real_transport_without_pull(tmp_path: P
     assert result.status.value == "COMPLETE"
     assert result.protocol is not None and result.protocol.server_name == "fixture"
     assert result.calls is not None and result.calls.reason_code == "OK"
-    assert len(result.spans) == 1
+    assert [span.tool for span in result.spans] == ["session", "startup", "read_data"]
     assert result.trace is not None and result.trace.events
     assert runtime.pulls == []
     assert runtime.container.session.cleaned == 1

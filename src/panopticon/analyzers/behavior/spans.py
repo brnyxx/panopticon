@@ -13,6 +13,7 @@ from panopticon.models.ids import derive_span_id
 
 class SpanKind(StrEnum):
     CALL = "call"
+    SESSION = "session"
     INSTALL = "install"
     STARTUP = "startup"
     IDLE = "idle"

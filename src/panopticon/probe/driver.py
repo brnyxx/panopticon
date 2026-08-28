@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
@@ -93,7 +94,7 @@ class CallDriver:
 
     async def run(
         self,
-        tools: list[dict[str, object]] | tuple[dict[str, object], ...] | None = None,
+        tools: Sequence[Mapping[str, object]] | None = None,
         *,
         overrides: dict[str, dict[str, JsonValue]] | None = None,
     ) -> DriverResult:
@@ -116,7 +117,7 @@ class CallDriver:
 
     async def _definitions(
         self,
-        tools: list[dict[str, object]] | tuple[dict[str, object], ...] | None,
+        tools: Sequence[Mapping[str, object]] | None,
     ) -> tuple[ToolDefinition, ...] | DriverResult:
         raw_tools: object = tools
         if raw_tools is None:

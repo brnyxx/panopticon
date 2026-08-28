@@ -26,6 +26,8 @@ from panopticon.engine.watch import (
     WatchOptions,
     WatchRequest,
 )
+from panopticon.engine.watch_self import resolve_self_command
+from panopticon.engine.watch_service import WatchInputs, WatchServiceOutcome, run_watch_service
 from panopticon.registry.cache import PersistentCache
 from panopticon.registry.client import RegistryClient
 from panopticon.registry.http import HttpxRegistryHttp, SystemClock
@@ -64,7 +66,31 @@ def doctor_outcome(request: DoctorRequest) -> DoctorOutcome:
 
 
 def run_watch(request: WatchRequest) -> Result:
-    return _not_implemented("E05")
+    return watch_outcome(request).result
+
+
+def watch_outcome(request: WatchRequest) -> WatchServiceOutcome:
+    """Run watch with process runtime dependencies for the CLI boundary."""
+    platform = "darwin" if sys.platform == "darwin" else "windows" if os.name == "nt" else "linux"
+    home = Path.home()
+    cwd = Path.cwd()
+    env = DiscoveryEnv(home, cwd, platform, dict(os.environ))
+    repository = ArtifactRepository(
+        home / ".panopticon",
+        LeakContext(home_paths=(str(home),)),
+    )
+    self_command = resolve_self_command(cwd) if request.selection.mode is TargetMode.SELF else None
+    return asyncio.run(
+        run_watch_service(
+            request,
+            WatchInputs(
+                env,
+                repository,
+                self_command=self_command,
+                self_source=cwd if self_command is not None else None,
+            ),
+        )
+    )
 
 
 def run_diff(request: DiffRequest) -> Result:
@@ -88,4 +114,5 @@ __all__ = [
     "run_doctor",
     "run_scan",
     "run_watch",
+    "watch_outcome",
 ]

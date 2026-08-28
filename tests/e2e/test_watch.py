@@ -1,7 +1,13 @@
+from __future__ import annotations
+
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
+from panopticon.cli.main import app
 from panopticon.engine.watch_model import TargetMode, TargetSelection, WatchOptions, WatchRequest
 from panopticon.engine.watch_stages import WatchDependencies, WatchStages
 
@@ -105,3 +111,40 @@ def test_uninstrumentable_local_is_unsupported_without_mount() -> None:
     assert outcome.status == "UNSUPPORTED"
     assert outcome.reason == "UNINSTRUMENTABLE_LOCAL_TARGET"
     assert local.calls == 0
+
+
+@pytest.mark.docker
+def test_real_cli_self_watch_persists_observation_and_png(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    project = tmp_path / "project"
+    home.mkdir()
+    project.mkdir()
+    fixture = Path(__file__).parents[1] / "fixtures" / "mcp" / "node_server.mjs"
+    (project / "server.mjs").write_bytes(fixture.read_bytes())
+    (project / "wrapper.mjs").write_text(
+        "process.argv.push('clean_file_read'); await import('./server.mjs');\n",
+        encoding="utf-8",
+    )
+    (project / "package.json").write_text(
+        '{"name":"watch-fixture","bin":"wrapper.mjs"}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.chdir(project)
+
+    result = CliRunner().invoke(
+        app,
+        ["watch", "--self", "--offline", "--runtime", "docker", "--png", "--json"],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "PARTIAL"
+    assert "NOT_IMPLEMENTED" not in result.stderr
+    observations = tuple((home / ".panopticon" / "observations").rglob("*.json"))
+    cards = tuple((home / ".panopticon" / "cards").glob("*.png"))
+    assert len(observations) == len(cards) == 1
+    assert "real-environment-value" not in observations[0].read_text(encoding="utf-8")

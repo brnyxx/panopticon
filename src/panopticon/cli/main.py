@@ -77,13 +77,24 @@ def watch(
     self_target: bool = typer.Option(False, "--self"),
     calls: int = typer.Option(1, help="Calls per tool."),
     timeout: int = typer.Option(20, help="Per-call timeout in seconds."),
+    idle: float = typer.Option(0.0, help="Idle observation seconds."),
+    arg: list[str] | None = typer.Option(None, "--arg", help="Per-tool JSON override."),
+    real_env: bool = typer.Option(False, "--real-env"),
+    header: list[str] | None = typer.Option(None, "--header"),
+    allow_destructive: bool = typer.Option(False, "--allow-destructive"),
+    offline: bool = typer.Option(False, "--offline"),
+    runtime: str | None = typer.Option(None, "--runtime"),
     json_out: bool = typer.Option(False, "--json"),
-    png: bool = typer.Option(False, help="Render a shareable PNG card."),
+    png: bool = typer.Option(False, "--png", help="Persist a PNG evidence card."),
 ) -> None:
     """Run an MCP in the decoy sandbox and record what it does per tool call. (E05-E10, E12)"""
     selected = sum((target is not None, all_targets, self_target))
     if selected != 1:
         raise typer.BadParameter("select one server name, --all, or --self")
+    if real_env and self_target:
+        raise typer.BadParameter("--real-env cannot be combined with --self")
+    if runtime not in {None, "docker", "podman"}:
+        raise typer.BadParameter("--runtime must be docker or podman")
     mode = (
         engine.TargetMode.ALL
         if all_targets
@@ -96,7 +107,19 @@ def watch(
         engine.run_watch(
             engine.WatchRequest(
                 engine.TargetSelection(mode, name),
-                engine.WatchOptions(calls=calls, timeout=timeout),
+                engine.WatchOptions(
+                    calls=calls,
+                    timeout=timeout,
+                    idle=idle,
+                    args=tuple(arg or ()),
+                    real_env=real_env,
+                    headers=tuple(header or ()),
+                    allow_destructive=allow_destructive,
+                    self_read_only=self_target,
+                    offline=offline,
+                    runtime=runtime,
+                    png=png,
+                ),
             )
         ),
         json_output=json_out,

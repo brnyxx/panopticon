@@ -7,13 +7,14 @@ import json
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Protocol
+from typing import Protocol, cast
 
+from panopticon.analyzers.behavior.spans import SpanKind
 from panopticon.models.ids import derive_span_id
 from panopticon.models.inventory import PackageEcosystem
 from panopticon.probe.argument_schema import JsonValue
 from panopticon.probe.client import McpClient
-from panopticon.probe.driver import CallObserver
+from panopticon.probe.driver import CallObserver, parse_overrides
 from panopticon.probe.protocol import (
     LEGACY_PROTOCOL,
     MODERN_PROTOCOL,
@@ -60,8 +61,33 @@ class SpanRecorder(CallObserver):
                 self._clock.now(),
                 fingerprint,
                 result.reason_code,
+                SpanKind.CALL,
             )
         )
+
+
+def reserved_span(
+    name: str,
+    kind: SpanKind,
+    started_at: datetime,
+    ended_at: datetime,
+) -> LocalSpan:
+    return LocalSpan(
+        derive_span_id(name, 0),
+        name,
+        0,
+        started_at,
+        ended_at,
+        hashlib.sha256(b"{}").hexdigest()[:16],
+        "OK",
+        kind,
+    )
+
+
+def argument_overrides(values: tuple[str, ...]) -> dict[str, dict[str, JsonValue]]:
+    return {
+        tool: arguments for value in values for tool, arguments in parse_overrides(value).items()
+    }
 
 
 def image_reference(
@@ -117,10 +143,12 @@ def local_protocol(client: McpClient) -> LocalProtocol:
     )
 
 
-def normalize_tools(values: object) -> tuple[tuple[dict[str, object], ...], tuple[LocalTool, ...]]:
+def normalize_tools(
+    values: object,
+) -> tuple[tuple[dict[str, JsonValue], ...], tuple[LocalTool, ...]]:
     if not isinstance(values, list):
         return (), ()
-    raw_tools: list[dict[str, object]] = []
+    raw_tools: list[dict[str, JsonValue]] = []
     tools: list[LocalTool] = []
     for value in values:
         if not isinstance(value, dict):
@@ -132,7 +160,7 @@ def normalize_tools(values: object) -> tuple[tuple[dict[str, object], ...], tupl
             continue
         annotation_map = annotations if isinstance(annotations, dict) else {}
         encoded = json.dumps(schema, sort_keys=True, separators=(",", ":"))
-        raw_tools.append(value)
+        raw_tools.append(cast(dict[str, JsonValue], value))
         tools.append(
             LocalTool(
                 name,
@@ -150,8 +178,10 @@ __all__ = [
     "Clock",
     "SpanRecorder",
     "SystemClock",
+    "argument_overrides",
     "image_reference",
     "local_protocol",
     "normalize_tools",
+    "reserved_span",
     "target_environment",
 ]

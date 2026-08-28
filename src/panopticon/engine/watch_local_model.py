@@ -8,6 +8,7 @@ from datetime import datetime
 from enum import StrEnum
 from types import MappingProxyType
 
+from panopticon.analyzers.behavior.spans import SpanKind
 from panopticon.probe.argument_schema import JsonValue
 from panopticon.probe.driver import DriverResult
 from panopticon.probe.protocol import ProtocolEra
@@ -55,6 +56,7 @@ class LocalSpan:
     ended_at: datetime
     args_fingerprint: str
     result: str
+    kind: SpanKind = SpanKind.CALL
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,8 +65,11 @@ class LocalWatchResult:
     status: LocalWatchStatus
     reason_code: str
     image: str | None = None
+    runtime: str | None = None
+    offline: bool = False
     protocol: LocalProtocol | None = None
     tools: tuple[LocalTool, ...] = ()
+    raw_tools: tuple[dict[str, JsonValue], ...] = field(default=(), repr=False)
     calls: DriverResult | None = None
     spans: tuple[LocalSpan, ...] = ()
     trace: TraceResult | None = field(default=None, repr=False)

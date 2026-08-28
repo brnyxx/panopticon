@@ -38,12 +38,16 @@ class WatchOptions:
     allow_destructive: bool = False
     self_read_only: bool = False
     offline: bool = False
+    runtime: str | None = None
+    png: bool = False
 
     def __post_init__(self) -> None:
         if self.calls < 0 or self.timeout <= 0 or self.idle < 0:
             raise ValueError("invalid watch limits")
         if self.real_env and self.self_read_only:
             raise ValueError("real environment and self read-only are exclusive")
+        if self.runtime not in {None, "docker", "podman"}:
+            raise ValueError("unsupported watch runtime")
 
 
 @dataclass(frozen=True, slots=True)
