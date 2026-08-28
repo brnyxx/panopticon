@@ -14,7 +14,7 @@ from panopticon.registry.model import CacheRecord, HistoryReason, HistoryStatus,
 def test_cache_miss_and_offline_are_explicit() -> None:
     lookup = make_lookup("npm", "pkg", "latest")
     result = lookup_history(MemoryCache(), lookup, offline=True)
-    assert result.status is HistoryStatus.UNSUPPORTED
+    assert result.status is HistoryStatus.UNKNOWN
     assert result.reason_code is HistoryReason.OFFLINE
     assert cache_key(lookup) != cache_key(make_lookup("npm", "pkg", "1.0.0"))
     assert cache_path(lookup).startswith("~/.panopticon/")

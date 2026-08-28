@@ -47,7 +47,10 @@ def render_model(
         )
     )
     if model.diagnostics:
-        lines.append(f"{labels['diagnostics']}: " + ", ".join(model.diagnostics))
+        lines.append(
+            f"{labels['diagnostics']}: "
+            + ", ".join(diagnostic.code for diagnostic in model.diagnostics)
+        )
     text = "\n".join(lines) + "\n"
     if tty:
         text = f"\033[1m{text}\033[0m"

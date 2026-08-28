@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from panopticon.registry.history import SnapshotSeries, TransitionStatus, append_snapshot
 from panopticon.registry.model import HistoryReason, HistoryStatus
 from panopticon.registry.normalize import (
     normalize_github,
@@ -131,3 +132,40 @@ def test_malformed_future_and_unsupported_inputs_never_pass() -> None:
     assert future.reason_code is HistoryReason.TIMESTAMP_TOO_LARGE
     assert unsupported.status is HistoryStatus.UNSUPPORTED
     assert unsupported.reason_code is HistoryReason.UNSUPPORTED_ECOSYSTEM
+
+
+def test_snapshots_yield_release_and_maintainer_transition() -> None:
+    now = datetime(2025, 1, 1, tzinfo=UTC)
+    first = normalize_npm(
+        {
+            "versions": {"1.0.0": {}},
+            "time": {"1.0.0": "2024-01-01T00:00:00Z"},
+            "maintainers": [{"name": "alice"}],
+        },
+        name="pkg",
+        spec="1.0.0",
+        now=now,
+    )
+    second = normalize_npm(
+        {
+            "versions": {"1.0.0": {}, "2.0.0": {}},
+            "time": {
+                "1.0.0": "2024-01-01T00:00:00Z",
+                "2.0.0": "2024-02-01T00:00:00Z",
+            },
+            "maintainers": [{"name": "bob"}],
+        },
+        name="pkg",
+        spec="2.0.0",
+        now=now,
+    )
+
+    series = append_snapshot(SnapshotSeries(), first, observed_at=now, etag='"one"')
+    series = append_snapshot(series, second, observed_at=now, etag='"two"')
+
+    assert series.snapshots[0].transition.status is TransitionStatus.UNKNOWN
+    transition = series.snapshots[1].transition
+    assert transition.status is TransitionStatus.CHANGED
+    assert transition.added_releases == ("2.0.0",)
+    assert transition.added_maintainers == ("bob",)
+    assert transition.removed_maintainers == ("alice",)

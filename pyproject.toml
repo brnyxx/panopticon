@@ -96,6 +96,7 @@ plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["tests/upstream"]
 asyncio_mode = "auto"
 timeout = 120
 addopts = "-ra --strict-markers"

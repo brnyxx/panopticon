@@ -26,6 +26,11 @@ class TraceReason(StrEnum):
     UNSUPPORTED_SYSCALL = "UNSUPPORTED_SYSCALL"
 
 
+class TraceAbsenceStatus(StrEnum):
+    NOT_OBSERVED = "NOT_OBSERVED"
+    UNKNOWN = "UNKNOWN"
+
+
 @dataclass(frozen=True, slots=True)
 class TraceEvent:
     pid: int
@@ -47,6 +52,12 @@ class TraceResult:
     status: TraceStatus
     reason: TraceReason
     diagnostics: tuple[str, ...] = ()
+
+    @property
+    def absence_status(self) -> TraceAbsenceStatus:
+        if self.status is TraceStatus.COMPLETE:
+            return TraceAbsenceStatus.NOT_OBSERVED
+        return TraceAbsenceStatus.UNKNOWN
 
 
 @dataclass(slots=True)

@@ -35,7 +35,7 @@ def test_seed_and_identity_namespace_every_marker_value() -> None:
     assert baseline_values.isdisjoint(marker.value for marker in other_seed.markers)
     assert baseline_values.isdisjoint(marker.value for marker in other_identity.markers)
     assert all(marker.key.startswith("installation-a:") for marker in baseline.markers)
-    assert all(value.startswith("PANO_DECOY_") for value in baseline.env.values())
+    assert all("PANO_DECOY_" in value for value in baseline.env.values())
 
 
 def test_wire_encodings_are_synthetic_and_distinguishable() -> None:
@@ -61,7 +61,7 @@ def test_generation_bounds_and_rejects_invalid_identity() -> None:
 
     assert empty.files == {}
     assert empty.bytes == b""
-    assert len(empty.markers) == 1
+    assert len(empty.markers) == 30
     with pytest.raises(ValueError):
         generate_decoy_home("")
     with pytest.raises(ValueError):

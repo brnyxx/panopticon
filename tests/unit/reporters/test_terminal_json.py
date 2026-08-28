@@ -8,7 +8,7 @@ from panopticon.reporters.base import Reporter
 from panopticon.reporters.foundation import render as render_result
 from panopticon.reporters.json import JsonReporter
 from panopticon.reporters.json import render_model as render_json
-from panopticon.reporters.model import SanitizedRenderModel, StageView
+from panopticon.reporters.model import DiagnosticView, SanitizedRenderModel, StageView
 from panopticon.reporters.terminal import TerminalReporter
 from panopticon.reporters.terminal import render_model as render_terminal
 
@@ -20,16 +20,21 @@ def mixed_model() -> SanitizedRenderModel:
         stages=(
             StageView("proxy", "UNSUPPORTED", "ROOTLESS_ATTRIBUTION_PARTIAL"),
             StageView("file", "COMPLETE", "OK"),
-            StageView("dns", "UNKNOWN", "SOURCE_MISSING", ("DNS_LOG_MISSING",)),
+            StageView(
+                "dns",
+                "UNKNOWN",
+                "SOURCE_MISSING",
+                (DiagnosticView("DNS_LOG_MISSING", "DNS log was unavailable."),),
+            ),
         ),
-        diagnostics=("PIPELINE_PARTIAL",),
+        diagnostics=(DiagnosticView("PIPELINE_PARTIAL", "One source was incomplete."),),
         evidence_count=4,
         excluded_allowlist_count=2,
         suppression_count=1,
     )
 
 
-def test_mixed_coverage_renders_deterministic_terminal_and_json() -> None:
+def test_mixed_coverage_renders_terminal_and_json() -> None:
     model = mixed_model()
 
     first = render_json(model)
@@ -76,7 +81,7 @@ def test_empty_and_failure_states_remain_explicit() -> None:
     assert payload["status"] == "FAILED"
 
 
-def test_secret_or_home_evidence_is_rejected_before_emission() -> None:
+def test_secret_evidence_is_rejected_before_emission() -> None:
     result = FailedResult(
         diagnostics=(
             EngineDiagnostic(

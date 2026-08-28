@@ -15,11 +15,17 @@ def payload(model: SanitizedRenderModel) -> dict[str, object]:
                 "name": stage.name,
                 "status": stage.status,
                 "reason_code": stage.reason_code,
-                "diagnostics": list(stage.diagnostics),
+                "diagnostics": [
+                    {"code": diagnostic.code, "detail": diagnostic.detail}
+                    for diagnostic in stage.diagnostics
+                ],
             }
             for stage in sorted(model.stages, key=lambda item: item.name)
         ],
-        "diagnostics": list(model.diagnostics),
+        "diagnostics": [
+            {"code": diagnostic.code, "detail": diagnostic.detail}
+            for diagnostic in model.diagnostics
+        ],
         "evidence_count": model.evidence_count,
         "excluded_allowlist_count": model.excluded_allowlist_count,
         "reason_code": model.reason_code,

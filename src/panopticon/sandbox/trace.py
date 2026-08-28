@@ -10,6 +10,7 @@ from .trace_model import (
     PATH_INDEX,
     PREFIX,
     ProcessState,
+    TraceAbsenceStatus,
     TraceEvent,
     TraceReason,
     TraceResult,
@@ -206,6 +207,7 @@ def parse_strace(
 parse = parse_strace
 
 __all__ = [
+    "TraceAbsenceStatus",
     "TraceEvent",
     "TraceParser",
     "TraceReason",

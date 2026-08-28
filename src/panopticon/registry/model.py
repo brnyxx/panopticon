@@ -31,6 +31,9 @@ class HistoryReason(StrEnum):
     YANKED = "YANKED"
     DEPRECATED = "DEPRECATED"
     STALE_CACHE = "STALE_CACHE"
+    RATE_LIMITED = "RATE_LIMITED"
+    NOT_FOUND = "NOT_FOUND"
+    TIMEOUT = "TIMEOUT"
 
 
 class ReleaseRecord(BaseModel):

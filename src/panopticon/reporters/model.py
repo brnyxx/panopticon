@@ -10,11 +10,17 @@ from panopticon.util.leak_check import LeakContext, find_leaks
 
 
 @dataclass(frozen=True, slots=True)
+class DiagnosticView:
+    code: str
+    detail: str
+
+
+@dataclass(frozen=True, slots=True)
 class StageView:
     name: str
     status: str
     reason_code: str
-    diagnostics: tuple[str, ...] = ()
+    diagnostics: tuple[DiagnosticView, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,7 +28,7 @@ class SanitizedRenderModel:
     status: str
     reason_code: str
     stages: tuple[StageView, ...] = ()
-    diagnostics: tuple[str, ...] = ()
+    diagnostics: tuple[DiagnosticView, ...] = ()
     evidence_count: int = 0
     excluded_allowlist_count: int = 0
     suppression_count: int = 0
@@ -39,7 +45,10 @@ def from_result(result: Result, *, context: LeakContext | None = None) -> Saniti
             name,
             stage.status.value,
             stage.reason_code.value,
-            tuple(diagnostic.code for diagnostic in stage.diagnostics),
+            tuple(
+                DiagnosticView(diagnostic.code, diagnostic.detail)
+                for diagnostic in stage.diagnostics
+            ),
         )
         for name, stage in (
             ("file", coverage.file),
@@ -55,10 +64,18 @@ def from_result(result: Result, *, context: LeakContext | None = None) -> Saniti
         status=result.status.value,
         reason_code=result.reason_code.value,
         stages=stages,
-        diagnostics=tuple(diagnostic.code for diagnostic in result.diagnostics),
+        diagnostics=tuple(
+            DiagnosticView(diagnostic.code, diagnostic.detail) for diagnostic in result.diagnostics
+        ),
     )
 
 
 sanitize = from_result
 
-__all__ = ["SanitizedRenderModel", "StageView", "from_result", "sanitize"]
+__all__ = [
+    "DiagnosticView",
+    "SanitizedRenderModel",
+    "StageView",
+    "from_result",
+    "sanitize",
+]

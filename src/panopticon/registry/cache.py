@@ -50,7 +50,7 @@ def lookup_history(
     now = now or datetime.now(UTC)
     record = cache.get(lookup)
     if record is None:
-        status = HistoryStatus.UNSUPPORTED if offline else HistoryStatus.UNKNOWN
+        status = HistoryStatus.UNKNOWN
         reason = HistoryReason.OFFLINE if offline else HistoryReason.CACHE_MISS
         return NormalizedHistory(
             status=status,
