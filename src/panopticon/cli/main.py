@@ -16,11 +16,13 @@ from panopticon.engine.baseline import BaselineRequest, run_baseline
 from panopticon.engine.diff import DiffRequest, run_diff
 from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
 from panopticon.engine.fix import FixCommandRequest, run_fix
+from panopticon.engine.wrap import WrapRequest, run_wrap
 from panopticon.reporters import doctor as doctor_reporter
 from panopticon.reporters import foundation as reporters
 from panopticon.reporters.baseline import render as render_baseline
 from panopticon.reporters.diff import render as render_diff
 from panopticon.reporters.fix import render as render_fix
+from panopticon.reporters.wrap import render as render_wrap
 
 __all__ = ["NOT_IMPLEMENTED_EXIT"]
 
@@ -99,9 +101,23 @@ def watch(
 
 
 @app.command()
-def wrap(command: list[str] = typer.Argument(..., help="-- <command...>")) -> None:
+def wrap(
+    command: list[str] = typer.Argument(..., help="-- <command...>"),
+    server_id: str | None = typer.Option(None),
+    installation_id: str | None = typer.Option(None),
+) -> None:
     """Transparent stdio relay that records tool-level network events. (E15)"""
-    raise typer.Exit(_not_implemented("wrap", "E15"))
+    rendered = render_wrap(
+        run_wrap(
+            WrapRequest(
+                tuple(command),
+                server_id=server_id,
+                installation_id=installation_id,
+            )
+        )
+    )
+    typer.echo(rendered.stderr, err=True, nl=False)
+    raise typer.Exit(rendered.exit_code)
 
 
 @app.command()

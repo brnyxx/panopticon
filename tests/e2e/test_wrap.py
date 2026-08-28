@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -77,6 +78,61 @@ async def test_clean_mcp_preserves_bytes_and_exit() -> None:
     assert result.bytes_client_to_child == len(client_bytes)
     assert result.bytes_child_to_client == len(client_bytes)
     assert result.exit_code == 7
+
+
+@pytest.mark.asyncio
+async def test_wrap_cli_preserves_bytes_and_child_exit(tmp_path: Path) -> None:
+    child = "import sys; data=sys.stdin.buffer.read(); sys.stdout.buffer.write(data); sys.exit(7)"
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        "from panopticon.cli.main import app; app()",
+        "wrap",
+        "--",
+        sys.executable,
+        "-c",
+        child,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env={**os.environ, "HOME": str(tmp_path)},
+    )
+    wire = b'{"jsonrpc":"2.0","id":1,"method":"tools/call"}\n'
+    stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
+    assert stdout == wire
+    assert stderr == b""
+    assert process.returncode == 7
+
+
+@pytest.mark.asyncio
+async def test_wrap_cli_persists_correlated_record_through_store(tmp_path: Path) -> None:
+    child = (
+        "import json,sys; request=json.loads(sys.stdin.buffer.readline()); "
+        "response={'jsonrpc':'2.0','id':request['id'],'result':{}}; "
+        "sys.stdout.write(json.dumps(response,separators=(',',':'))+'\\n')"
+    )
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-c",
+        "from panopticon.cli.main import app; app()",
+        "wrap",
+        "--",
+        sys.executable,
+        "-c",
+        child,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env={**os.environ, "HOME": str(tmp_path)},
+    )
+    wire = b'{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"ping"}}\n'
+    stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
+    assert stdout == b'{"jsonrpc":"2.0","id":9,"result":{}}\n'
+    assert stderr == b""
+    assert process.returncode == 0
+    records = tuple((tmp_path / ".panopticon" / "wrap").rglob("*.json"))
+    assert len(records) == 1
+    assert b'"tool":"ping"' in records[0].read_bytes()
 
 
 @pytest.mark.asyncio

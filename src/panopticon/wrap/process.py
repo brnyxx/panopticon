@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import signal
+import sys
 from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import replace
@@ -128,4 +129,41 @@ async def run_command(
                 loop.remove_signal_handler(member)
 
 
-__all__ = ["ThreadReader", "ThreadWriter", "run_command"]
+async def run_stdio_command(
+    command: Sequence[str],
+    *,
+    recorder: IsolatedRecorder | None = None,
+    server_id: str = "unknown",
+    installation_id: str = "unknown",
+) -> RelayResult:
+    """Connect real process stdio to the cancellable event-loop pipe transports."""
+    if sys.platform == "win32":
+        raise RuntimeError("WRAP_STDIO_UNSUPPORTED")
+    loop = asyncio.get_running_loop()
+    reader = asyncio.StreamReader()
+    reader_protocol = asyncio.StreamReaderProtocol(reader)
+    input_transport, _ = await loop.connect_read_pipe(
+        lambda: reader_protocol,
+        sys.stdin.buffer,
+    )
+    output_protocol = asyncio.streams.FlowControlMixin(loop=loop)
+    output_transport, _ = await loop.connect_write_pipe(
+        lambda: output_protocol,
+        sys.stdout.buffer,
+    )
+    writer = asyncio.StreamWriter(output_transport, output_protocol, None, loop)
+    try:
+        return await run_command(
+            command,
+            reader,
+            writer,
+            recorder=recorder,
+            server_id=server_id,
+            installation_id=installation_id,
+        )
+    finally:
+        input_transport.close()
+        output_transport.close()
+
+
+__all__ = ["ThreadReader", "ThreadWriter", "run_command", "run_stdio_command"]
