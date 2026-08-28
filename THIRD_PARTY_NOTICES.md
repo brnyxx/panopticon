@@ -17,6 +17,26 @@ vendor/mcp-sentinel-e717e955.json. The test-only replay package is excluded from
 Panopticon wheels. Product adaptations do not expose the upstream `sentinel`
 package namespace and do not include the upstream dynamic probe as product code.
 
+NanumGothic Regular
+Source: https://github.com/google/fonts/tree/16680f8688ffcd467d2eb2146a9ce0343404581d/ofl/nanumgothic
+Pinned commit: 16680f8688ffcd467d2eb2146a9ce0343404581d
+SHA-256: 76f45ef4a6bcff344c837c95a7dcc26e017e38b5846d5ae0cdcb5b86be2e2d31
+License: SIL Open Font License 1.1
+Copyright (c) 2010, NHN Corporation
+
+The unmodified font and its complete license are bundled under
+src/panopticon/badge/assets/.
+
+Model Context Protocol server-everything fixture
+Repository: https://github.com/modelcontextprotocol/servers
+Package: @modelcontextprotocol/server-everything 2026.8.18
+Source commit: 644cbe65648f1d6c687b3b647683e1aaa4ed1eba
+Registry SHA-256: bd11de97a2413c7083f7a9252be55d0d9bfbdb67b2531dbe4217a6517226d36d
+License: Apache-2.0/MIT transition terms in tests/fixtures/mcp/official/LICENSE
+
+The unmodified registry archive is test-only and is excluded from Panopticon
+wheels.
+
 MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
