@@ -173,14 +173,14 @@ class ProductionWatchInventory:
         contexts: list[WatchTargetContext] = []
         skipped: list[str] = []
         for entry, client in entries:
-            installed = normalize_entry(entry, client=client, home=str(self._env.home))
-            if installed.disabled:
+            context = self._context(entry, client)
+            if context.target.disabled:
                 skipped.append(f"{client}:{entry.name}:DISABLED_SKIPPED")
                 continue
             if (
                 selection.mode is TargetMode.NAME and entry.name == selection.name
             ) or selection.mode is TargetMode.ALL:
-                contexts.append(WatchTargetContext(installed, entry))
+                contexts.append(context)
         contexts.sort(key=lambda context: str(context.target.installation_id))
         diagnostics = diagnostics + tuple(skipped)
         if selection.mode is TargetMode.NAME:

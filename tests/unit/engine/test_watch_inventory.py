@@ -31,7 +31,13 @@ class Adapter:
         raise AssertionError("watch inventory must remain read-only")
 
 
-def _entry(path: Path, name: str, *, disabled: bool = False) -> RawServerEntry:
+def _entry(
+    path: Path,
+    name: str,
+    *,
+    disabled: bool = False,
+    scope: ConfigScope = ConfigScope.GLOBAL,
+) -> RawServerEntry:
     return RawServerEntry(
         name,
         {
@@ -40,7 +46,7 @@ def _entry(path: Path, name: str, *, disabled: bool = False) -> RawServerEntry:
             "env": {"TOKEN": "synthetic-secret"},
             "disabled": disabled,
         },
-        ConfigScope.GLOBAL,
+        scope,
         path,
         ConfigPath(f"~/{path.name}"),
         path,
@@ -121,3 +127,23 @@ def test_self_requires_explicit_command(tmp_path: Path) -> None:
     assert explicit.status is InventoryStatus.SELECTED
     assert explicit.contexts[0].target.command == "python"
     assert explicit.contexts[0].target.args == ("server.py",)
+
+
+def test_project_named_target_acquires_declaration_metadata(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("Reads ~/project only.", encoding="utf-8")
+    (tmp_path / "package.json").write_text('{"name":"fixture"}', encoding="utf-8")
+    path = tmp_path / "mcp.json"
+    adapter = Adapter(
+        "generic",
+        path,
+        ParseResult(
+            DiscoveryStatus.FOUND,
+            [_entry(path, "project", scope=ConfigScope.PROJECT)],
+        ),
+    )
+
+    selected = _inventory(tmp_path, adapter).select(TargetSelection(TargetMode.NAME, "project"))
+
+    assert selected.status is InventoryStatus.SELECTED
+    assert selected.contexts[0].raw_entry.raw["readme"] == "Reads ~/project only."
+    assert selected.contexts[0].raw_entry.raw["manifest"] == {"name": "fixture"}
