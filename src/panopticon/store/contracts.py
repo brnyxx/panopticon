@@ -60,6 +60,33 @@ class RejectionCode(StrEnum):
 class FailureCode(StrEnum):
     FILESYSTEM_ERROR = "FILESYSTEM_ERROR"
     CLEANUP_ERROR = "CLEANUP_ERROR"
+    PERMISSION_DENIED = "PERMISSION_DENIED"
+    TARGET_REPLACED = "TARGET_REPLACED"
+
+
+@unique
+class AtomicConflictReason(StrEnum):
+    IDENTITY_CHANGED = "IDENTITY_CHANGED"
+    CONTENT_CHANGED = "CONTENT_CHANGED"
+
+
+TargetIdentity: TypeAlias = tuple[int, int]
+
+
+@dataclass(frozen=True, slots=True)
+class AtomicPrecondition:
+    """Immutable target identity and content expected before replacement."""
+
+    identity: TargetIdentity
+    sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class AtomicConflict:
+    """Non-writing conflict found at the final atomic replacement boundary."""
+
+    reason: AtomicConflictReason
+    operation: AtomicOperation
 
 
 class FaultInjector(Protocol):

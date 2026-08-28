@@ -7,7 +7,7 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | Epic | State | Remaining |
 |---|---|---|
 | E01 Foundation | CLOSED | typed persisted contracts, schema lifecycle, canonical leak-checked `store/` gateway, direct-write checker, credential-backed `SecretStore`/encrypted backups, engine pipelines, and the exit-code table are complete |
-| E02 Discovery | TODO | |
+| E02 Discovery | IN PROGRESS | Tasks 8-9 remaining |
 | E03 Inventory | TODO | needs `installation_id` from E01 |
 | E04 Registry | TODO | |
 | E05 Sandbox | TODO | image namespace decided: `ghcr.io/brnyxx` (DECISIONS #1) |

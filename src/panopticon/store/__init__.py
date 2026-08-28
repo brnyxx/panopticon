@@ -2,7 +2,10 @@
 
 from panopticon.store.contracts import (
     ArtifactInput,
+    AtomicConflict,
+    AtomicConflictReason,
     AtomicOperation,
+    AtomicPrecondition,
     BinaryArtifact,
     DirectorySyncStatus,
     FailureCode,
@@ -24,7 +27,10 @@ from panopticon.util.leak_check import LeakContext, LeakHit, LeakReason, LeakVar
 
 __all__ = [
     "ArtifactInput",
+    "AtomicConflict",
+    "AtomicConflictReason",
     "AtomicOperation",
+    "AtomicPrecondition",
     "BinaryArtifact",
     "DirectorySyncStatus",
     "FailureCode",

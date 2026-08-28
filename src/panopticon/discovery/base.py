@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Protocol
+
+from panopticon.models import ConfigPath, ConfigScope, JsonPointer
+from panopticon.util.jsonc.document import JsonValue
 
 
 class DiscoveryStatus(StrEnum):
@@ -15,30 +19,44 @@ class DiscoveryStatus(StrEnum):
     PERMISSION = "PERMISSION"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DiscoveryEnv:
     home: Path
     cwd: Path
     os: str  # "darwin" | "linux" | "windows"
-    env: dict[str, str] = field(default_factory=dict)
+    env: Mapping[str, str] = field(default_factory=dict)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
+class SourceLocation:
+    line: int
+    column: int
+    offset: int
+
+
+@dataclass(frozen=True, slots=True)
 class RawServerEntry:
     name: str
-    raw: dict[str, Any]
-    scope: str  # "global" | "project"
+    raw: Mapping[str, JsonValue]
+    scope: ConfigScope
     config_path: Path
+    logical_path: ConfigPath
+    realpath: Path
+    original_sha256: str
+    json_pointer: JsonPointer
+    source_location: SourceLocation
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ParseError:
     path: Path
     reason: str
     line: int | None = None
+    column: int | None = None
+    offset: int | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ParseResult:
     status: DiscoveryStatus
     entries: list[RawServerEntry] = field(default_factory=list)

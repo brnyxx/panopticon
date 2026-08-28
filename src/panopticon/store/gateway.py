@@ -6,7 +6,9 @@ from typing import assert_never
 
 from panopticon.store.atomic import AtomicFailure, AtomicRejected, AtomicSuccess, atomic_replace
 from panopticon.store.contracts import (
+    AtomicConflict,
     BinaryArtifact,
+    FailureCode,
     FaultInjector,
     ModelArtifact,
     PersistFailure,
@@ -70,6 +72,14 @@ def persist(
             return PersistSuccess(request.target, kind, bytes_written, directory_sync)
         case AtomicRejected(code=code):
             return PersistRejected(request.target, kind, code)
+        case AtomicConflict(operation=operation):
+            return PersistFailure(
+                request.target,
+                kind,
+                FailureCode.TARGET_REPLACED,
+                operation,
+                False,
+            )
         case AtomicFailure(code=code, operation=operation, target_replaced=target_replaced):
             return PersistFailure(request.target, kind, code, operation, target_replaced)
         case atomic_unreachable:
