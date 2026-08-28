@@ -79,11 +79,12 @@ def test_platform_matrix_is_exact_and_uses_immutable_actions() -> None:
         "linux-amd64",
         "linux-arm64",
         "windows-x64",
-        "wsl2-x64",
     }
     runs = {entry["label"]: entry["runs-on"] for entry in include}
-    assert runs["windows-x64"] != runs["wsl2-x64"]
-    assert isinstance(runs["wsl2-x64"], list)
+    assert runs["windows-x64"] == "windows-2025"
+    assert jobs["probe-wsl2"]["runs-on"] == "windows-2025"
+    assert "run_wsl2_probe.ps1" in jobs["probe-wsl2"]["steps"][1]["run"]
+    assert set(jobs["validate"]["needs"]) == {"probe", "probe-wsl2"}
     for job in jobs.values():
         for step in job.get("steps", []):
             if "uses" in step:

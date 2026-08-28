@@ -24,8 +24,6 @@ jobs:
             runs-on: ubuntu-24.04-arm
           - label: windows-x64
             runs-on: windows-2025
-          - label: wsl2-x64
-            runs-on: [self-hosted, wsl2]
     runs-on: ${{ matrix.runs-on }}
     name: probe-${{ matrix.label }}
     permissions:
@@ -55,8 +53,31 @@ jobs:
         with:
           subject-path: evidence/${{ matrix.label }}.json
 
+  probe-wsl2:
+    runs-on: windows-2025
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Probe hosted WSL2
+        shell: pwsh
+        env:
+          PANO_COMMIT: ${{ github.sha }}
+          PANO_WORKSPACE: ${{ github.workspace }}
+        run: ./scripts/run_wsl2_probe.ps1 -Commit "$env:PANO_COMMIT" -Workspace "$env:PANO_WORKSPACE"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: platform-wsl2-x64
+          path: evidence/wsl2-x64.json
+      - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a
+        with:
+          subject-path: evidence/wsl2-x64.json
+
   validate:
-    needs: probe
+    needs: [probe, probe-wsl2]
     if: always()
     runs-on: ubuntu-24.04
     permissions:

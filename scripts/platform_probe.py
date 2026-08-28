@@ -65,10 +65,8 @@ class PlatformManifest(TypedDict):
 def detect_label() -> str:
     system = platform.system()
     machine = platform.machine()
-    is_wsl = system == "Linux" and (
-        "microsoft" in platform.release().casefold() or bool(os.getenv("WSL_INTEROP"))
-    )
-    if is_wsl and machine.casefold() in {"x86_64", "amd64"}:
+    is_wsl2 = system == "Linux" and "wsl2" in platform.release().casefold()
+    if is_wsl2 and machine.casefold() in {"x86_64", "amd64"}:
         return "wsl2-x64"
     label = _LABELS.get((system, machine))
     if label is None and system == "Linux" and machine.casefold() == "amd64":
@@ -94,7 +92,7 @@ def _commit(root: Path, requested: str) -> str:
 
 def collect(root: Path, label: str, commit: str, fixture_version: str) -> PlatformManifest:
     nodes = list(_COMMON_NODES)
-    if label.startswith(("linux-", "wsl2-")):
+    if label.startswith("linux-"):
         nodes.append("tests/integration/test_runtime_isolation.py")
     commands = [
         run_command([sys.executable, "-m", "pytest", node, "-q"], root)
