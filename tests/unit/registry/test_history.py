@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from panopticon.registry.normalize import normalize_npm, normalize_pypi, parse_timestamp
 from panopticon.registry.model import HistoryReason, HistoryStatus
+from panopticon.registry.normalize import normalize_npm, normalize_pypi, parse_timestamp
 
 
 def test_npm_exact_and_deprecated() -> None:
@@ -18,7 +18,12 @@ def test_npm_exact_and_deprecated() -> None:
 
 
 def test_pypi_yanked_and_bad_timestamp() -> None:
-    payload = {"releases": {"1.0.0": [{"upload_time_iso_8601": "bad"}], "2.0.0": [{"yanked": True, "upload_time_iso_8601": "2024-01-01T00:00:00Z"}]}}
+    payload = {
+        "releases": {
+            "1.0.0": [{"upload_time_iso_8601": "bad"}],
+            "2.0.0": [{"yanked": True, "upload_time_iso_8601": "2024-01-01T00:00:00Z"}],
+        }
+    }
     result = normalize_pypi(payload, name="pkg", spec="1.0.0")
     assert result.status is HistoryStatus.INCOMPLETE
     assert result.reason_code is HistoryReason.INVALID_TIMESTAMP
