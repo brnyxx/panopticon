@@ -26,10 +26,11 @@ if ($actualHash -ne "788f18abea7c5f55d6216e4f5613fd89d4d59b631efeec117b2b07fe72f
 $workspaceArchive = Join-Path $Workspace ".pano-wsl-uv.tar.gz"
 Copy-Item -Path $archive -Destination $workspaceArchive
 
-$wslWorkspace = (& wsl.exe --distribution Ubuntu-24.04 -- wslpath -a $Workspace).Trim()
-if ($LASTEXITCODE -ne 0 -or -not $wslWorkspace.StartsWith("/mnt/")) {
+$normalizedWorkspace = $Workspace.Replace('\', '/')
+if ($normalizedWorkspace -notmatch '^([A-Za-z]):/(.+)$') {
     throw "WSL_WORKSPACE_INVALID"
 }
+$wslWorkspace = "/mnt/$($Matches[1].ToLowerInvariant())/$($Matches[2])"
 $kernelRelease = (& wsl.exe --distribution Ubuntu-24.04 -- uname -r).Trim()
 if ($LASTEXITCODE -ne 0 -or $kernelRelease -notmatch "(?i)wsl2") {
     throw "WSL2_NOT_ACTIVE"
