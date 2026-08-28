@@ -156,7 +156,11 @@ def request(
 ) -> WatchRequest:
     return WatchRequest(
         TargetSelection(TargetMode.ALL),
-        WatchOptions(real_env=real_env, args=args, headers=headers),
+        WatchOptions(
+            real_env=("TOKEN",) if real_env else (),
+            args=args,
+            headers=headers,
+        ),
     )
 
 

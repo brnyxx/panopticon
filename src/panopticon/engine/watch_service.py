@@ -96,16 +96,32 @@ async def run_watch_service(request: WatchRequest, inputs: WatchInputs) -> Watch
             )
         )
     runtime = inputs.runtime
+    runtime_diagnostic: EngineDiagnostic | None = None
     if runtime is None and any(c.target.transport is Transport.STDIO for c in selected.contexts):
         try:
             runtime = cast(LocalRuntime, select_runtime(request.options.runtime))
         except SandboxError:
-            return WatchServiceOutcome(
-                UnsupportedResult(
-                    diagnostics=(*diagnostics, _diagnostic("RUNTIME_UNAVAILABLE", "container"))
+            # Keep remote targets observable even when the local container
+            # runtime is unavailable; run_target will type local targets as
+            # incomplete while the remaining targets still execute.
+            runtime_diagnostic = _diagnostic("RUNTIME_UNAVAILABLE", "container")
+    runs: list[TargetRun] = []
+    for context in selected.contexts:
+        # A single malformed target must not abort an ``--all`` watch.  Keep
+        # cancellation (a BaseException) visible to the caller while mapping
+        # ordinary boundary failures to the same typed state as local stages.
+        try:
+            runs.append(await run_target(context, request, inputs, runtime))
+        except (OSError, RuntimeError, TypeError, ValueError):
+            runs.append(
+                TargetRun(
+                    WatchTargetReceipt(context.name, "INCOMPLETE", "CRASH"),
+                    incomplete=True,
+                    diagnostics=(_diagnostic("CRASH", context.name),),
                 )
             )
-    runs = [await run_target(context, request, inputs, runtime) for context in selected.contexts]
+    if runtime_diagnostic is not None:
+        diagnostics = (*diagnostics, runtime_diagnostic)
     return WatchServiceOutcome(_result(runs, diagnostics), tuple(run.receipt for run in runs))
 
 

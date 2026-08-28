@@ -12,6 +12,10 @@ from .argument_schema import JsonValue, UnsupportedSchemaError, json_value
 MODERN_PROTOCOL = "2026-07-28"
 LEGACY_PROTOCOL = "2024-11-05"
 MAX_FRAME = 1_048_576
+# Stable reason codes used by the dual-era negotiation state machine.
+PROTOCOL_VERSION_MISMATCH = "PROTOCOL_VERSION_MISMATCH"
+SERVER_CRASH = "SERVER_CRASH"
+NO_RESPONSE = "NO_RESPONSE"
 
 
 class ProbeStatus(StrEnum):

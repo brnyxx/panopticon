@@ -16,6 +16,7 @@ from panopticon.models.state import (
     StageStatus,
     UnsupportedStage,
 )
+from panopticon.probe.protocol import ProtocolEra
 
 from .watch_local_model import LocalWatchResult, LocalWatchStatus
 from .watch_model import Coverage as WatchCoverage
@@ -136,7 +137,9 @@ def build_state(
 ) -> ObservationState:
     if result.protocol is None:
         raise ValueError("PROTOCOL_EVIDENCE_MISSING")
-    modern = result.protocol.era.value == "modern"
+    # The era is typed evidence from the completed negotiation; do not infer
+    # modern discovery from a persisted string or from a missing handshake.
+    modern = result.protocol.era is ProtocolEra.MODERN
     version = (
         _complete(ReasonCode.VERSION_SELECTED) if modern else _partial(ReasonCode.LEGACY_FALLBACK)
     )

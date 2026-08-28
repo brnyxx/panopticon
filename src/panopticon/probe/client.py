@@ -8,6 +8,7 @@ from .protocol import (
     LEGACY_PROTOCOL,
     MAX_FRAME,
     MODERN_PROTOCOL,
+    PROTOCOL_VERSION_MISMATCH,
     AsyncByteReader,
     AsyncByteWriter,
     ProbeResult,
@@ -47,7 +48,10 @@ class McpClient(StdioTransport):
                 if discovered.status is not ProbeStatus.COMPLETE:
                     return discovered
             return modern
-        if self._closed or self._desynchronized:
+        # Legacy is a compatibility path for an explicit version mismatch
+        # only.  Do not mask a crashed or non-responsive modern server by
+        # issuing a second initialize request.
+        if modern.reason_code != PROTOCOL_VERSION_MISMATCH:
             return modern
         legacy = await self._initialize_version(LEGACY_PROTOCOL, timeout, modern=False)
         if legacy.status is ProbeStatus.COMPLETE:
@@ -55,12 +59,11 @@ class McpClient(StdioTransport):
             self._record_server(legacy.result)
             await self.notify("notifications/initialized", {}, modern_metadata=False)
             return ProbeResult(ProbeStatus.COMPLETE, "LEGACY_FALLBACK", legacy.result)
-        if (
-            modern.reason_code == "PROTOCOL_VERSION_MISMATCH"
-            and legacy.reason_code == "PROTOCOL_VERSION_MISMATCH"
-        ):
-            return ProbeResult(ProbeStatus.UNSUPPORTED, "PROTOCOL_VERSION_MISMATCH")
-        return ProbeResult(ProbeStatus.UNSUPPORTED, "PROTOCOL_UNSUPPORTED")
+        if legacy.reason_code == PROTOCOL_VERSION_MISMATCH:
+            return ProbeResult(ProbeStatus.UNSUPPORTED, PROTOCOL_VERSION_MISMATCH)
+        # Preserve the typed failure from the compatibility attempt (crash,
+        # early exit, timeout, etc.) instead of collapsing it to unsupported.
+        return legacy
 
     async def _initialize_version(
         self,
@@ -88,7 +91,15 @@ class McpClient(StdioTransport):
             payload = result.result
             selected = payload.get("protocolVersion") if isinstance(payload, dict) else None
             if selected is not None and selected != version:
-                return ProbeResult(ProbeStatus.UNSUPPORTED, "PROTOCOL_VERSION_MISMATCH", payload)
+                return ProbeResult(ProbeStatus.UNSUPPORTED, PROTOCOL_VERSION_MISMATCH, payload)
+        if (
+            result.status is ProbeStatus.ERROR
+            and result.error is not None
+            and result.error.code == -32602
+        ):
+            return ProbeResult(
+                ProbeStatus.UNSUPPORTED, PROTOCOL_VERSION_MISMATCH, error=result.error
+            )
         if result.status is ProbeStatus.COMPLETE and modern:
             self.era = ProtocolEra.MODERN
             await self.notify("notifications/initialized", {})

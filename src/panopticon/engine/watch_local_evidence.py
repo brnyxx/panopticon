@@ -120,10 +120,14 @@ def target_environment(
     real_values: Mapping[str, str] | None,
 ) -> dict[str, str]:
     environment = {key: decoys[key] for key in context.target.env_keys if key in decoys}
-    if options.real_env and real_values is not None:
-        environment.update(
-            (key, real_values[key]) for key in context.target.env_keys if key in real_values
+    if (options.real_env or options.real_env_all) and real_values is not None:
+        declared = set(context.target.env_keys)
+        keys = (
+            context.target.env_keys
+            if options.real_env_all
+            else tuple(key for key in options.real_env if key in declared)
         )
+        environment.update((key, real_values[key]) for key in keys if key in real_values)
     return environment
 
 

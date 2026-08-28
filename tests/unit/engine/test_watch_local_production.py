@@ -166,7 +166,7 @@ def test_image_and_environment_selection_do_not_expose_real_values(tmp_path: Pat
     authorized = target_environment(
         context,
         manifest.env,
-        WatchOptions(real_env=True),
+        WatchOptions(real_env=("GITHUB_TOKEN",)),
         {"GITHUB_TOKEN": "real-value"},
     )
 

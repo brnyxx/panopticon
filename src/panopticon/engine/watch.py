@@ -31,7 +31,8 @@ class WatchService:
         args: tuple[str, ...] = (),
         timeout: float = 20.0,
         idle: float = 0.0,
-        real_env: bool = False,
+        real_env: tuple[str, ...] = (),
+        real_env_all: bool = False,
         headers: tuple[str, ...] = (),
         allow_destructive: bool = False,
         self_read_only: bool = False,
@@ -49,7 +50,15 @@ class WatchService:
         request = WatchRequest(
             TargetSelection(mode, name),
             WatchOptions(
-                calls, timeout, idle, args, real_env, headers, allow_destructive, self_read_only
+                calls=calls,
+                timeout=timeout,
+                idle=idle,
+                args=args,
+                real_env=real_env,
+                real_env_all=real_env_all,
+                headers=headers,
+                allow_destructive=allow_destructive,
+                self_read_only=self_read_only,
             ),
         )
         return self.run(request)

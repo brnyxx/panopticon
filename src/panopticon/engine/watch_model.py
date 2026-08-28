@@ -33,7 +33,8 @@ class WatchOptions:
     timeout: float = 20.0
     idle: float = 0.0
     args: tuple[str, ...] = ()
-    real_env: bool = False
+    real_env: tuple[str, ...] = ()
+    real_env_all: bool = False
     headers: tuple[str, ...] = ()
     allow_destructive: bool = False
     self_read_only: bool = False
@@ -44,8 +45,14 @@ class WatchOptions:
     def __post_init__(self) -> None:
         if self.calls < 0 or self.timeout <= 0 or self.idle < 0:
             raise ValueError("invalid watch limits")
-        if self.real_env and self.self_read_only:
+        if self.real_env_all and self.self_read_only:
             raise ValueError("real environment and self read-only are exclusive")
+        if not isinstance(self.real_env, tuple) or any(
+            not isinstance(key, str) or not key for key in self.real_env
+        ):
+            raise ValueError("real environment keys must be non-empty strings")
+        if self.real_env_all and self.real_env:
+            raise ValueError("real_env keys and real_env_all are exclusive")
         if self.runtime not in {None, "docker", "podman"}:
             raise ValueError("unsupported watch runtime")
 

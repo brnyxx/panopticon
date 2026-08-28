@@ -206,7 +206,9 @@ class StdioTransport:
             self.era is ProtocolEra.MODERN if modern_metadata is None else modern_metadata
         )
         if add_metadata:
-            output["_meta"] = {"client": "panopticon", "protocolVersion": MODERN_PROTOCOL}
+            # Metadata advertises the revision actually negotiated/requested,
+            # rather than silently claiming the current modern revision.
+            output["_meta"] = {"client": "panopticon", "protocolVersion": self.protocol}
         return output
 
     async def _notify_cancelled(self, identifier: int) -> None:

@@ -104,6 +104,17 @@ class FixTransactionExecutor:
         *,
         recheck: bool,
     ) -> TransactionReceipt:
+        # Reject a stale source before creating backup/journal artifacts.  The
+        # atomic patch seam checks again at write time to close the race after
+        # this preflight.
+        current = snapshot(plan.target)
+        if current is None:
+            return TransactionReceipt(FixOutcomeStatus.CONFLICT, "SOURCE_UNAVAILABLE")
+        current_bytes, current_identity, _mode = current
+        if plan.source_identity is not None and current_identity != plan.source_identity:
+            return TransactionReceipt(FixOutcomeStatus.CONFLICT, "SOURCE_REPLACED")
+        if hashlib.sha256(current_bytes).hexdigest() != plan.original_hash:
+            return TransactionReceipt(FixOutcomeStatus.CONFLICT, "SOURCE_STALE")
         transaction_id = _transaction_id(plan, selection, self.clock())
         plan = selection.bind_transaction(plan, transaction_id)
         candidate = apply(plan, confirm(prepare(plan)), plan.original)

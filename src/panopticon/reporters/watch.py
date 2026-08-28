@@ -67,7 +67,7 @@ def from_outcome(outcome: WatchServiceOutcome) -> WatchRenderModel:
         result.status.value,
         result.reason_code.value,
         tuple(sorted((_target(item) for item in outcome.targets), key=lambda item: item.name)),
-        tuple((item.code, item.detail) for item in result.diagnostics),
+        tuple(sorted((item.code, item.detail) for item in result.diagnostics)),
     )
 
 
