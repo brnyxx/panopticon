@@ -1,0 +1,56 @@
+{
+  "model": {
+    "status": "PARTIAL",
+    "reason_code": "PARTIAL_COVERAGE",
+    "stages": [
+      {"name": "file", "status": "COMPLETE", "reason_code": "OK"},
+      {"name": "net", "status": "INCOMPLETE", "reason_code": "TIMEOUT"},
+      {"name": "proxy", "status": "UNSUPPORTED", "reason_code": "ROOTLESS_ATTRIBUTION_PARTIAL"}
+    ],
+    "diagnostics": [
+      {"code": "NET_LOG_MISSING", "detail": "network evidence unavailable"}
+    ],
+    "evidence_count": 7,
+    "excluded_allowlist_count": 2,
+    "suppression_count": 1
+  },
+  "category": "mcp-sentinel/services/payments & review",
+  "findings": [
+    {
+      "rule_id": "CFG-001",
+      "title": "Configuration drift",
+      "severity": "HIGH",
+      "logical_key": "cfg:duplicate",
+      "path": "src/config/settings.py",
+      "line": 12,
+      "column": 3,
+      "kind": "configuration",
+      "suppressed": true,
+      "fix_available": true
+    },
+    {
+      "rule_id": "FIX-002",
+      "title": "<script>alert('x')</script> [click](javascript:alert(1)) | token sk-proj-abcdefghijklmnopqrstuvwxyz1234",
+      "severity": "MEDIUM",
+      "logical_key": "fix:hostile",
+      "path": "../../Users/runner/.config/token.txt",
+      "line": 0,
+      "column": -4,
+      "kind": "remediation",
+      "suppressed": false,
+      "fix_available": false
+    },
+    {
+      "rule_id": "WATCH-003",
+      "title": "Watch rule",
+      "severity": "LOW",
+      "logical_key": "watch:stable",
+      "path": "services/api/main.py",
+      "line": 8,
+      "column": 1,
+      "kind": "watch",
+      "suppressed": false,
+      "fix_available": false
+    }
+  ]
+}
