@@ -125,9 +125,8 @@ class ArtifactRepository:
 
     def persist_wrap_record(self, record: WrapRecord) -> PersistResult:
         day = record.ts.date().isoformat()
-        target = (
-            self.root / "wrap" / str(record.installation_id) / day / f"{record.span.span_id}.json"
-        )
+        span_file = str(record.span.span_id).replace(":", "_")
+        target = self.root / "wrap" / str(record.installation_id) / day / f"{span_file}.json"
         failure = self._prepare(target, SinkKind.WRAP_RECORD)
         if failure is not None:
             return failure

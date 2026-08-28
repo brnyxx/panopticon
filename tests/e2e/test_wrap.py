@@ -128,12 +128,12 @@ async def test_wrap_cli_persists_correlated_record_through_store(tmp_path: Path)
     )
     wire = b'{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"ping"}}\n'
     stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
-    assert stdout == b'{"jsonrpc":"2.0","id":9,"result":{}}\n'
-    assert stderr == b""
-    assert process.returncode == 0
+    assert stdout == b'{"jsonrpc":"2.0","id":9,"result":{}}\n', "WRAP_STDOUT_MISMATCH"
+    assert stderr == b"", "WRAP_STDERR_NONEMPTY"
+    assert process.returncode == 0, "WRAP_EXIT_MISMATCH"
     records = tuple((tmp_path / ".panopticon" / "wrap").rglob("*.json"))
-    assert len(records) == 1
-    assert b'"tool":"ping"' in records[0].read_bytes()
+    assert len(records) == 1, "WRAP_RECORD_COUNT_MISMATCH"
+    assert b'"tool":"ping"' in records[0].read_bytes(), "WRAP_TOOL_MISSING"
 
 
 @pytest.mark.asyncio
@@ -206,11 +206,12 @@ def test_concurrent_out_of_order_ids_and_recorder_failure_are_partial(tmp_path: 
         finished_at=records[0].span.finished_at - timedelta(days=31),
     )
     old = persist_record(repository, replace(records[0], span=old_span))
-    assert isinstance(old, PersistSuccess)
+    assert isinstance(old, PersistSuccess), "WRAP_OLD_PERSIST_FAILED"
     persisted = persist_record(repository, records[0])
-    assert isinstance(persisted, PersistSuccess)
-    assert persisted.target.is_file()
-    assert not old.target.exists()
+    assert isinstance(persisted, PersistSuccess), "WRAP_CURRENT_PERSIST_FAILED"
+    assert persisted.target.is_file(), "WRAP_CURRENT_TARGET_MISSING"
+    assert ":" not in persisted.target.name
+    assert not old.target.exists(), "WRAP_RETENTION_FAILED"
 
 
 def test_json_rpc_batches_correlate_out_of_order_responses() -> None:

@@ -62,7 +62,12 @@ def run_command(argv: list[str], root: Path) -> CommandEvidence:
         diagnostic = summary or diagnostic
         failed_nodes = re.findall(r"^FAILED ([^ ]+)", diagnostic, flags=re.MULTILINE)
         if failed_nodes:
-            diagnostic = "\n".join(f"FAILED {node}" for node in failed_nodes) + "\n"
+            reasons = re.findall(r"AssertionError: ([A-Z0-9_:-]+)", diagnostic)
+            lines = [
+                *(f"FAILED {node}" for node in failed_nodes),
+                *(f"REASON {x}" for x in reasons),
+            ]
+            diagnostic = "\n".join(lines) + "\n"
         homes = tuple(value for key in ("HOME", "USERPROFILE") if (value := os.getenv(key)))
         for home in homes:
             diagnostic = diagnostic.replace(home, "~")
