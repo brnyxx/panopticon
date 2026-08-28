@@ -11,7 +11,10 @@ from typer.testing import CliRunner
 from panopticon.cli.main import NOT_IMPLEMENTED_EXIT, app
 
 ROOT = Path(__file__).resolve().parents[3]
-CLI_PATH = ROOT / "src" / "panopticon" / "cli" / "main.py"
+CLI_PATHS = (
+    ROOT / "src" / "panopticon" / "cli" / "main.py",
+    ROOT / "src" / "panopticon" / "cli" / "analysis_commands.py",
+)
 runner = CliRunner()
 FORBIDDEN_IMPORTS = (
     "panopticon.analyzers",
@@ -32,16 +35,20 @@ STUB_INVOCATIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
-def _cli_tree() -> ast.Module:
-    """Parse the real CLI module for architectural assertions."""
-    source = CLI_PATH.read_text(encoding="utf-8")
-    return ast.parse(source, filename=str(CLI_PATH))
+def _cli_trees() -> tuple[ast.Module, ...]:
+    """Parse the real CLI modules for architectural assertions."""
+    return tuple(
+        ast.parse(path.read_text(encoding="utf-8"), filename=str(path)) for path in CLI_PATHS
+    )
 
 
-def _command(tree: ast.Module, name: str) -> ast.FunctionDef:
+def _command(trees: tuple[ast.Module, ...], name: str) -> ast.FunctionDef:
     """Return one Typer command function."""
     matches = tuple(
-        node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == name
+        node
+        for tree in trees
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == name
     )
     assert len(matches) == 1
     return matches[0]
@@ -57,14 +64,19 @@ def _call_root(call: ast.Call) -> str | None:
 
 def test_cli_imports_only_engine_and_reporter_boundaries() -> None:
     # Given: imports from the real CLI module.
-    tree = _cli_tree()
+    trees = _cli_trees()
     imported = tuple(
         node.module or alias.name
+        for tree in trees
         for node in tree.body
         if isinstance(node, ast.ImportFrom)
         for alias in node.names
     ) + tuple(
-        alias.name for node in tree.body if isinstance(node, ast.Import) for alias in node.names
+        alias.name
+        for tree in trees
+        for node in tree.body
+        if isinstance(node, ast.Import)
+        for alias in node.names
     )
 
     # Then: CLI owns both boundary seams and no feature implementation import.
@@ -79,7 +91,7 @@ def test_cli_imports_only_engine_and_reporter_boundaries() -> None:
 
 def test_cli_commands_delegate_without_domain_control_flow() -> None:
     # Given: the four foundation pipeline wrappers.
-    tree = _cli_tree()
+    trees = _cli_trees()
     for name in (
         "doctor",
         "watch",
@@ -92,7 +104,7 @@ def test_cli_commands_delegate_without_domain_control_flow() -> None:
         "scan",
         "ci",
     ):
-        command = _command(tree, name)
+        command = _command(trees, name)
         calls = tuple(node for node in ast.walk(command) if isinstance(node, ast.Call))
         roots = {_call_root(call) for call in calls}
 
@@ -130,11 +142,12 @@ def test_cli_commands_delegate_without_domain_control_flow() -> None:
 
 def test_cli_has_no_print_calls() -> None:
     # Given: the complete CLI AST.
-    tree = _cli_tree()
+    trees = _cli_trees()
 
     # Then: user output remains in reporters/typer rendering, never bare print.
     assert not any(
         isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print"
+        for tree in trees
         for node in ast.walk(tree)
     )
 
