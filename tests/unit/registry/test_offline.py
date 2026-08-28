@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from panopticon.registry.client import HttpOutcome, RegistryClient, lookup
+from panopticon.registry.client import RegistryClient, lookup
 from panopticon.registry.history import SnapshotSeries, append_snapshot
+from panopticon.registry.http import HttpOutcome
 from panopticon.registry.model import HistoryReason, HistoryStatus, NormalizedHistory
 
 

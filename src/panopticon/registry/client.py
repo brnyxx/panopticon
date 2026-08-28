@@ -3,81 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from typing import Protocol
 from urllib.parse import quote
-
-import httpx
 
 from .cache import make_lookup
 from .history import SnapshotSeries, append_snapshot
+from .http import Clock, HttpOutcome, RegistryHttp
 from .model import CacheLookup, HistoryReason, HistoryStatus, NormalizedHistory
 from .normalize import normalize_registry_history
-
-
-@dataclass(frozen=True, slots=True)
-class HttpOutcome:
-    status_code: int | None
-    headers: tuple[tuple[str, str], ...] = ()
-    body: object = None
-    reason_code: str = "OK"
-
-
-class RegistryHttp(Protocol):
-    async def get(
-        self,
-        url: str,
-        *,
-        headers: tuple[tuple[str, str], ...],
-        timeout: float,
-    ) -> HttpOutcome: ...
-
-
-class HttpxRegistryHttp:
-    """Concrete HTTP boundary; only normalized wire outcomes escape."""
-
-    def __init__(self, client: httpx.AsyncClient | None = None) -> None:
-        self._client = client
-
-    async def get(
-        self, url: str, *, headers: tuple[tuple[str, str], ...], timeout: float
-    ) -> HttpOutcome:
-        client = self._client
-        owns_client = client is None
-        if client is None:
-            client = httpx.AsyncClient(trust_env=False, follow_redirects=False, timeout=timeout)
-        try:
-            response = await client.get(url, headers=dict(headers), timeout=timeout)
-            try:
-                body = response.json()
-            except (ValueError, UnicodeDecodeError):
-                return HttpOutcome(response.status_code, reason_code="MALFORMED_JSON")
-            return HttpOutcome(
-                response.status_code,
-                tuple((str(k), str(v)) for k, v in response.headers.items()),
-                body,
-            )
-        except httpx.TimeoutException:
-            return HttpOutcome(None, reason_code="TIMEOUT")
-        except httpx.TransportError:
-            return HttpOutcome(None, reason_code="TRANSPORT_ERROR")
-        finally:
-            if owns_client:
-                await client.aclose()
-
-
-class SystemClock:
-    def now(self) -> datetime:
-        return datetime.now(UTC)
-
-
-# Explicit aliases keep the production boundary discoverable by role.
-RegistryHttpClient = HttpxRegistryHttp
-UtcClock = SystemClock
-
-
-class Clock(Protocol):
-    def now(self) -> datetime: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +18,7 @@ class RegistryFetch:
     snapshots: SnapshotSeries
     network_attempted: bool
     reason_code: str
+    etags: tuple[tuple[str, str], ...] = ()
 
 
 class RegistryClient:
@@ -109,12 +42,13 @@ class RegistryClient:
         lookup: CacheLookup,
         *,
         snapshots: SnapshotSeries | None = None,
+        etags: tuple[tuple[str, str], ...] = (),
         offline: bool = False,
     ) -> RegistryFetch:
         series = snapshots or SnapshotSeries()
         if offline:
             return self._offline(lookup, series)
-        request = _request(lookup, series, self._github_token)
+        request = _request(lookup, self._github_token)
         if request is None:
             return RegistryFetch(
                 _unavailable(lookup, HistoryStatus.INCOMPLETE, HistoryReason.MALFORMED_INPUT),
@@ -122,28 +56,24 @@ class RegistryClient:
                 False,
                 "MALFORMED_LOOKUP",
             )
-        urls, headers = request
-        if isinstance(urls, tuple):
-            outcomes = [
-                await self.http.get(url, headers=headers, timeout=self.timeout) for url in urls
-            ]
-            outcome = outcomes[0]
-            if any(item.status_code == 304 for item in outcomes):
-                outcome = next(item for item in outcomes if item.status_code == 304)
-            elif any(item.status_code != 200 for item in outcomes):
-                outcome = next(item for item in outcomes if item.status_code != 200)
-            else:
-                outcome = HttpOutcome(
-                    200,
-                    outcome.headers,
-                    {
-                        "repository": outcomes[0].body,
-                        "releases": outcomes[1].body,
-                        "tags": outcomes[2].body,
-                    },
-                )
-        else:
-            outcome = await self.http.get(urls, headers=headers, timeout=self.timeout)
+        resources, base_headers = request
+        validators = dict(etags)
+        outcomes = await self._fetch_resources(resources, base_headers, validators)
+        if (
+            len(outcomes) > 1
+            and any(outcome.status_code == 304 for outcome in outcomes)
+            and not all(outcome.status_code == 304 for outcome in outcomes)
+        ):
+            outcomes = await self._fetch_resources(resources, base_headers, {})
+        outcome = _aggregate(resources, outcomes)
+        response_etags = tuple(
+            sorted(
+                (resource, value)
+                for (resource, _), item in zip(resources, outcomes, strict=True)
+                if (value := _header(item.headers, "etag")) is not None
+            )
+        )
+        effective_etags = response_etags or etags
         observed_at = self.clock.now()
         if outcome.status_code == 304:
             if not series.snapshots:
@@ -152,6 +82,7 @@ class RegistryClient:
                     series,
                     True,
                     "NOT_MODIFIED_WITHOUT_CACHE",
+                    effective_etags,
                 )
             previous = series.snapshots[-1]
             updated = append_snapshot(
@@ -162,7 +93,9 @@ class RegistryClient:
                 observed_at=observed_at,
                 etag=_header(outcome.headers, "etag") or previous.etag,
             )
-            return RegistryFetch(updated.snapshots[-1].history, updated, True, "NOT_MODIFIED")
+            return RegistryFetch(
+                updated.snapshots[-1].history, updated, True, "NOT_MODIFIED", effective_etags
+            )
         failure = _failure_reason(outcome)
         if failure is not None:
             status = (
@@ -171,10 +104,12 @@ class RegistryClient:
                 else HistoryStatus.UNKNOWN
             )
             history = _unavailable(lookup, status, failure)
-            return RegistryFetch(history, series, True, failure.value)
+            return RegistryFetch(history, series, True, failure.value, effective_etags)
         if outcome.status_code != 200:
             history = _unavailable(lookup, HistoryStatus.UNKNOWN, HistoryReason.REGISTRY_FAILURE)
-            return RegistryFetch(history, series, True, HistoryReason.REGISTRY_FAILURE.value)
+            return RegistryFetch(
+                history, series, True, HistoryReason.REGISTRY_FAILURE.value, effective_etags
+            )
         body = outcome.body
         if lookup.ecosystem.casefold() in {"github", "git"} and isinstance(body, list):
             body = {
@@ -197,7 +132,27 @@ class RegistryClient:
             observed_at=observed_at,
             etag=_header(outcome.headers, "etag"),
         )
-        return RegistryFetch(history, updated, True, updated.snapshots[-1].transition.reason_code)
+        return RegistryFetch(
+            history,
+            updated,
+            True,
+            updated.snapshots[-1].transition.reason_code,
+            effective_etags,
+        )
+
+    async def _fetch_resources(
+        self,
+        resources: tuple[tuple[str, str], ...],
+        base_headers: tuple[tuple[str, str], ...],
+        validators: dict[str, str],
+    ) -> tuple[HttpOutcome, ...]:
+        outcomes: list[HttpOutcome] = []
+        for resource, url in resources:
+            headers = base_headers
+            if resource in validators:
+                headers = (*headers, ("if-none-match", validators[resource]))
+            outcomes.append(await self.http.get(url, headers=headers, timeout=self.timeout))
+        return tuple(outcomes)
 
     @staticmethod
     def _offline(lookup: CacheLookup, series: SnapshotSeries) -> RegistryFetch:
@@ -214,29 +169,46 @@ def lookup(ecosystem: str, name: str, spec: str) -> CacheLookup:
 
 def _request(
     lookup: CacheLookup,
-    snapshots: SnapshotSeries,
     github_token: str | None,
-) -> tuple[str | tuple[str, str, str], tuple[tuple[str, str], ...]] | None:
+) -> tuple[tuple[tuple[str, str], ...], tuple[tuple[str, str], ...]] | None:
     headers: list[tuple[str, str]] = [("accept", "application/json")]
-    if snapshots.snapshots and snapshots.snapshots[-1].etag:
-        headers.append(("if-none-match", snapshots.snapshots[-1].etag or ""))
     ecosystem = lookup.ecosystem.casefold()
-    url: str | tuple[str, str, str]
+    resources: tuple[tuple[str, str], ...]
     if ecosystem == "npm":
-        url = f"https://registry.npmjs.org/{quote(lookup.name, safe='')}"
+        resources = (("package", f"https://registry.npmjs.org/{quote(lookup.name, safe='')}"),)
     elif ecosystem in {"pypi", "python"}:
-        url = f"https://pypi.org/pypi/{quote(lookup.name, safe='')}/json"
+        resources = (("package", f"https://pypi.org/pypi/{quote(lookup.name, safe='')}/json"),)
     elif ecosystem in {"github", "git"}:
         parts = lookup.name.split("/")
         if len(parts) != 2 or not all(_safe_segment(part) for part in parts):
             return None
         base = f"https://api.github.com/repos/{parts[0]}/{parts[1]}"
-        url = (base, f"{base}/releases", f"{base}/tags")
+        resources = (
+            ("repository", base),
+            ("releases", f"{base}/releases"),
+            ("tags", f"{base}/tags"),
+        )
         if github_token:
             headers.append(("authorization", f"Bearer {github_token}"))
     else:
         return None
-    return url, tuple(headers)
+    return resources, tuple(headers)
+
+
+def _aggregate(
+    resources: tuple[tuple[str, str], ...], outcomes: tuple[HttpOutcome, ...]
+) -> HttpOutcome:
+    if all(outcome.status_code == 304 for outcome in outcomes):
+        return outcomes[0]
+    failure = next((outcome for outcome in outcomes if outcome.status_code != 200), None)
+    if failure is not None:
+        return failure
+    if len(outcomes) == 1:
+        return outcomes[0]
+    bodies = {
+        resource: outcome.body for (resource, _), outcome in zip(resources, outcomes, strict=True)
+    }
+    return HttpOutcome(200, body=bodies)
 
 
 def _safe_segment(value: str) -> bool:

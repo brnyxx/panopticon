@@ -27,7 +27,8 @@ from panopticon.engine.watch import (
     WatchRequest,
 )
 from panopticon.registry.cache import PersistentCache
-from panopticon.registry.client import HttpxRegistryHttp, RegistryClient, SystemClock
+from panopticon.registry.client import RegistryClient
+from panopticon.registry.http import HttpxRegistryHttp, SystemClock
 from panopticon.registry.provider import RegistryProvider
 from panopticon.store.repository import ArtifactRepository
 from panopticon.util.leak_check import LeakContext

@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from panopticon.registry.client import HttpOutcome, RegistryClient, lookup
+from panopticon.registry.client import RegistryClient, lookup
 from panopticon.registry.history import TransitionStatus
+from panopticon.registry.http import HttpOutcome
 from panopticon.registry.model import HistoryReason, HistoryStatus
 
 
@@ -49,7 +50,7 @@ async def test_success_and_etag_304_use_normalized_snapshots_only() -> None:
     package = lookup("npm", "@scope/pkg", "latest")
 
     first = await client.fetch(package)
-    second = await client.fetch(package, snapshots=first.snapshots)
+    second = await client.fetch(package, snapshots=first.snapshots, etags=first.etags)
 
     assert first.history.resolved_version == "1.0.0"
     assert first.snapshots.snapshots[0].transition.status is TransitionStatus.UNKNOWN
@@ -104,3 +105,35 @@ async def test_github_token_and_traversal_values_do_not_enter_results() -> None:
         "https://api.github.com/repos/Owner/Repo/tags",
     ]
     assert all(("authorization", f"Bearer {token}") in request[1] for request in http.requests)
+
+
+@pytest.mark.asyncio
+async def test_github_uses_independent_resource_validators() -> None:
+    http = FakeHttp(
+        HttpOutcome(
+            200,
+            (("etag", '"repo"'),),
+            {"html_url": "https://github.com/Owner/Repo", "archived": False},
+        ),
+        HttpOutcome(200, (("etag", '"releases"'),), []),
+        HttpOutcome(200, (("etag", '"tags"'),), [{"name": "v1.0.0"}]),
+        HttpOutcome(304),
+        HttpOutcome(304),
+        HttpOutcome(304),
+    )
+    client = RegistryClient(http, FixedClock())
+    target = lookup("github", "Owner/Repo", "v1.0.0")
+
+    first = await client.fetch(target)
+    second = await client.fetch(target, snapshots=first.snapshots, etags=first.etags)
+
+    assert first.etags == (
+        ("releases", '"releases"'),
+        ("repository", '"repo"'),
+        ("tags", '"tags"'),
+    )
+    assert second.reason_code == "NOT_MODIFIED"
+    assert [
+        next(value for key, value in headers if key == "if-none-match")
+        for _, headers, _ in http.requests[3:]
+    ] == ['"repo"', '"releases"', '"tags"']

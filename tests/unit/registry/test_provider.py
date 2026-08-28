@@ -57,13 +57,30 @@ class Cache:
 
 
 class Client:
-    def __init__(self) -> None:
+    def __init__(self, failure: bool = False) -> None:
         self.clock = Clock()
         self.calls = 0
+        self.failure = failure
 
-    async def fetch(self, lookup, *, snapshots: SnapshotSeries | None = None) -> RegistryFetch:
+    async def fetch(
+        self,
+        lookup,
+        *,
+        snapshots: SnapshotSeries | None = None,
+        etags: tuple[tuple[str, str], ...] = (),
+    ) -> RegistryFetch:
+        del etags
         self.calls += 1
         assert snapshots is not None
+        if self.failure:
+            history = NormalizedHistory(
+                status=HistoryStatus.UNKNOWN,
+                reason_code=HistoryReason.TIMEOUT,
+                ecosystem="npm",
+                name="pkg",
+                requested_spec="1.0.0",
+            )
+            return RegistryFetch(history, snapshots, True, "TIMEOUT")
         updated = append_snapshot(snapshots, _history(), observed_at=NOW)
         return RegistryFetch(_history(), updated, True, "OK")
 
@@ -105,3 +122,15 @@ async def test_fresh_cache_avoids_http() -> None:
 
     assert client.calls == 0
     assert result.status is HistoryStatus.AVAILABLE
+
+
+@pytest.mark.asyncio
+async def test_online_failure_does_not_persist_unknown_history() -> None:
+    cache = Cache(CacheLoad(CacheLoadStatus.MISS, reason_code="CACHE_MISS"))
+
+    result = await RegistryProvider(cache, Client(failure=True)).lookup(_server())
+
+    assert result.status is HistoryStatus.UNKNOWN
+    assert result.reason_code is HistoryReason.TIMEOUT
+    assert cache.persisted is None
+    assert result.diagnostics[0].code == "REGISTRY_FAILED"

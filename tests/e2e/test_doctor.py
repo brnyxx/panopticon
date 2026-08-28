@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from typer.testing import CliRunner
 
 from panopticon.cli.main import app
+from panopticon.registry.cache import CacheEnvelope, PersistentCache, make_lookup
+from panopticon.registry.history import SnapshotSeries, append_snapshot
+from panopticon.registry.model import HistoryReason, HistoryStatus, NormalizedHistory
+from panopticon.store import ArtifactRepository
 
 
 def _home(monkeypatch, tmp_path: Path) -> Path:
@@ -65,3 +70,39 @@ def test_malformed_client_preserves_other_results_and_partial_exit(
     assert payload["diagnostics"]
     assert good.read_bytes() == good_before
     assert bad.read_bytes() == bad_before
+
+
+def test_offline_doctor_reads_normalized_persistent_registry_cache(
+    monkeypatch, tmp_path: Path
+) -> None:
+    home = _home(monkeypatch, tmp_path)
+    (home / ".claude.json").write_text(
+        '{"mcpServers":{"pkg":{"command":"npx","args":["pkg@1.0.0"]}}}',
+        encoding="utf-8",
+    )
+    observed = datetime.now(UTC)
+    history = NormalizedHistory(
+        status=HistoryStatus.AVAILABLE,
+        reason_code=HistoryReason.OK,
+        ecosystem="npm",
+        name="pkg",
+        requested_spec="1.0.0",
+        resolved_version="1.0.0",
+    )
+    series = append_snapshot(SnapshotSeries(), history, observed_at=observed)
+    cache = PersistentCache(ArtifactRepository(home / ".panopticon"))
+    lookup = make_lookup("npm", "pkg", "1.0.0")
+    cache.persist(
+        lookup,
+        CacheEnvelope(
+            ecosystem="npm",
+            name="pkg",
+            snapshots=series,
+            fetched_at=observed,
+        ),
+    )
+
+    result = CliRunner().invoke(app, ["doctor", "--json", "--offline", "--client", "claude-code"])
+
+    assert result.exit_code == 0
+    assert '"resolved_version":"1.0.0"' in result.stdout

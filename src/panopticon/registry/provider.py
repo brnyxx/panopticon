@@ -62,7 +62,11 @@ class RegistryProvider:
             )
             return RegistryProviderResult(history, series, history.status, history.reason_code)
         series = envelope.snapshots if envelope is not None else SnapshotSeries()
-        fetched = await self.client.fetch(lookup, snapshots=series)
+        fetched = await self.client.fetch(
+            lookup,
+            snapshots=series,
+            etags=envelope.etags if envelope is not None else (),
+        )
         if fetched.history.status is not HistoryStatus.AVAILABLE:
             reason = fetched.history.reason_code
             history = _unknown(lookup, reason)
@@ -79,6 +83,7 @@ class RegistryProvider:
             ecosystem=lookup.ecosystem,
             name=lookup.name,
             snapshots=effective,
+            etags=fetched.etags,
             fetched_at=self.client.clock.now(),
         )
         persisted = self.cache.persist(lookup, envelope_new)

@@ -105,3 +105,31 @@ def test_persistent_cache_round_trips_at_exact_ttl_boundary(tmp_path) -> None:
     stale = cache.load(lookup, now=fetched + timedelta(hours=24, microseconds=1))
     assert stale.status is CacheLoadStatus.STALE
     assert stale.envelope == envelope
+
+
+def test_persistent_cache_reports_future_invalid_and_symlink(tmp_path) -> None:
+    lookup = make_lookup("npm", "pkg", "latest")
+    fetched = datetime(2025, 1, 1, tzinfo=UTC)
+    history = NormalizedHistory(
+        status=HistoryStatus.AVAILABLE,
+        reason_code=HistoryReason.OK,
+        ecosystem="npm",
+        name="pkg",
+        requested_spec="latest",
+        resolved_version="1.0.0",
+    )
+    envelope = CacheEnvelope(
+        ecosystem="npm",
+        name="pkg",
+        snapshots=append_snapshot(SnapshotSeries(), history, observed_at=fetched),
+        fetched_at=fetched,
+    )
+    cache = PersistentCache(ArtifactRepository(tmp_path))
+    assert cache.persist(lookup, envelope).status is CacheLoadStatus.HIT
+    assert cache.load(lookup, now=fetched - timedelta(seconds=1)).status is CacheLoadStatus.FUTURE
+    target = tmp_path / "cache" / "registry" / "npm" / f"{cache_key(lookup)}.json"
+    target.write_text("{malformed", encoding="utf-8")
+    assert cache.load(lookup, now=fetched).status is CacheLoadStatus.INVALID
+    target.unlink()
+    target.symlink_to(tmp_path / "missing")
+    assert cache.load(lookup, now=fetched).status is CacheLoadStatus.SYMLINK
