@@ -71,12 +71,26 @@ def test_data_driven_finding_sets(group: str) -> None:
 
 
 def test_canonical_finding_id_is_stable() -> None:
-    evidence = (
+    first = (
+        FindingEvidence(kind=FindingEvidenceKind.HOST, subject="evil.example", value="connect"),
+        FindingEvidence(kind=FindingEvidenceKind.PATH, subject="secret", value="/Users/alice/.ssh"),
+    )
+    equivalent_reversed = (
+        FindingEvidence(kind=FindingEvidenceKind.PATH, subject="secret", value="/home/bob/.ssh"),
         FindingEvidence(kind=FindingEvidenceKind.HOST, subject="evil.example", value="connect"),
     )
     installation = InstallationId("inst_0123456789abcdef")
-    assert occurrence_id("WATCH-003", installation, evidence) == occurrence_id(
-        "WATCH-003", installation, evidence
+    # Ordering, home-directory owner, and observation timestamp are not part
+    # of the canonical occurrence identity.
+    assert occurrence_id("WATCH-003", installation, first) == occurrence_id(
+        "WATCH-003", installation, equivalent_reversed
+    )
+    changed = (
+        FindingEvidence(kind=FindingEvidenceKind.HOST, subject="evil.example", value="other"),
+        FindingEvidence(kind=FindingEvidenceKind.PATH, subject="secret", value="/home/bob/.ssh"),
+    )
+    assert occurrence_id("WATCH-003", installation, first) != occurrence_id(
+        "WATCH-003", installation, changed
     )
 
 

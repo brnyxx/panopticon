@@ -1,18 +1,12 @@
 {
   "clients": ["claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic"],
-  "config": {
-    "mcpServers": {
-      "target": {
-        "command": "node",
-        "args": ["@fixture/server@latest", "--config", "/"],
-        "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"},
-        "headers": {"Authorization": "Bearer synthetic-header-value"},
-        "url": "http://127.0.0.1:8765/mcp",
-        "disabled": true
-      },
-      "keep": {"command": "node", "args": ["keep-server@1.2.3"]},
-      "remote": {"command": "node", "url": "https://remote.invalid/mcp"}
-    }
+  "configs": {
+    "claude-desktop": {"mcpServers": {"target": {"command": "node", "args": ["@fixture/server@latest", "--config", "/"], "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"}, "headers": {"Authorization": "Bearer synthetic-header-value"}, "url": "http://127.0.0.1:8765/mcp", "disabled": true}, "keep": {"command": "node", "args": ["keep-server@1.2.3"]}}},
+    "claude-code": {"mcpServers": {"target": {"command": "node", "args": ["@fixture/server@latest", "--config", "/"], "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"}, "headers": {"Authorization": "Bearer synthetic-header-value"}, "url": "http://127.0.0.1:8765/mcp", "disabled": true}}, "projects": {"/workspace/project": {"mcpServers": {"other": {"command": "node", "args": ["other@1.0.0"]}}}}},
+    "cursor": {"mcpServers": {"target": {"command": "node", "args": ["@fixture/server@latest", "--config", "/"], "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"}, "headers": {"Authorization": "Bearer synthetic-header-value"}, "url": "http://127.0.0.1:8765/mcp", "disabled": true}}},
+    "vscode": {"servers": {"target": {"type": "stdio", "command": "node", "args": ["@fixture/server@latest", "--config", "/"], "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"}, "headers": {"Authorization": "Bearer synthetic-header-value"}, "url": "http://127.0.0.1:8765/mcp", "disabled": true}}},
+    "windsurf": {"mcpServers": {"target": {"command": "node", "args": ["@fixture/server@latest", "--config", "/"], "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"}, "headers": {"Authorization": "Bearer synthetic-header-value"}, "url": "http://127.0.0.1:8765/mcp", "disabled": true}}},
+    "generic": {"mcpServers": {"target": {"command": "node", "args": ["@fixture/server@latest", "--config", "/"], "env": {"PANO_SYNTHETIC_TOKEN": "synthetic-token-value"}, "headers": {"Authorization": "Bearer synthetic-header-value"}, "url": "http://127.0.0.1:8765/mcp", "disabled": true}}}
   },
   "applicable": {
     "FIX-001": ["claude-code", "cursor", "vscode", "windsurf", "generic"],

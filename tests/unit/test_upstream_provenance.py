@@ -122,3 +122,30 @@ def test_missing_adapted_header_and_duplicate_test_ids_fail(
 
     assert "ADAPTED_HEADER_MISSING:src/panopticon/analyzers/static/adapted.py" in errors
     assert "UPSTREAM_TEST_COUNT_MISMATCH" in errors
+
+
+def test_official_server_manifest_preserves_blocker_provenance() -> None:
+    manifest_path = (
+        Path(__file__).resolve().parents[2]
+        / "tests"
+        / "fixtures"
+        / "mcp"
+        / "official"
+        / "manifest.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert {entry["name"] for entry in manifest["servers"]} == {
+        "filesystem",
+        "github",
+        "fetch",
+        "memory",
+        "sqlite",
+    }
+    blocked = {
+        entry["name"]: entry["blocker"]
+        for entry in manifest["servers"]
+        if entry["status"] == "blocked"
+    }
+    assert "GITHUB_PERSONAL_ACCESS_TOKEN" in blocked["github"]
+    assert "HTTP 404" in blocked["fetch"]
+    assert "HTTP 404" in blocked["sqlite"]

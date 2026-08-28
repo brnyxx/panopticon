@@ -193,7 +193,11 @@ def build_watch_observation(
             result=_span_result(result, span),
             duration_ms=max(0, int((span.ended_at - span.started_at).total_seconds() * 1000)),
             events=(
-                *convert_events(assigned.get(span.span_id, ()), decoy_paths=decoy_paths),
+                *convert_events(
+                    assigned.get(span.span_id, ()),
+                    decoy_paths=decoy_paths,
+                    decoy_markers=result.manifest.markers if result.manifest else (),
+                ),
                 *(snapshot_events if span.kind.value == "session" else ()),
                 *leak_events.get(span.span_id, ()),
             ),

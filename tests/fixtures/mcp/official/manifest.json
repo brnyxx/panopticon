@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "https://github.com/modelcontextprotocol/servers",
+    "license": "Apache-2.0/MIT transition terms",
+    "license_file": "LICENSE",
+    "license_sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a",
+    "provenance": "npm registry metadata (immutable package gitHead and sha512 integrity)"
+  },
+  "servers": [
+    {
+      "name": "filesystem",
+      "package": "@modelcontextprotocol/server-filesystem",
+      "version": "2026.7.10",
+      "commit": "9a96ea6e5913736f92b88345bf51caeaaa8e719f",
+      "integrity": "sha512-Mmjg4anFBD5OzbPnGJOA0jPPN8645ERhQk38HQLpSenx1ox9bfdPkmAzUnNjeQtqQGFLtKe13J20RtLBmUKMZA==",
+      "license": "Apache-2.0/MIT transition terms",
+      "status": "available",
+      "driver": ["node", "dist/index.js", "/tmp"]
+    },
+    {
+      "name": "memory",
+      "package": "@modelcontextprotocol/server-memory",
+      "version": "2026.7.4",
+      "commit": "6dd0a683e198783e30feabf7abaf42f925bd18b1",
+      "integrity": "sha512-D+NNzChsOHN72y58ngDmO+TzjJijGi/sSY/gBydhB3TJCcm1XQEozVWwEpruHeXt/HSkMV3Z/BpHDhdt1MLD5w==",
+      "license": "Apache-2.0/MIT transition terms",
+      "status": "available",
+      "driver": ["node", "dist/index.js"]
+    },
+    {
+      "name": "github",
+      "package": "@modelcontextprotocol/server-github",
+      "version": "2025.4.8",
+      "commit": "73869dd6dc4ff3ffa4b79e12ad6c8ad619ba3a96",
+      "integrity": "sha512-8N43bQw9MlUB0piTZHK2JMh8kYPKxH57d4Z7Wb8PS4by2MkZ0FzI5xPImg3xumpev82VZw2VWHQJJJYp+WkwEw==",
+      "license": "MIT",
+      "status": "blocked",
+      "blocker": "Requires GITHUB_PERSONAL_ACCESS_TOKEN; no credential is provisioned for tests."
+    },
+    {
+      "name": "fetch",
+      "package": "@modelcontextprotocol/server-fetch",
+      "status": "blocked",
+      "blocker": "Package is not present in the npm registry (HTTP 404); the upstream server was retired."
+    },
+    {
+      "name": "sqlite",
+      "package": "@modelcontextprotocol/server-sqlite",
+      "status": "blocked",
+      "blocker": "Package is not present in the npm registry (HTTP 404); no official implementation can be pinned."
+    }
+  ]
+}

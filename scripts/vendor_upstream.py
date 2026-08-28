@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 COMMIT = "e717e955210b1d2a3e9fb1cdc266587c77ffebf3"
+OFFICIAL_MANIFEST = Path("tests/fixtures/mcp/official/manifest.json")
 
 
 def _git(clone: Path, *args: str) -> str:
@@ -64,11 +65,28 @@ def vendor(clone: Path, destination: Path) -> tuple[Path, ...]:
     return tuple(copied)
 
 
+def official_manifest(path: Path = OFFICIAL_MANIFEST) -> dict[str, object]:
+    """Read the separately audited official-server provenance manifest."""
+    import json
+
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict) or value.get("schema_version") != 1:
+        raise ValueError("official manifest schema unsupported")
+    servers = value.get("servers")
+    if not isinstance(servers, list):
+        raise ValueError("official manifest servers must be an array")
+    names = {item.get("name") for item in servers if isinstance(item, dict)}
+    if len(servers) != 5 or names != {"filesystem", "github", "fetch", "memory", "sqlite"}:
+        raise ValueError("official manifest must describe exactly five servers")
+    return value
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-clone", type=Path, required=True)
     parser.add_argument("--destination", type=Path, default=Path("tests/upstream"))
     args = parser.parse_args()
+    official_manifest()
     copied = vendor(args.source_clone.resolve(), args.destination.resolve())
     print(f"vendored {len(copied)} exact files from {COMMIT}")
     return 0

@@ -9,7 +9,9 @@ from collections.abc import Iterable, Mapping
 from typing import Literal
 
 from panopticon.models.common import Host, PersistedPath
-from panopticon.models.event import Event, FileEvent, NetEvent, ProcessEvent
+from panopticon.models.event import Event, FileEvent, NetEvent, PlaintextHttpEvent, ProcessEvent
+from panopticon.sandbox.decoy import DecoyMarker
+from panopticon.sandbox.matcher import DecoyMatcher
 from panopticon.sandbox.trace_model import TraceEvent
 
 
@@ -44,18 +46,17 @@ def _file_operation(event: TraceEvent) -> FileOperation | None:
     return "read"
 
 
-def _argv(event: TraceEvent) -> tuple[str, ...]:
+def _argv(event: TraceEvent, decoy_markers: tuple[DecoyMarker, ...] = ()) -> tuple[str, ...]:
     if len(event.arguments) > 1:
         try:
             value: object = ast.literal_eval(event.arguments[1])
         except (SyntaxError, ValueError):
             value = None
-        if (
-            isinstance(value, list)
-            and value
-            and all(isinstance(item, str) and item for item in value)
-        ):
-            return tuple(value)
+        if isinstance(value, list):
+            strings = tuple(item for item in value if isinstance(item, str) and item)
+            if strings and len(strings) == len(value):
+                replacements = {marker.text: f"<{marker.key}>" for marker in decoy_markers}
+                return tuple(replacements.get(item, item) for item in strings)
     return (event.path or "unknown",)
 
 
@@ -73,12 +74,15 @@ def convert_events(
     events: Iterable[TraceEvent],
     *,
     decoy_paths: Mapping[str, str] | None = None,
+    decoy_markers: Iterable[DecoyMarker] = (),
     proxy_hosts: frozenset[str] = frozenset(),
 ) -> tuple[Event, ...]:
     path_keys = decoy_paths or {}
     files: Counter[tuple[FileOperation, str, bool, str | None]] = Counter()
     processes: Counter[tuple[str, ...]] = Counter()
     networks: Counter[tuple[str, int | None, NetworkVia]] = Counter()
+    plaintext: Counter[tuple[str, str, tuple[str, ...]]] = Counter()
+    marker_set = tuple(decoy_markers)
     for event in events:
         operation = _file_operation(event)
         if operation is not None and event.path:
@@ -86,11 +90,31 @@ def convert_events(
             decoy_key = path_keys.get(path)
             files[(operation, path, decoy_key is not None, decoy_key)] += 1
         elif event.operation == "exec" and event.path:
-            processes[_argv(event)] += 1
+            processes[_argv(event, marker_set)] += 1
         elif event.operation == "connect" and event.peer:
             host, port = _peer(event.peer)
             if host is not None:
                 networks[(host.casefold(), port, "proxy" if host in proxy_hosts else "direct")] += 1
+        elif event.operation == "send" and event.arguments:
+            payload = ""
+            if len(event.arguments) > 1:
+                try:
+                    value = ast.literal_eval(event.arguments[1])
+                    if isinstance(value, bytes):
+                        payload = value.decode("utf-8", errors="replace")
+                    elif isinstance(value, str):
+                        payload = value
+                except (SyntaxError, ValueError):
+                    pass
+            if payload.startswith(("GET ", "POST ", "PUT ", "PATCH ", "DELETE ")):
+                request_line, _, headers = payload.partition("\r\n")
+                path = request_line.split(" ", 2)[1] if len(request_line.split(" ", 2)) > 1 else "/"
+                host_match = re.search(r"(?im)^Host:\s*([^\r\n]+)", headers)
+                host = host_match.group(1).strip() if host_match else "unknown"
+                report = DecoyMatcher(marker_set).match((payload.encode(),))
+                keys = tuple(sorted({match.key for match in report.matches}))
+                if keys:
+                    plaintext[(host, path, keys)] += 1
     output: list[Event] = []
     for (operation, path, decoy, key), count in sorted(files.items()):
         output.append(
@@ -128,6 +152,20 @@ def convert_events(
                     host=Host(host),
                     port=port,
                     via=via,
+                    count=count,
+                )
+            )
+        )
+    for (host, path, keys), count in sorted(plaintext.items()):
+        output.append(
+            Event(
+                PlaintextHttpEvent(
+                    schema_version="1.0",
+                    kind="plaintext_http",
+                    op="request",
+                    host=Host(host),
+                    request_path=path if path.startswith("/") else "/",
+                    decoy_keys=keys,
                     count=count,
                 )
             )

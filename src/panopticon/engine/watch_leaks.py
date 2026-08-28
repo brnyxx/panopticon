@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 from collections import Counter
 
@@ -43,6 +44,24 @@ def leak_events_by_span(result: LocalWatchResult) -> dict[str, tuple[Event, ...]
                 None,
             )
             inspect(span_id, "response", json.dumps(call.response.result, sort_keys=True).encode())
+    for event in result.trace.events if result.trace is not None else ():
+        if event.operation != "exec" or len(event.arguments) < 2:
+            continue
+        span_id = next(
+            (
+                span.span_id
+                for span in result.spans
+                if span.kind.value == "call"
+                and span.started_at.timestamp() <= event.timestamp <= span.ended_at.timestamp()
+            ),
+            startup,
+        )
+        try:
+            payload = ast.literal_eval(event.arguments[1])
+        except (SyntaxError, ValueError):
+            continue
+        if isinstance(payload, str):
+            inspect(span_id, "exec_arg", payload.encode())
     return {
         span_id: tuple(
             Event(

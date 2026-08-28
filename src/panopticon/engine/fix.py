@@ -89,6 +89,28 @@ def _recheck(selection: MutationSelection, plan: FixPlan) -> bool:
         return False
     except OSError:
         return False
+    # Re-evaluate the originating CFG condition at the mutated pointer rather
+    # than treating a successful byte replacement as proof of resolution.
+    # This keeps the transaction boundary independent of discovery adapters
+    # while still rejecting a patch that leaves its finding active.
+    if selection.fix_id == "FIX-001":
+        return (
+            isinstance(actual, str)
+            and re.fullmatch(r"\$\{[A-Z][A-Z0-9_]{1,63}\}", actual) is not None
+        )
+    if selection.fix_id in {"FIX-002", "FIX-005"}:
+        return actual == plan.patches[0].value and isinstance(actual, str) and "@" in actual
+    if selection.fix_id == "FIX-004":
+        if not isinstance(actual, str):
+            return False
+        normalized = actual.replace("\\", "/").rstrip("/")
+        return (
+            bool(normalized)
+            and normalized not in {"~", "/", "$HOME"}
+            and not re.fullmatch(r"(?:[A-Za-z]:)?/", normalized)
+        )
+    if selection.fix_id == "FIX-008":
+        return isinstance(actual, str) and actual.startswith("https://")
     return actual == plan.patches[0].value
 
 

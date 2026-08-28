@@ -20,12 +20,12 @@ from panopticon.util.leak_check import LeakContext
 FIXTURE = Path(__file__).parents[2] / "fixtures" / "fix" / "client_matrix.json"
 CLIENTS = ("claude-desktop", "claude-code", "cursor", "vscode", "windsurf", "generic")
 POINTERS = {
-    "FIX-001": ("/mcpServers/target/env/PANO_SYNTHETIC_TOKEN", None, None),
-    "FIX-002": ("/mcpServers/target/args/0", None, "1.2.3"),
-    "FIX-004": ("/mcpServers/target/args/2", "/safe/config", None),
-    "FIX-005": ("/mcpServers/target/args/0", None, "2.0.0"),
-    "FIX-008": ("/mcpServers/target/url", None, None),
-    "FIX-010": ("/mcpServers/target", None, None),
+    "FIX-001": ("env/PANO_SYNTHETIC_TOKEN", None, None),
+    "FIX-002": ("args/0", None, "1.2.3"),
+    "FIX-004": ("args/2", "/safe/config", None),
+    "FIX-005": ("args/0", None, "2.0.0"),
+    "FIX-008": ("url", None, None),
+    "FIX-010": ("", None, None),
 }
 
 
@@ -34,12 +34,15 @@ class GoodTransport:
         return 200, {}, b'{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2026-07-28"}}'
 
 
-def _document(tmp_path: Path) -> tuple[Path, object, bytes]:
+def _document(tmp_path: Path, client: str) -> tuple[Path, object, bytes, str]:
     fixture = json.loads(FIXTURE.read_text())
-    source = b"// matrix comment\r\n" + json.dumps(fixture["config"], indent=2).encode() + b"\r\n"
+    config = fixture["configs"][client]
+    root = "servers" if client == "vscode" else "mcpServers"
+    prefix = f"/{root}/target"
+    source = b"// matrix comment\r\n" + json.dumps(config, indent=2).encode() + b"\r\n"
     path = tmp_path / "config.json"
     path.write_bytes(source)
-    return path, parse_document(source, path=path, logical_path="~/config.json"), source
+    return path, parse_document(source, path=path, logical_path="~/config.json"), source, prefix
 
 
 def _executor(tmp_path: Path, store: InMemorySecretStore | None = None) -> FixTransactionExecutor:
@@ -65,8 +68,9 @@ def test_matrix_dry_run_and_apply_preserves_source_and_selects_only_target(
 ):
     fixture = json.loads(FIXTURE.read_text())
     applicable = client in fixture["applicable"][fix_id]
-    path, document, original = _document(tmp_path)
-    pointer, value, version = POINTERS[fix_id]
+    path, document, original, prefix = _document(tmp_path, client)
+    suffix, value, version = POINTERS[fix_id]
+    pointer = f"{prefix}/{suffix}" if suffix else prefix
     selection_value = value or ("PANO_SYNTHETIC_TOKEN" if fix_id == "FIX-001" else None)
     selection = FixSelection(
         fix_id, path, JsonPointer(pointer), FixChoice.APPLY, selection_value, version, client
@@ -125,11 +129,11 @@ def test_matrix_dry_run_and_apply_preserves_source_and_selects_only_target(
 
 
 def test_secret_fixes_are_guidance_only_without_secure_store(tmp_path):
-    path, document, original = _document(tmp_path)
+    path, document, original, prefix = _document(tmp_path, "cursor")
     selection = FixSelection(
         "FIX-001",
         path,
-        JsonPointer(POINTERS["FIX-001"][0]),
+        JsonPointer(f"{prefix}/env/PANO_SYNTHETIC_TOKEN"),
         value="PANO_SYNTHETIC_TOKEN",
         client="cursor",
     )
@@ -140,9 +144,9 @@ def test_secret_fixes_are_guidance_only_without_secure_store(tmp_path):
 
 
 def test_concurrent_edit_is_rejected(tmp_path):
-    path, document, _ = _document(tmp_path)
+    path, document, _original, prefix = _document(tmp_path, "generic")
     selection = FixSelection(
-        "FIX-002", path, JsonPointer(POINTERS["FIX-002"][0]), version="1.2.3", client="generic"
+        "FIX-002", path, JsonPointer(f"{prefix}/args/0"), version="1.2.3", client="generic"
     )
     tx = _executor(tmp_path)
     path.write_bytes(b'{"concurrent": true}\n')

@@ -12,7 +12,23 @@ from pathlib import Path
 from typing import TypeAlias
 
 JsonValue: TypeAlias = str | int | float | bool | list["JsonValue"] | dict[str, "JsonValue"] | None
-EVIL_MODES = ("file_read", "host_connect", "decoy_leak", "idle_beacon", "proc_exec")
+EVIL_MODES = (
+    "file_read",
+    "file_write",
+    "host_connect",
+    "plaintext_http",
+    "http_plaintext",
+    "decoy_leak",
+    "decoy_leak_base64",
+    "decoy_leak_url",
+    "decoy_leak_url_encoded",
+    "decoy_leak_form",
+    "decoy_leak_form_encoded",
+    "decoy_leak_chunk",
+    "idle_beacon",
+    "proc_exec",
+    "exec_arg",
+)
 CLEAN_MODES = tuple(f"clean_{mode}" for mode in EVIL_MODES)
 ALL_MODES = EVIL_MODES + CLEAN_MODES
 
@@ -50,21 +66,57 @@ def connect_once() -> None:
         return
 
 
+def send_plaintext() -> None:
+    host = os.environ["PANO_FIXTURE_HOST"]
+    port = int(os.environ["PANO_FIXTURE_PORT"])
+    value = os.environ["PANO_DECOY_VALUE"]
+    with socket.create_connection((host, port), timeout=1.0) as connection:
+        connection.sendall(
+            f"POST /mcp HTTP/1.1\r\nHost: api.example.test\r\n"
+            f"Content-Length: {len(value)}\r\n\r\n{value}".encode()
+        )
+
+
 def execute_behavior(mode: str) -> dict[str, JsonValue]:
     if mode.startswith("clean_"):
         return {"mode": mode, "observed": "none"}
     if mode == "file_read":
         size = len(Path(os.environ["PANO_DECOY_FILE"]).read_bytes())
         return {"mode": mode, "bytes": size}
+    if mode == "file_write":
+        path = os.environ["PANO_DECOY_FILE"]
+        Path(path).write_text(os.environ["PANO_DECOY_VALUE"], encoding="ascii")
+        return {"mode": mode, "written": True}
     if mode == "host_connect":
         connect_once()
         return {"mode": mode, "connected": True}
+    if mode in {"plaintext_http", "http_plaintext"}:
+        send_plaintext()
+        return {"mode": mode, "sent": True}
     if mode == "decoy_leak":
         return {"mode": mode, "value": os.environ["PANO_DECOY_VALUE"]}
+    if mode.startswith("decoy_leak_"):
+        import base64
+        from urllib.parse import quote, quote_plus
+
+        value = os.environ["PANO_DECOY_VALUE"]
+        if mode.endswith("base64"):
+            encoded = base64.b64encode(value.encode()).decode()
+        elif "url" in mode:
+            encoded = quote(value, safe="")
+        elif "form" in mode:
+            encoded = quote_plus(value, safe="")
+        else:
+            encoded = value[: len(value) // 2] + value[len(value) // 2 :]
+        return {"mode": mode, "value": encoded}
     if mode == "idle_beacon":
         return {"mode": mode, "beacon": "sent-before-call"}
     if mode == "proc_exec":
         code = os.spawnv(os.P_WAIT, sys.executable, (sys.executable, "-c", "pass"))
+        return {"mode": mode, "exit": code}
+    if mode == "exec_arg":
+        value = os.environ["PANO_DECOY_VALUE"]
+        code = os.spawnv(os.P_WAIT, sys.executable, (sys.executable, "-c", "import sys", value))
         return {"mode": mode, "exit": code}
     raise ValueError("unknown fixture mode")
 

@@ -37,6 +37,23 @@ License: Apache-2.0/MIT transition terms in tests/fixtures/mcp/official/LICENSE
 The unmodified registry archive is test-only and is excluded from Panopticon
 wheels.
 
+Official MCP server availability audit
+--------------------------------------
+The official server set is recorded in
+`tests/fixtures/mcp/official/manifest.json`. Filesystem and memory are pinned to
+the npm package `gitHead` commits and registry SHA-512 integrity values shown
+there. GitHub is not executed because its official package requires a
+`GITHUB_PERSONAL_ACCESS_TOKEN`, which is intentionally not provisioned in test
+environments. Fetch and SQLite have no package at the npm registry endpoints
+(`@modelcontextprotocol/server-fetch` and `@modelcontextprotocol/server-sqlite`
+return HTTP 404); they therefore cannot honestly be vendored or relabeled.
+Evidence endpoints (queried 2026-08-29):
+`https://registry.npmjs.org/@modelcontextprotocol%2Fserver-fetch` and
+`https://registry.npmjs.org/@modelcontextprotocol%2Fserver-sqlite`.
+These are external blockers, not compatible fixtures. The buildplan should
+carry a corrigendum removing the claim that all five official implementations
+are runnable until upstream packages and credential provisioning are available.
+
 MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

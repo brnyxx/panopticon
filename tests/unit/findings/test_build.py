@@ -29,7 +29,10 @@ def test_occurrence_changes_with_evidence_but_logical_key_does_not() -> None:
             subject="tool",
             title="title",
             first_seen=datetime(2026, 1, 1, tzinfo=UTC),
-            evidence=({"kind": "HOST", "subject": "x", "value": "a.com"},),
+            evidence=(
+                {"kind": "HOST", "subject": "x", "value": "a.com"},
+                {"kind": "PATH", "subject": "config", "value": "/Users/alice/.config"},
+            ),
         )
     )
     second = build_finding(
@@ -40,9 +43,29 @@ def test_occurrence_changes_with_evidence_but_logical_key_does_not() -> None:
             observation_id=ObservationId("obs_one"),
             subject="tool",
             title="title",
-            first_seen=datetime(2026, 1, 1, tzinfo=UTC),
-            evidence=({"kind": "HOST", "subject": "x", "value": "b.com"},),
+            # A later observation and reversed, equivalent evidence must
+            # retain the same canonical occurrence ID.
+            first_seen=datetime(2026, 1, 2, tzinfo=UTC),
+            evidence=(
+                {"kind": "PATH", "subject": "config", "value": "/home/bob/.config"},
+                {"kind": "HOST", "subject": "x", "value": "a.com"},
+            ),
         )
     )
     assert first.logical_key == second.logical_key
-    assert first.id != second.id
+    assert first.id == second.id
+
+    changed = build_finding(
+        FindingDraft(
+            meta=meta,
+            server_id=ServerId("local:test"),
+            installation_id=installation_id,
+            observation_id=ObservationId("obs_two"),
+            subject="tool",
+            title="title",
+            first_seen=datetime(2026, 1, 2, tzinfo=UTC),
+            evidence=({"kind": "HOST", "subject": "x", "value": "changed.example"},),
+        )
+    )
+    assert first.logical_key == changed.logical_key
+    assert first.id != changed.id
