@@ -16,11 +16,6 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "WSL2_DEFAULT_FAILED"
 }
-& wsl.exe --set-version Ubuntu-24.04 2
-if ($LASTEXITCODE -ne 0) {
-    throw "WSL2_CONVERSION_FAILED"
-}
-
 $distributionList = & wsl.exe --list --verbose
 if ($LASTEXITCODE -ne 0 -or ($distributionList -join "`n") -notmatch "Ubuntu-24.04\s+Stopped\s+2") {
     throw "WSL2_NOT_ACTIVE"
