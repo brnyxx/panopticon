@@ -128,7 +128,8 @@ async def test_wrap_cli_persists_correlated_record_through_store(tmp_path: Path)
     )
     wire = b'{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"ping"}}\n'
     stdout, stderr = await asyncio.wait_for(process.communicate(wire), timeout=3)
-    assert stdout == b'{"jsonrpc":"2.0","id":9,"result":{}}\n', "WRAP_STDOUT_MISMATCH"
+    expected = b'{"jsonrpc":"2.0","id":9,"result":{}}' + os.linesep.encode()
+    assert stdout == expected, "WRAP_STDOUT_MISMATCH"
     assert stderr == b"", "WRAP_STDERR_NONEMPTY"
     assert process.returncode == 0, "WRAP_EXIT_MISMATCH"
     records = tuple((tmp_path / ".panopticon" / "wrap").rglob("*.json"))

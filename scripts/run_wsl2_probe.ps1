@@ -16,11 +16,6 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "WSL2_DEFAULT_FAILED"
 }
-$distributionList = & wsl.exe --list --verbose
-if ($LASTEXITCODE -ne 0 -or ($distributionList -join "`n") -notmatch "Ubuntu-24.04\s+Stopped\s+2") {
-    throw "WSL2_NOT_ACTIVE"
-}
-
 $archive = Join-Path $env:RUNNER_TEMP "uv-x86_64-unknown-linux-gnu.tar.gz"
 $archiveUrl = "https://github.com/astral-sh/uv/releases/download/0.12.7/uv-x86_64-unknown-linux-gnu.tar.gz"
 Invoke-WebRequest -Uri $archiveUrl -OutFile $archive
@@ -34,6 +29,10 @@ Copy-Item -Path $archive -Destination $workspaceArchive
 $wslWorkspace = (& wsl.exe --distribution Ubuntu-24.04 -- wslpath -a $Workspace).Trim()
 if ($LASTEXITCODE -ne 0 -or -not $wslWorkspace.StartsWith("/mnt/")) {
     throw "WSL_WORKSPACE_INVALID"
+}
+$kernelRelease = (& wsl.exe --distribution Ubuntu-24.04 -- uname -r).Trim()
+if ($LASTEXITCODE -ne 0 -or $kernelRelease -notmatch "(?i)wsl2") {
+    throw "WSL2_NOT_ACTIVE"
 }
 
 $probe = @'
