@@ -55,6 +55,7 @@ def test_wire_encodings_are_synthetic_and_distinguishable() -> None:
     assert set(encodings) == {
         "RAW",
         "JSON_ESCAPED",
+        "JSON_NESTED_ESCAPED",
         "URL_ENCODED",
         "FORM_ENCODED",
         "BASE64",

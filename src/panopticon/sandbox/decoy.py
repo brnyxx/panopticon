@@ -203,9 +203,14 @@ def _tar_info(name: str, *, directory: bool) -> tarfile.TarInfo:
 def marker_encodings(marker: DecoyMarker) -> tuple[tuple[bytes, str], ...]:
     value = marker.value
     text = value.decode("ascii")
+    json_escaped = json.dumps(text, ensure_ascii=True)[1:-1]
     return (
         (value, "RAW"),
-        (json.dumps(text, ensure_ascii=True)[1:-1].encode(), "JSON_ESCAPED"),
+        (json_escaped.encode(), "JSON_ESCAPED"),
+        (
+            json.dumps(json_escaped, ensure_ascii=True)[1:-1].encode(),
+            "JSON_NESTED_ESCAPED",
+        ),
         (quote(text, safe="").encode(), "URL_ENCODED"),
         (quote_plus(text, safe="").encode(), "FORM_ENCODED"),
         (base64.b64encode(value), "BASE64"),
