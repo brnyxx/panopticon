@@ -8,11 +8,73 @@ from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 
 from .archive import archive_for_copy
-from .base import ExecResult, SandboxError, StreamResult
+from .base import ExecResult, InteractiveSession, SandboxError, StreamResult
 from .streams import communicate
 
 _CONTAINER_TMP = PurePosixPath("/").joinpath("tmp")
 _CONTAINER_TRACE = _CONTAINER_TMP / "pano.strace"
+
+
+class _InteractiveSession:
+    def __init__(
+        self,
+        container: DockerContainer,
+        process: asyncio.subprocess.Process,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        stderr: asyncio.StreamReader,
+    ) -> None:
+        self._container = container
+        self._process = process
+        self.reader = reader
+        self.writer = writer
+        self._stderr = stderr
+        self._cleaned = False
+
+    async def read_stderr(self, max_bytes: int = 1_048_576) -> StreamResult:
+        if max_bytes < 0:
+            raise ValueError("max_bytes must be non-negative")
+        data = await self._stderr.read(max_bytes + 1)
+        return StreamResult(data[:max_bytes], len(data) > max_bytes)
+
+    async def stderr(self, max_bytes: int = 1_048_576) -> StreamResult:
+        return await self.read_stderr(max_bytes)
+
+    async def wait(self, timeout: float | None = None) -> int:
+        result = self._process.wait()
+        return await asyncio.wait_for(result, timeout) if timeout is not None else await result
+
+    def close_stdin(self) -> None:
+        if self.writer is not None:
+            self.writer.close()
+
+    async def terminate(self) -> None:
+        if self._process.returncode is None:
+            self._process.terminate()
+            try:
+                await asyncio.wait_for(self._process.wait(), 5.0)
+            except TimeoutError:
+                self._process.kill()
+                await self._process.wait()
+
+    async def cleanup(self) -> None:
+        if self._cleaned:
+            return
+        self._cleaned = True
+        cleanup = asyncio.create_task(self._cleanup_impl())
+        await asyncio.shield(cleanup)
+
+    async def _cleanup_impl(self) -> None:
+        try:
+            await self.terminate()
+        finally:
+            try:
+                await self._container.terminate()
+            finally:
+                await self._container.rm()
+
+    async def close(self) -> None:
+        await self.cleanup()
 
 
 class DockerContainer:
@@ -20,6 +82,45 @@ class DockerContainer:
         self.runtime, self.id = runtime, container_id
         self._cleaned = False
         self._terminated = False
+
+    async def open_stdio(self) -> InteractiveSession:
+        try:
+            process = await asyncio.create_subprocess_exec(
+                self.runtime,
+                "attach",
+                self.id,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except BaseException:
+            try:
+                await self.terminate()
+            finally:
+                await self.rm()
+            raise
+        if process.returncode is not None and process.returncode != 0:
+            streams = (process.stdout, process.stdin, process.stderr)
+            if any(stream is None for stream in streams):
+                await self.terminate()
+                await self.rm()
+                raise SandboxError("ATTACH_STREAM_UNAVAILABLE")
+            reader, writer, stderr = streams
+            assert reader is not None and writer is not None and stderr is not None
+            session = _InteractiveSession(self, process, reader, writer, stderr)
+            await session.cleanup()
+            raise SandboxError("ATTACH_FAILED")
+        reader, writer, stderr = process.stdout, process.stdin, process.stderr
+        if reader is None or writer is None or stderr is None:
+            await self.terminate()
+            await self.rm()
+            raise SandboxError("ATTACH_STREAM_UNAVAILABLE")
+        session = _InteractiveSession(self, process, reader, writer, stderr)
+        try:
+            return session
+        except BaseException:
+            await session.cleanup()
+            raise
 
     async def _command(self, argv: list[str], timeout: float = 30.0) -> ExecResult:
         process = await asyncio.create_subprocess_exec(

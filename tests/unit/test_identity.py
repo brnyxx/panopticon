@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import TypeAdapter
 
 from panopticon.models import (
     ClientName,
@@ -16,6 +17,7 @@ from panopticon.models import (
     derive_span_id,
     normalize_config_path,
 )
+from panopticon.models.ids import SpanIdValue
 
 
 @pytest.mark.parametrize(
@@ -96,7 +98,11 @@ def test_identity_components_prevent_collisions() -> None:
     assert derive_logical_key("WATCH-001", first, "api.example.com") != derive_logical_key(
         "WATCH-001", first, "other.example.com"
     )
-    assert derive_span_id("list_tools", 0) != derive_span_id("list_tools", 1)
+    first_span = derive_span_id("list_tools", 0)
+    assert first_span == derive_span_id("list_tools", 0)
+    assert first_span != derive_span_id("list_tools", 1)
+    assert first_span != derive_span_id("other_tool", 0)
+    assert TypeAdapter(SpanIdValue).validate_python(first_span) == first_span
 
 
 def test_path_outside_home_and_traversal_are_rejected() -> None:

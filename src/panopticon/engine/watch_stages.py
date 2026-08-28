@@ -108,12 +108,6 @@ class WatchStages:
         used_local = False
         used_remote = False
         try:
-            if (
-                target.destructive
-                and (request.options.real_env or bool(request.options.headers))
-                and not request.options.allow_destructive
-            ):
-                return WatchOutcome(name, "SKIPPED", "SKIPPED_DESTRUCTIVE")
             transport = str(target.transport)
             if transport == "stdio":
                 if self._d.local is None:

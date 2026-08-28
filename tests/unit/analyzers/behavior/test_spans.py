@@ -27,8 +27,8 @@ def test_stable_tool_and_reserved_span_markers_build_in_order() -> None:
         )
     )
 
-    assert call_id == "read_file+2"
-    assert [span.span_id for span in result.spans] == ["startup", "read_file+2"]
+    assert call_id == "read_file:2"
+    assert [span.span_id for span in result.spans] == ["startup", "read_file:2"]
     assert result.spans[1].root_pid == 10
     assert result.diagnostics == ()
 

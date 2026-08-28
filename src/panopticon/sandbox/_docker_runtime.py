@@ -79,6 +79,7 @@ class DockerRuntime:
         args = [
             "run",
             "-d",
+            "-i",
             "--rm",
             "--read-only",
             "--tmpfs",

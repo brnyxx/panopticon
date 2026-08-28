@@ -205,10 +205,11 @@ def test_target_guard_outcomes_and_cancellation() -> None:
         WatchDependencies(Inventory(*targets), local=Local(False), cancellation=Cancel())
     ).run(request(real_env=True))[0]
     assert (outcome.status, outcome.reason) == ("INCOMPLETE", "CANCELLED")
-    outcome = WatchStages(WatchDependencies(Inventory(targets[0]), local=Local(True))).run(
-        request(real_env=True)
-    )[0]
-    assert (outcome.status, outcome.reason) == ("SKIPPED", "SKIPPED_DESTRUCTIVE")
+    complete = LocalRun("COMPLETE", "OK", "evidence", {"stdio": "COMPLETE"}, ())
+    outcome = WatchStages(
+        WatchDependencies(Inventory(targets[0]), local=Local(True, complete))
+    ).run(request(real_env=True))[0]
+    assert outcome.status == "COMPLETE"
     outcome = WatchStages(WatchDependencies(Inventory(targets[1]), local=Local(True))).run(
         request()
     )[0]

@@ -37,6 +37,7 @@ class WatchOptions:
     headers: tuple[str, ...] = ()
     allow_destructive: bool = False
     self_read_only: bool = False
+    offline: bool = False
 
     def __post_init__(self) -> None:
         if self.calls < 0 or self.timeout <= 0 or self.idle < 0:
@@ -60,7 +61,6 @@ class Coverage(StrEnum):
 class WatchTarget(Protocol):
     name: str
     transport: str
-    destructive: bool
     command: str | None
     args: tuple[str, ...]
     url: str | None

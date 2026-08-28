@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 
+from panopticon.models.ids import derive_span_id
+
 
 class SpanKind(StrEnum):
     CALL = "call"
@@ -67,9 +69,7 @@ class SpanAttribution:
 
 
 def stable_span_id(tool: str, call_index: int) -> str:
-    if not tool or call_index < 0:
-        raise ValueError("span identity requires a tool and non-negative call index")
-    return f"{tool}+{call_index}"
+    return derive_span_id(tool, call_index)
 
 
 def calibrated_skew(samples: Iterable[ClockSample]) -> float | None:
