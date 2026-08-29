@@ -77,6 +77,7 @@ CONTRACT_TOKENS = {
     "docs/privacy.md": (
         "--offline",
         "--real-env",
+        "--real-env-all",
         "scan --mode deep",
         "api.osv.dev",
         "credential store",

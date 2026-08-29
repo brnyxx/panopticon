@@ -65,6 +65,19 @@ def test_docs_checker_accepts_the_repository() -> None:
     assert problems == []
 
 
+def test_privacy_outbound_table_names_both_real_environment_modes() -> None:
+    # Given: the exhaustive outbound table before its closing sentence.
+    table = (
+        (ROOT / "docs/privacy.md")
+        .read_text(encoding="utf-8")
+        .split("Nothing else leaves through Panopticon runtime paths.", maxsplit=1)[0]
+    )
+
+    # When/Then: both shipped command identifiers are present in that table.
+    assert "`watch --real-env KEY1,KEY2`" in table
+    assert "`watch --real-env-all`" in table
+
+
 def test_temporary_fixture_starts_clean(doc_tree: Path) -> None:
     # Given: the fixture tree before any defect is injected
     # When: the checker runs over it

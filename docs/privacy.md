@@ -12,6 +12,7 @@ of runtime outbound traffic follows.
 | `scan --mode standard` or `deep` | api.osv.dev | normalized PyPI package names and exact versions resolved from the target's lock data; no source, path, or credential; responses remain in memory | no |
 | `watch` / `scan --mode deep` | package registries, from inside the sandbox | package-install traffic | no |
 | `watch` | wherever the *MCP under test* connects, inside the sandbox through the logging proxy | whatever the MCP sends, with decoy values by default | no |
+| `watch --real-env KEY1,KEY2` or `watch --real-env-all` | the MCP sandbox and any host the MCP later contacts | the selected declared environment values, or every declared environment value; Panopticon does not persist them, but the MCP can transmit values it receives | maybe |
 | remote `watch` | configured remote MCP endpoint | bounded MCP JSON-RPC requests; configured real header values leave only when explicitly permitted and are never persisted | maybe |
 | `fix` for FIX-008, unless `--offline` | configured remote MCP endpoint | one bounded unauthenticated MCP `initialize` request proving the HTTPS endpoint before a config rewrite; no configured authentication header is sent | no |
 | `scan --mode deep` | your model provider's API | redacted source excerpts, shown to you before they are sent | yes |
@@ -57,10 +58,23 @@ Service, Windows Credential Manager). Backups of secret-bearing configs are encr
 authenticated encryption whose key lives in that same credential store. Without a usable credential
 store, Panopticon provides manual guidance and writes nothing.
 
-Wrap records rotate daily and are retained for 30 days by default (`config.toml`). Remove retained
-records, observations, baselines, cache, journals, and backups according to your retention policy;
-use the originating `pano fix --undo` or `pano uninstall` transaction before deleting the package
-version that created a configuration change.
+Wrap records rotate daily and are retained for 30 days by default (`config.toml`).
+
+### Cleanup order
+
+1. Stop active `watch` and wrapped MCP processes so no writer remains.
+2. Inspect baselines with `pano baseline list`; remove one with
+   `pano baseline rm BASELINE_ID`.
+3. Restore configuration changes before removing their evidence: use
+   `pano fix --undo TRANSACTION_ID`, or preview a wrapper restore with
+   `pano uninstall CLIENT --dry-run` and then apply it with `--yes`.
+4. Panopticon has no bulk data-deletion command. After the preceding restores, remove selected
+   retained artifacts with your OS file tools, or remove `~/.panopticon/` to clear all local
+   Panopticon evidence and cache.
+
+Deleting `fix/journal` or `fix/backups` removes the material required for later undo. Deleting the
+whole data root is irreversible and does not repair a client configuration, so never use it as a
+substitute for `fix --undo` or `uninstall`.
 
 ## What never enters a container
 
