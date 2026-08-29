@@ -32,7 +32,12 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     dispatch = trigger["workflow_dispatch"]
     assert isinstance(dispatch, dict)
     assert set(trigger) == {"workflow_dispatch"}
-    assert dispatch["inputs"]["channel"]["options"] == ["build", "rehearsal", "production"]
+    assert dispatch["inputs"]["channel"]["options"] == [
+        "build",
+        "rehearsal",
+        "production",
+        "recovery",
+    ]
     jobs = document["jobs"]
     assert isinstance(jobs, dict)
     assert {
@@ -45,6 +50,10 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         "testpypi",
         "pypi",
         "publish-github",
+        "recovery-verify",
+        "recovery-pypi",
+        "recovery-images",
+        "recovery-github",
     } == set(jobs)
     assert jobs["testpypi"]["environment"] == "testpypi"
     assert jobs["pypi"]["environment"] == "pypi"
@@ -55,6 +64,49 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         for step in job.get("steps", []):
             if "uses" in step:
                 assert len(step["uses"].rsplit("@", 1)[1]) == 40
+
+
+def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
+    document = yaml.load(
+        (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8"),
+        Loader=yaml.BaseLoader,
+    )
+    dispatch = document["on"]["workflow_dispatch"]
+    assert dispatch["inputs"]["source_run_id"]["required"] == "false"
+    assert dispatch["inputs"]["source_sha"]["required"] == "false"
+    jobs = document["jobs"]
+    assert jobs["quality"]["if"] == "inputs.channel != 'recovery'"
+    assert jobs["recovery-verify"]["if"] == "inputs.channel == 'recovery'"
+    assert jobs["recovery-pypi"]["environment"] == "pypi"
+    assert jobs["recovery-github"]["environment"] == "release"
+    publish = next(
+        step
+        for step in jobs["recovery-pypi"]["steps"]
+        if str(step.get("uses", "")).startswith("pypa/gh-action-pypi-publish@")
+    )
+    assert publish["if"] == "steps.pypi-state.outputs.publish == 'true'"
+    assert publish["with"]["packages-dir"] == "publish-dist"
+    text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert "recovery-bundle" in text
+    forbidden = ("uv build", "pyinstaller", "assemble_release.py", "release upload", "--clobber")
+    for name in (
+        "recovery-verify",
+        "recovery-pypi",
+        "recovery-images",
+        "recovery-github",
+    ):
+        assert not any(item in str(jobs[name]) for item in forbidden)
+        for step in jobs[name]["steps"]:
+            if "uses" in step:
+                assert len(step["uses"].rsplit("@", 1)[1]) == 40
+    downloads = [
+        step
+        for name in ("recovery-verify", "recovery-pypi", "recovery-github")
+        for step in jobs[name]["steps"]
+        if str(step.get("uses", "")).startswith("actions/download-artifact@")
+    ]
+    assert downloads
+    assert all(step["with"]["github-token"] == "${{ github.token }}" for step in downloads)
 
 
 def test_ci_self_scan_uses_trusted_local_action_and_pinned_upload() -> None:

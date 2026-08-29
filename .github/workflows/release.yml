@@ -8,13 +8,22 @@ on:
         required: true
         default: build
         type: choice
-        options: [build, rehearsal, production]
+        options: [build, rehearsal, production, recovery]
+      source_run_id:
+        description: Successful rehearsal run containing retained artifacts (recovery only)
+        required: false
+        type: string
+      source_sha:
+        description: Exact 40-character product commit (recovery only)
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   quality:
+    if: inputs.channel != 'recovery'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -217,3 +226,227 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release edit v1.0.0 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+
+  recovery-verify:
+    if: inputs.channel == 'recovery'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Validate recovery inputs
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          python - <<'PY'
+          import os
+          from scripts.verify_release_recovery import validate_inputs
+          validate_inputs(os.environ["SOURCE_RUN_ID"], os.environ["SOURCE_SHA"])
+          PY
+      - name: Verify source run identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > run-metadata.json
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: panopticon-1.0.0-release-bundle
+          path: recovery-bundle
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pypi-distributions
+          path: recovery-dist
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify retained artifacts and remote evidence
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from urllib.request import urlopen
+          raw = subprocess.run(
+              [
+                  "gh", "release", "view", "v1.0.0",
+                  "--repo", os.environ["GITHUB_REPOSITORY"],
+                  "--json", "targetCommitish,isDraft,isPrerelease,assets",
+              ],
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout
+          release = json.loads(raw)
+          with urlopen(
+              "https://test.pypi.org/pypi/panopticon-mcp/1.0.0/json",
+              timeout=30,
+          ) as response:
+              Path("testpypi.json").write_bytes(response.read())
+          Path("draft.json").write_text(json.dumps({"target_commitish": release["targetCommitish"], "draft": release["isDraft"], "prerelease": release["isPrerelease"], "assets": {x["name"]: x["digest"].removeprefix("sha256:") for x in release["assets"]}}), encoding="utf-8")
+          PY
+          gh release download v1.0.0 --repo "$GITHUB_REPOSITORY" --dir draft-assets
+          python scripts/verify_release_recovery.py source --source-run-id "$SOURCE_RUN_ID" --source-sha "$SOURCE_SHA" --bundle recovery-bundle --dist recovery-dist --index testpypi.json --release draft.json --release-assets draft-assets --run-metadata run-metadata.json
+
+  recovery-pypi:
+    if: inputs.channel == 'recovery'
+    needs: [recovery-verify, recovery-images]
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: panopticon-1.0.0-release-bundle
+          path: recovery-bundle
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: pypi-distributions
+          path: dist
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - name: Check existing PyPI release for exact idempotent reuse
+        id: pypi-state
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.error import HTTPError
+          from urllib.request import urlopen
+          from scripts.verify_release_recovery import verify_bundle, verify_dist, stage_missing_index_assets
+          verify_bundle(Path("recovery-bundle"), os.environ["SOURCE_SHA"])
+          verify_dist(Path("recovery-bundle"), Path("dist"))
+          metadata = {}
+          try:
+              with urlopen(
+                  "https://pypi.org/pypi/panopticon-mcp/1.0.0/json",
+                  timeout=30,
+              ) as response:
+                  metadata = json.loads(response.read())
+          except HTTPError as error:
+              if error.code != 404:
+                  raise
+          missing = stage_missing_index_assets(metadata, Path("dist"), Path("publish-dist"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"publish={'true' if missing else 'false'}\n")
+          PY
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
+        if: steps.pypi-state.outputs.publish == 'true'
+        with:
+          packages-dir: publish-dist
+      - name: Require exact PyPI hashes after publish or reuse
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlopen
+          with urlopen(
+              "https://pypi.org/pypi/panopticon-mcp/1.0.0/json",
+              timeout=30,
+          ) as response:
+              Path("pypi-after.json").write_bytes(response.read())
+          PY
+          python - <<'PY'
+          from pathlib import Path
+          from scripts.verify_release_recovery import verify_index
+          verify_index(Path("pypi-after.json"), Path("dist"))
+          PY
+
+  recovery-images:
+    if: inputs.channel == 'recovery'
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-base@sha256:0b88136f67f67f463ac1e9cc531dbe1bad7ea95d5ad5e4afd68337b966e24249
+      - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-node@sha256:2ef58b44bd9ebc247e97d1b3c54f63570ae206b925b277d86d93e5319d1cd367
+      - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-node@sha256:d0f7cc3fcac6a24ea0f8b7b9d62c542a04642ca5b38a4e249e017a7311a8b7c5
+      - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-python@sha256:3e2b99433c18506f59d0e44e40b8af2b0350ee4df903252a1ab462f0eac3f589
+
+  recovery-github:
+    if: inputs.channel == 'recovery'
+    needs: recovery-pypi
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: panopticon-1.0.0-release-bundle
+          path: recovery-bundle
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - name: Recheck draft bytes, then release without upload
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > run-metadata.json
+          gh release download v1.0.0 --repo "$GITHUB_REPOSITORY" --dir draft-assets
+          gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" --json targetCommitish,isDraft,isPrerelease,assets > release.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path("release.json").read_text())
+          Path("draft.json").write_text(json.dumps({"target_commitish": r["targetCommitish"], "draft": r["isDraft"], "prerelease": r["isPrerelease"], "assets": {x["name"]: x["digest"].removeprefix("sha256:") for x in r["assets"]}}), encoding="utf-8")
+          PY
+          python - <<'PY'
+          import os, json
+          from pathlib import Path
+          from scripts.verify_release_recovery import validate_inputs, verify_bundle, verify_release_state, verify_run_metadata
+          validate_inputs(os.environ["SOURCE_RUN_ID"], os.environ["SOURCE_SHA"])
+          verify_run_metadata(json.loads(Path("run-metadata.json").read_text()), os.environ["SOURCE_RUN_ID"], os.environ["SOURCE_SHA"])
+          verify_bundle(Path("recovery-bundle"), os.environ["SOURCE_SHA"])
+          flip = verify_release_state(json.loads(Path("draft.json").read_text()), Path("recovery-bundle"), os.environ["SOURCE_SHA"], Path("draft-assets"))
+          Path("flip").write_text("true" if flip else "false", encoding="utf-8")
+          PY
+          if [ "$(cat flip)" = "true" ]; then
+            gh release edit v1.0.0 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+          fi
+          gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" --json targetCommitish,isDraft,isPrerelease,assets > release-after.json
+          rm -rf public-assets
+          gh release download v1.0.0 --repo "$GITHUB_REPOSITORY" --dir public-assets
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from scripts.verify_release_recovery import verify_release_state
+          release = json.loads(Path("release-after.json").read_text())
+          metadata = {
+              "target_commitish": release["targetCommitish"],
+              "draft": release["isDraft"],
+              "prerelease": release["isPrerelease"],
+              "assets": {
+                  asset["name"]: asset["digest"].removeprefix("sha256:")
+                  for asset in release["assets"]
+              },
+          }
+          if verify_release_state(
+              metadata,
+              Path("recovery-bundle"),
+              os.environ["SOURCE_SHA"],
+              Path("public-assets"),
+          ):
+              raise ValueError("RELEASE_STILL_DRAFT")
+          PY
