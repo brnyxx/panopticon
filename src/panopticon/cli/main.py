@@ -51,13 +51,15 @@ def version() -> None:
 
 @app.command()
 def doctor(
-    client: str | None = typer.Option(None, help="Restrict to one client adapter."),
+    client: str | None = typer.Option(None, help="Check one supported AI client."),
     json_out: bool = typer.Option(False, "--json", help="Emit JSON to stdout."),
-    fix: bool = typer.Option(False, help="Run `pano fix` after checks."),
-    list_clients: bool = typer.Option(False, "--list-clients", help="Discovery status only."),
-    offline: bool = typer.Option(False, "--offline", help="Do not query remote history sources."),
+    fix: bool = typer.Option(False, help="Offer available configuration fixes after checks."),
+    list_clients: bool = typer.Option(
+        False, "--list-clients", help="List detected clients without running checks."
+    ),
+    offline: bool = typer.Option(False, "--offline", help="Use cached information only."),
 ) -> None:
-    """Discover installed MCPs, check configs, report changes since last look. (E02-E04, E12)"""
+    """Discover installed MCPs, check their configuration, and report changes."""
     rendered = doctor_reporter.render(
         engine.doctor_outcome(
             engine.DoctorRequest(client=client, list_clients=list_clients, fix=fix, offline=offline)
@@ -78,7 +80,7 @@ def wrap(
     server_id: str | None = typer.Option(None),
     installation_id: str | None = typer.Option(None),
 ) -> None:
-    """Transparent stdio relay that records tool-level network events. (E15)"""
+    """Record tool-level network events for an MCP stdio server."""
     rendered = render_wrap(
         run_wrap(
             WrapRequest(
@@ -101,7 +103,7 @@ def install(
     dry_run: bool = typer.Option(False, "--dry-run"),
     pano_command: str | None = typer.Option(None, "--pano-command"),
 ) -> None:
-    """Inject `pano wrap` into a client's stdio servers (dry-run, backup, undo). (E15)"""
+    """Add observation to a client's MCP stdio servers with backup and undo support."""
     rendered = render_install(
         run_install(
             InstallRequest(
@@ -127,7 +129,7 @@ def uninstall(
     yes: bool = typer.Option(False, "--yes"),
     dry_run: bool = typer.Option(False, "--dry-run"),
 ) -> None:
-    """Restore original commands replaced by `pano install`. (E15)"""
+    """Restore MCP server commands changed by `pano install`."""
     rendered = render_install(
         run_uninstall(
             InstallRequest(
@@ -158,7 +160,7 @@ def fix(
     config: Path | None = typer.Option(None, help="Explicit generic client config path."),
     offline: bool = typer.Option(False, "--offline", help="Disable HTTPS validation probes."),
 ) -> None:
-    """Apply FIX-* remediations: diff, confirm, backup, apply, re-check. (E13)"""
+    """Preview and apply available configuration fixes with backup and re-checking."""
     rendered = render_fix(
         run_fix(
             FixCommandRequest(
@@ -189,7 +191,7 @@ def badge(
     output: Path = typer.Option(..., "--output", help="SVG output path."),
     locale: str = typer.Option("en", "--locale", case_sensitive=False),
 ) -> None:
-    """Generate an accessible evidence badge from a persisted observation. (E17)"""
+    """Generate an accessible evidence badge from an observation."""
     if locale not in {"en", "ko"}:
         raise typer.BadParameter("locale must be en or ko", param_hint="--locale")
     locale_value = cast(Literal["en", "ko"], locale)

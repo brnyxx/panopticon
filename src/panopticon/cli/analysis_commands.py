@@ -24,7 +24,7 @@ def diff(
     since: str = typer.Option("auto"),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Compare current state against a baseline. (E14)"""
+    """Compare the current state with a saved baseline."""
     rendered = render_diff(
         run_diff(DiffRequest(server=server, since=since)),
         json_output=json_out,
@@ -40,7 +40,7 @@ def baseline(
     label: str | None = typer.Option(None, help="Label for create."),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Manage baselines. (E14)"""
+    """Create, list, show, or remove saved baselines."""
     rendered = render_baseline(
         run_baseline(BaselineRequest(action, identifier, label)),
         json_output=json_out,
@@ -55,7 +55,7 @@ def explain(
     lang: str | None = typer.Option(None, help="ko|en"),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    """Explain a rule: problem, impact, evidence, action, verification, limits. (E18)"""
+    """Explain a rule's evidence, impact, recommended action, and limits."""
     rendered = render_explain(explain_rule(rule_id, locale=lang), json_output=json_out)
     typer.echo(rendered.stdout, nl=False)
     typer.echo(rendered.stderr, err=True, nl=False)
@@ -69,7 +69,7 @@ def scan(
     json_out: bool = typer.Option(False, "--json"),
     offline: bool = typer.Option(False, "--offline"),
 ) -> None:
-    """Static / semantic / dynamic analysis of an MCP source tree (upstream line). (E16)"""
+    """Analyze an MCP source tree and report findings."""
     try:
         selected_mode = ScanMode(mode)
     except ValueError:
@@ -90,7 +90,7 @@ def ci(
     fail_on: str = typer.Option("high", "--fail-on", help="high|medium|incomplete|never"),
     config: str = typer.Option("panopticon.toml"),
 ) -> None:
-    """GitHub Action entry point: scan + SARIF + exit policy (action.yml). (E16)"""
+    """Scan a source tree, write SARIF results, and set an exit status."""
     try:
         selected_mode = ScanMode(mode)
         selected_policy = FailOn(fail_on)

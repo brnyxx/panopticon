@@ -13,23 +13,37 @@ def register(app: typer.Typer) -> None:
 
     @app.command()
     def watch(
-        target: str | None = typer.Argument(None, help="Server name."),
-        all_targets: bool = typer.Option(False, "--all"),
-        self_target: bool = typer.Option(False, "--self"),
-        calls: int = typer.Option(1, help="Calls per tool."),
+        target: str | None = typer.Argument(None, help="Name of one installed MCP server."),
+        all_targets: bool = typer.Option(
+            False, "--all", help="Observe every discovered MCP server."
+        ),
+        self_target: bool = typer.Option(
+            False,
+            "--self",
+            help="Observe the MCP in the current project with a read-only source mount.",
+        ),
+        calls: int = typer.Option(1, help="Number of calls to make per tool."),
         timeout: int = typer.Option(20, help="Per-call timeout in seconds."),
         idle: float = typer.Option(0.0, help="Idle observation seconds."),
         arg: list[str] | None = typer.Option(None, "--arg", help="Per-tool JSON override."),
         real_env: str | None = typer.Option(
-            None, "--real-env", help="Pass selected environment keys (comma-separated)."
+            None,
+            "--real-env",
+            help="Pass selected declared environment values to the target (comma-separated keys).",
         ),
         real_env_all: bool = typer.Option(
-            False, "--real-env-all", help="Pass all declared environment values (unsafe)."
+            False,
+            "--real-env-all",
+            help="Pass all declared environment values to the target; this is broad exposure.",
         ),
         header: list[str] | None = typer.Option(None, "--header"),
-        allow_destructive: bool = typer.Option(False, "--allow-destructive"),
-        offline: bool = typer.Option(False, "--offline"),
-        runtime: str | None = typer.Option(None, "--runtime"),
+        allow_destructive: bool = typer.Option(
+            False, "--allow-destructive", help="Allow tool calls classified as destructive."
+        ),
+        offline: bool = typer.Option(False, "--offline", help="Disable outbound network access."),
+        runtime: str | None = typer.Option(
+            None, "--runtime", help="Container runtime: docker or podman."
+        ),
         json_out: bool = typer.Option(False, "--json"),
         png: bool = typer.Option(False, "--png", help="Persist a PNG evidence card."),
         raw: bool = typer.Option(
@@ -41,7 +55,7 @@ def register(app: typer.Typer) -> None:
             help="Self MCP command argv element; repeat for each element.",
         ),
     ) -> None:
-        """Run an MCP in the decoy sandbox and record what it does per tool call. (E05-E10, E12)"""
+        """Run an MCP in a decoy sandbox and record each tool call's behavior."""
         selected = sum((target is not None, all_targets, self_target))
         if selected != 1:
             raise typer.BadParameter("select one server name, --all, or --self")
