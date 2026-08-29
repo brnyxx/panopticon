@@ -2,18 +2,57 @@
 
 > **당신을 보지 않습니다. 당신의 MCP를 봅니다.**
 
-`pano`는 AI 클라이언트에 설치된 MCP 서버를 찾아 미끼가 채워진 격리 환경에서 실제로 실행하고, 파일·호스트·tool 호출 단위로 *실제로 한 일*을 *선언한 것*과 비교해 보여줍니다.
+[English guide](https://github.com/brnyxx/panopticon/blob/main/README.md)
+
+`pano`는 AI 클라이언트에 설정된 MCP 서버를 찾아, 미끼 데이터가 든 격리 환경에서 선택한
+서버를 실행합니다. 파일·네트워크 호스트·프로세스와 선언 내용 대비 관측 내용을 기록합니다.
+이 결과는 관측 근거이며 사용자를 대신해 판정을 내리지 않습니다.
+
+## 처음 한 번 따라 하기
+
+설치 방법을 **하나만** 고르세요. 한 번 실행하려면 `uvx`를 사용합니다.
 
 ```bash
-uvx panopticon-mcp doctor        # 탐색 + config 검사, Docker 불필요
-uvx panopticon-mcp watch --all   # Docker 또는 Podman 필요
+uvx panopticon-mcp@1.0.1 version
+uvx panopticon-mcp@1.0.1 doctor
 ```
 
-고정 버전 설치, `pipx`, Homebrew, 네이티브 아카이브, 업그레이드와 롤백 절차는
-[`release.md`](release.md)에 있습니다. `pano version`은 `pano 1.0.1 (schema 1.0)`을
-출력합니다.
+첫 명령은 설치된 릴리스(`pano 1.0.1 (schema 1.0)`)를 확인합니다. 두 번째 명령은 Docker나
+Podman 없이 발견 가능한 MCP 설정을 나열하고 검사합니다. 계속 설치하는 `uv tool`, `pipx`,
+Homebrew, 네이티브 아카이브와 업그레이드·되돌리기·폐쇄망 사용법은
+[설치 및 릴리스 안내](release.md)를 보세요.
 
-원칙: 판단보다 관측이 먼저 · 관측하지 못한 것은 안전하다고 말하지 않음 · 사용자 홈은 컨테이너에 들어가지 않음(업로드·telemetry 없음).
+`doctor` 출력에서 서버 이름 하나를 고른 뒤 관측합니다.
 
-구현 계획은 [`../panopticon-buildplan.md`](../panopticon-buildplan.md), 진행 상황은
-[`PROGRESS.md`](PROGRESS.md). 에이전트는 [`../AGENTS.md`](../AGENTS.md)를 먼저 읽으세요.
+```bash
+pano watch SERVER_NAME --png
+```
+
+로컬 관측에는 Docker 또는 Podman이 필요합니다. `--png`는 저장되는 관측 결과와 함께
+누출 검사를 거친 결정적 PNG 근거 카드를 만듭니다. 위 명령은 실행 예시일 뿐 결과 전사본이
+아닙니다. 실제 결과에는 선택한 서버, 적용 범위, 관측 근거가 표시됩니다.
+
+## 결과 읽기
+
+- `COMPLETE`: 해당 단계가 표시된 적용 범위로 완료되었습니다.
+- `UNKNOWN`: 현재 근거만으로는 결론을 낼 수 없습니다.
+- `INCOMPLETE`: 요청한 관측이 필요한 작업을 모두 마치지 못했습니다.
+- `UNSUPPORTED`: 이 플랫폼·모드·대상에서는 해당 차원을 관측할 수 없습니다.
+
+이 상태들은 서로 바꿔 쓸 수 없습니다. 예를 들어 원격 관측은 서버 쪽 파일·프로세스 활동을
+볼 수 없어 그 차원을 `UNSUPPORTED`로 표시합니다. `WATCH-003`, `CFG-008`, `HIST-002` 같은
+규칙 ID는 정확한 검사를 가리킵니다. 설명은 다음과 같이 확인합니다.
+
+```bash
+pano explain WATCH-003
+```
+
+터미널 결과와 근거 카드를 함께 검토하세요. 카드는 관측하지 못한 부분을 다른 상태로 바꾸지
+않고 적용 범위와 규칙 ID를 그대로 표시합니다.
+
+## 개인정보와 정리
+
+관측 전에는 특히 실제 환경 변수 전달이나 심층 분석을 사용하기 전에
+[개인정보 및 외부 통신 표](privacy.md)을 읽으세요. 저장 전 모든 산출물은 누출 검사를
+통과해야 합니다. 저장 위치·기록 보존·설정 되돌리기·패키지 되돌리기는
+[릴리스 안내](release.md)와 [제한 사항](limitations.md)에 있습니다.

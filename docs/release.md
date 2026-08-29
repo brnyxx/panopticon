@@ -1,66 +1,118 @@
-# Release, installation, upgrade, and rollback
+# Installation, verification, upgrade, rollback, and release recovery
 
-Panopticon 1.0.1 is the current release of the `panopticon-mcp` Python package, four native
-archives, and Homebrew formula `brnyxx/homebrew-tap/panopticon`. The existing `ghcr.io/brnyxx`
-sandbox image digests remain locked; this patch does not rebuild or republish them. Release promotion
-used one signed asset bundle; later channels did not rebuild it.
+Version 1.0.1 is currently published as the `panopticon-mcp` Python package, four native archives,
+and Homebrew formula `brnyxx/homebrew-tap/panopticon`. The release assets are immutable:
+[PyPI](https://pypi.org/project/panopticon-mcp/1.0.1/),
+[GitHub release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.1), and
+[Homebrew tap revision](https://github.com/brnyxx/homebrew-tap/commit/7733d8fec72c6bde2f6b9e284e29ba2c77272eb0).
+The scoped npm channel is forthcoming and is not a v1.0.1 distribution.
 
-## Install
+## Choose an install method
+
+### One-shot `uvx`
+
+`uvx` installs into its temporary tool environment for this invocation:
 
 ```bash
 uvx panopticon-mcp@1.0.1 version
+uvx panopticon-mcp@1.0.1 doctor
+```
+
+### Persistent Python or Homebrew install
+
+Choose one persistent installer:
+
+```bash
+uv tool install panopticon-mcp==1.0.1
 pipx install panopticon-mcp==1.0.1
 brew install brnyxx/homebrew-tap/panopticon
 ```
 
-For a native archive, download the archive for `linux-x86_64`, `linux-arm64`,
-`darwin-x86_64`, or `darwin-arm64` from the GitHub release. Verify `SHA256SUMS` and its Sigstore
-bundle before extracting it, then place `pano` on `PATH`. The executable reports
-`pano 1.0.1 (schema 1.0)`.
+Verify every installed form with:
 
-`pano doctor` needs no container runtime. Local `pano watch` needs Docker or Podman; remote
-observation reports file and process dimensions as `UNSUPPORTED`. Native Windows supports
-discovery only. Use WSL2 for the supported Linux behavior and its separate evidence manifest.
+```bash
+pano version
+```
 
-## Upgrade
+It reports `pano 1.0.1 (schema 1.0)`.
 
-Use the same installer that installed Panopticon:
+### Native archive and air-gapped install
+
+Download the matching `linux-x86_64`, `linux-arm64`, `darwin-x86_64`, or `darwin-arm64` archive,
+`SHA256SUMS`, and the archive's `.sigstore.json` bundle from the
+[v1.0.1 release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.1). In a connected,
+trusted transfer environment, verify the downloaded archive against the release checksum:
+
+```bash
+shasum -a 256 -c SHA256SUMS
+```
+
+Transfer the verified archive and checksum file into the air-gapped environment, verify the checksum
+again with the same command, extract the archive, and put `pano` on `PATH`. Retain the matching
+Sigstore bundle with the archive as release provenance. No installer network access is needed after
+that transfer.
+
+`pano doctor` needs no container runtime. Local `pano watch` needs Docker or Podman. Remote
+observation marks server-side file and process dimensions `UNSUPPORTED`. Native Windows supports
+discovery only; use WSL2 for supported Linux observation behavior.
+
+### Forthcoming scoped npm channel
+
+The next patch is planned to publish root package `@brnyxx/panopticon` with exact-version optional
+native packages `@brnyxx/panopticon-linux-x64-gnu`,
+`@brnyxx/panopticon-linux-arm64-gnu`, `@brnyxx/panopticon-darwin-x64`, and
+`@brnyxx/panopticon-darwin-arm64`. After that publication, install the root package with:
+
+```bash
+npm install -g @brnyxx/panopticon
+pano version
+```
+
+The root package selects the matching native optional package; it does not download a binary during
+postinstall. npm registry traffic occurs before `pano` starts and is not controlled by
+`pano --offline`.
+
+## Upgrade and rollback
+
+Use the installer that owns the installation:
 
 ```bash
 uv tool upgrade panopticon-mcp
 pipx upgrade panopticon-mcp
 brew upgrade panopticon
+npm update -g @brnyxx/panopticon
 ```
 
-Persisted schema 0.1 baselines migrate idempotently to the frozen schema 1.0. Back up the Panopticon
-data directory before an upgrade. Client configuration mutation remains journaled: preview the
-change, apply it, re-check it, and retain the transaction ID for undo.
+For a Python rollback, pin the earlier immutable published version with `uv tool install
+panopticon-mcp==VERSION` or `pipx install panopticon-mcp==VERSION`; for npm, use `npm install -g
+@brnyxx/panopticon@VERSION`. Homebrew rollback uses a prior tap formula revision. Native users
+restore a previously verified archive. Preserve the archive, `SHA256SUMS`, Sigstore bundle, and
+release manifest for every retained version.
 
-## Rollback
+Configuration rollback is independent of package rollback. Run the originating `pano fix --undo`
+or `pano uninstall` transaction before removing a version that created a configuration change.
+Undo refuses to replace a file changed since its recorded transaction. Retain observations,
+baselines, wrap logs, journals, and encrypted backups only for the period your policy requires;
+the default wrap-log retention is 30 days. See [privacy](privacy.md) for local storage and cleanup.
 
-Python installers can pin the previous published version, including immutable 1.0.0. Homebrew can
-install a prior formula revision from tap history. Native users can restore the prior verified
-archive. The 1.0.0 release history and artifacts remain rollback evidence; do not rewrite or reuse a
-published version.
+## Maintainer promotion and recovery
 
-Configuration rollback is independent of package rollback. Run the corresponding `pano fix --undo`
-or `pano uninstall` transaction before removing a version that created it. Undo refuses to replace a
-file changed since the recorded transaction.
+The release workflow builds once, rehearses through TestPyPI, verifies retained bytes, then promotes
+the same bundle. Start the rehearsal from the release commit:
 
-## Promotion and recovery
+```bash
+gh workflow run release.yml --ref main -f channel=rehearsal
+```
 
-The release order is quality and platform gates, signed artifacts, locked-image verification,
-TestPyPI publish and clean install, then an immutable GitHub draft. Production receives the
-rehearsal workflow run ID and source commit SHA, re-verifies the retained bundle, manifest,
-signatures, SBOM, checksums, TestPyPI files, draft assets, and locked image digests, then promotes the
-same Python files, publishes the verified draft without another upload, and updates Homebrew from
-the retained manifest hashes.
+For production or recovery, use the successful rehearsal run's numeric ID and its exact 40-character
+commit SHA as the `source_run_id` and `source_sha` workflow inputs. The workflow re-verifies the
+retained bundle, PyPI files, signatures, SBOM, checksums, draft assets, and image digests; it
+publishes only a missing channel and never rebuilds or overwrites published bytes. Select
+`production` to promote every pending production channel or `recovery` to resume only a missing
+channel.
 
-A failed channel leaves earlier immutable bytes and hashes untouched. Recovery resumes only the
-missing channel from the retained release bundle after the same handoff and byte-for-byte
-re-verification; it never rebuilds, overwrites, or reuses a published version.
-
-The exhaustive outbound-product-path table—including registry/package installation, observed and
-remote MCP traffic, FIX-008 validation, and approved `scan --mode deep` requests—is in
-[privacy](privacy.md). `--offline` disables every path in that table. Retention, semantic
-disclosure, and cleanup details are in [privacy](privacy.md) and [limitations](limitations.md).
+Before the first npm publication, a human organization owner must complete npm's 2FA/trusted
+publisher bootstrap for `@brnyxx`. That authorization is intentionally human-only; no repository
+workflow or recovery command can create it. After bootstrap, platform packages publish before the
+root package, and each package's registry integrity must match the retained release manifest before
+the root package is published.
