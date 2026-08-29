@@ -10,6 +10,7 @@ import json5
 import pytest
 from typer.testing import CliRunner
 
+import panopticon.engine.fix as fix_engine
 from panopticon.cli.main import app
 from panopticon.discovery import discover, registered_adapters
 from panopticon.discovery.base import DiscoveryEnv, DiscoveryStatus
@@ -66,6 +67,41 @@ def test_cli_dry_run_apply_undo_restores_hash(tmp_path: Path, monkeypatch) -> No
     assert undone.exit_code == 0
     assert hashlib.sha256(config.read_bytes()).hexdigest() == original_hash
     assert config.read_bytes() == original
+
+
+def test_cli_offline_fix_008_never_constructs_transport(tmp_path: Path, monkeypatch) -> None:
+    home = tmp_path / "home"
+    config = home / "generic.json"
+    config.parent.mkdir()
+    config.write_text(
+        '{"mcpServers":{"remote":{"url":"http://example.test/mcp"}}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(home))
+
+    def unexpected_transport() -> None:
+        raise AssertionError("offline fix constructed an outbound transport")
+
+    monkeypatch.setattr(fix_engine, "HttpxTransport", unexpected_transport)
+    result = CliRunner().invoke(
+        app,
+        [
+            "fix",
+            "remote",
+            "--rule",
+            "FIX-008",
+            "--client",
+            "generic",
+            "--config",
+            str(config),
+            "--offline",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "FIX-008 GUIDANCE HTTPS_CHECK_UNAVAILABLE" in result.stdout
+    assert "http://example.test/mcp" in config.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(

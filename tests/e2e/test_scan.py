@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
+import panopticon.cli.analysis_commands as analysis_commands
 from panopticon.analyzers.dependency.model import DependencyInput
 from panopticon.analyzers.dependency.scan import AdvisoryResult, AdvisoryStatus, DependencyFinding
 from panopticon.analyzers.static.findings import StaticFindingView
@@ -15,6 +17,7 @@ from panopticon.engine.scan import (
     DeepDimensionStatus,
     ScanFinding,
     ScanMode,
+    ScanOutcome,
     ScanRequest,
     discover_config,
     run_scan,
@@ -60,6 +63,22 @@ class FakeDynamic:
     def analyze(self, root: Path) -> DeepDimension:
         self.calls.append(root)
         return self.result
+
+
+def test_cli_offline_is_propagated_to_scan_request(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: list[ScanRequest] = []
+
+    def capture(request: ScanRequest) -> ScanOutcome:
+        captured.append(request)
+        return run_scan(ScanRequest(tmp_path, mode=ScanMode.QUICK))
+
+    monkeypatch.setattr(analysis_commands, "run_scan", capture)
+    result = CliRunner().invoke(app, ["scan", str(tmp_path), "--offline", "--json"])
+
+    assert result.exit_code == 0
+    assert captured[0].offline is True
 
 
 def test_quick_and_standard_emit_exact_findings_and_sarif(tmp_path: Path) -> None:

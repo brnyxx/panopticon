@@ -10,6 +10,7 @@ Panopticon is local-first. It has no telemetry, no crash reporting, no update pi
 | `watch` / `scan --mode deep` | package registries, from inside the sandbox | package install traffic | no |
 | `watch` | wherever the *MCP under test* connects, inside the sandbox, through the logging proxy | whatever the MCP sends, with decoy values, never your real ones unless you pass `--real-env` | no |
 | remote `watch` | the configured remote MCP endpoint | bounded MCP JSON-RPC requests; configured real header values leave only when you explicitly permit them, and are never persisted | maybe |
+| `fix` for FIX-008, unless `--offline` | the configured remote MCP endpoint | one bounded MCP `initialize` request proving the HTTPS endpoint before a config rewrite; no configured authentication header is sent | no |
 | `scan --mode deep` | your model provider's API | redacted source excerpts, shown to you before they are sent | yes |
 
 Nothing else.
@@ -38,4 +39,7 @@ Your home directory, your project files (only their *names* are replicated, as e
 
 ## `--offline`
 
-`--offline` disables registry lookups, the semantic analyzer, and every other outbound call. Cached registry data may still be read; when it's missing, results are reported `UNKNOWN` rather than guessed.
+`--offline` disables registry lookups, FIX-008 endpoint validation, the semantic analyzer, and
+every other outbound call. Cached registry data may still be read; when it's missing, results
+are reported `UNKNOWN` rather than guessed. An offline FIX-008 request is guidance-only and
+does not change the configured URL.

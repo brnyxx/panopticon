@@ -156,6 +156,7 @@ def fix(
     version: str | None = typer.Option(None, help="Exact version selected by the user."),
     client: str | None = typer.Option(None, help="Limit discovery to one client."),
     config: Path | None = typer.Option(None, help="Explicit generic client config path."),
+    offline: bool = typer.Option(False, "--offline", help="Disable HTTPS validation probes."),
 ) -> None:
     """Apply FIX-* remediations: diff, confirm, backup, apply, re-check. (E13)"""
     rendered = render_fix(
@@ -170,6 +171,7 @@ def fix(
                 version=version,
                 client=client,
                 config_path=config,
+                offline=offline,
             )
         )
     )

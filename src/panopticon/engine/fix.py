@@ -135,6 +135,8 @@ def _planned(
     selections: tuple[FixSelection, ...],
     documents: Mapping[Path, SourceDocument],
     store: SecretStore,
+    *,
+    offline: bool,
 ) -> tuple[Remediation, ...]:
     remediations: list[Remediation] = []
     for selection in selections:
@@ -144,7 +146,7 @@ def _planned(
                 selection,
                 document,
                 secure_store=store,
-                https_transport=HttpxTransport(),
+                https_transport=None if offline else HttpxTransport(),
             )
         )
     return tuple(remediations)
@@ -188,7 +190,7 @@ def run_fix(request: FixCommandRequest, *, env: DiscoveryEnv | None = None) -> F
         }
     except (OSError, ValueError, JsoncPatchError):
         return FixCommandResult(FixBatchOutcome(()), (), 4)
-    remediations = _planned(selections, documents, store)
+    remediations = _planned(selections, documents, store, offline=request.offline)
     planned = FixBatchOutcome(tuple(remediation.outcome for remediation in remediations))
     diffs = tuple(
         unified_diff(remediation.plan, apply_bytes(remediation.plan))

@@ -67,6 +67,7 @@ def scan(
     mode: str = typer.Option("quick", help="quick|standard|deep"),
     sarif: bool = typer.Option(False),
     json_out: bool = typer.Option(False, "--json"),
+    offline: bool = typer.Option(False, "--offline"),
 ) -> None:
     """Static / semantic / dynamic analysis of an MCP source tree (upstream line). (E16)"""
     try:
@@ -74,7 +75,7 @@ def scan(
     except ValueError:
         raise typer.BadParameter("mode must be quick or standard") from None
     rendered = render_scan(
-        run_scan(ScanRequest(path=Path(path), mode=selected_mode)),
+        run_scan(ScanRequest(path=Path(path), mode=selected_mode, offline=offline)),
         sarif=sarif or json_out,
     )
     typer.echo(rendered.stdout, nl=False)

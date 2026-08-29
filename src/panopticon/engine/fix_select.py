@@ -25,6 +25,7 @@ class FixCommandRequest:
     version: str | None = None
     client: str | None = None
     config_path: Path | None = None
+    offline: bool = False
 
 
 def _entries(
