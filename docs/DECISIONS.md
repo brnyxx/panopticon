@@ -102,3 +102,17 @@ Numbered, append-only. Format: context / options / chosen / why.
 - Why: the runtime schema already models one wrap record, `installation_id` is the addressable
   config identity (DECISIONS #7), and immutable artifacts retain the store's leak and crash-safety
   guarantees without a shared mutable log.
+
+## 18. Outbound product paths are exhaustive and user-invoked
+- Context: remote MCP observation and FIX-008 HTTPS validation are shipped network operations, while
+  DECISIONS #12 used "one network exception" to describe the narrower act of sending user source to
+  a hosted model. Treating that phrase as the complete traffic inventory made the public summary
+  contradict the implemented, disclosed behavior.
+- Chosen: **`docs/privacy.md` is the exhaustive outbound-product-path table.** The allowed paths are
+  registry and sandbox package-install lookups, the observed MCP's sandbox traffic, explicitly
+  permitted remote `watch` traffic, bounded unauthenticated FIX-008 validation, and user-invoked
+  deep semantic review. Deep review remains the only path that sends redacted user source to a
+  hosted model. `--offline` disables every outbound path.
+- Why: prohibiting telemetry and undisclosed traffic is compatible with bounded operations the user
+  explicitly requests. One exhaustive table prevents concise summaries and runtime behavior from
+  drifting apart.

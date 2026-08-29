@@ -49,7 +49,7 @@ See the [release, installation, upgrade, and rollback guide](docs/release.md) fo
 
 1. Observation before judgment — we report what happened; you decide.
 2. Unknown is visible — anything not observed, skipped, unsupported, or timed out is reported as UNKNOWN or INCOMPLETE, never collapsed into a pass.
-3. Your home never enters a container — decoys only. No telemetry, no crash reports, no update pings. One opt-in exception leaves your machine: `scan --mode deep` submits redacted source excerpts to the OpenAI API under your own key, shown to you before they are sent, and `--offline` disables it. Details in [`docs/privacy.md`](docs/privacy.md).
+3. Your home never enters a container — decoys only. No telemetry, no crash reports, no update pings. Every user-invoked outbound path—including registries, observed MCP traffic, remote observation, FIX-008 validation, and `scan --mode deep`—is listed in [`docs/privacy.md`](docs/privacy.md); `--offline` disables them.
 
 ## Status
 

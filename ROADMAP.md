@@ -17,12 +17,5 @@ Versions advance by closed epics, never by dates. Full definitions: `panopticon-
 | 0.9 | §22 quality bar, schema 1.0 frozen, docs complete | release candidate |
 | **1.0.0** | §2 checklist in full | — |
 
-## After 1.0
-- eBPF tracer (privilege permitting)
-- macOS `wrap` file observation (EndpointSecurity)
-- TypeScript AST static analysis
-- Optional public dataset export of observations
-- Organization features (private inventory, policies, alert channels)
-
 ## Explicit non-goals (any version)
 Safety scores, "Safe/Certified" badges, telemetry, SaaS, exploitation of third-party services.

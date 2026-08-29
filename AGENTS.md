@@ -21,7 +21,7 @@ The complete product and implementation plan is in **`panopticon-buildplan.md`**
 5. **Determinism.** Same input → same output. `diff` on identical observations must be zero. Canonicalize before comparing (sort, strip timestamps/PIDs/durations/container IDs), and compare run metadata separately from the semantic view.
 6. **Fix is always: dry-run diff → confirm → backup → apply → re-check → undo available.** Never edit a client config outside `fix/` and `install/` code paths. Secret-bearing fixes go through `SecretStore`; with no secure backend they are guidance-only (DECISIONS #10).
 7. **ko and en are the same rule.** Every rule has `i18n/ko/rules/<ID>.md` and `i18n/en/rules/<ID>.md` with identical 6-section structure. CI fails if the ID sets differ.
-8. **No telemetry.** Network use is limited to registry lookups (`registry/`), the MCP's own traffic inside the sandbox, and the user-invoked semantic analyzer in `scan --mode deep` (DECISIONS #12). `--offline` must disable all three; under `--offline` the semantic result is typed `UNSUPPORTED` and the scan is `INCOMPLETE`.
+8. **No telemetry.** Outbound product paths are limited to registry/package-install lookups, the MCP's own traffic inside the sandbox, explicitly permitted remote `watch`, bounded unauthenticated FIX-008 validation, and the user-invoked semantic analyzer in `scan --mode deep` (DECISIONS #12 and #18; exhaustive table: `docs/privacy.md`). `--offline` must disable every path; under `--offline` the semantic result is typed `UNSUPPORTED` and the scan is `INCOMPLETE`.
 9. **Don't fork the plan silently.** If an epic's scope, a rule's condition, or a schema must change, edit `panopticon-buildplan.md` in the same PR and say why in the PR body. Contract-level changes also need a `docs/DECISIONS.md` entry.
 
 ## Repository layout
@@ -138,7 +138,7 @@ make ci                            # everything above
 
 ## Things you must not do
 
-- Do not add `--upload`, crash reporting, analytics, update pings, or any outbound call outside `registry/`, the sandbox, and the user-invoked semantic analyzer.
+- Do not add `--upload`, crash reporting, analytics, update pings, or any outbound call outside the exhaustive `docs/privacy.md` table and DECISIONS #18.
 - Do not add telemetry, hosted accounts, a dashboard, a public observatory or catalog, a numeric safety score, a certification verdict, a native Windows sandbox, or any post-1.0 roadmap item.
 - Do not mount the user's home or cwd into a container (except `--self`, read-only).
 - Do not write "Safe", "Certified", or a numeric safety score anywhere.

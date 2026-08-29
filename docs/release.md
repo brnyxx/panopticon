@@ -19,8 +19,7 @@ bundle before extracting it, then place `pano` on `PATH`. The executable reports
 
 `pano doctor` needs no container runtime. Local `pano watch` needs Docker or Podman; remote
 observation reports file and process dimensions as `UNSUPPORTED`. Native Windows supports
-configuration, fix/install, reporting, and wrapping; local sandbox execution remains unsupported.
-WSL2 uses the Linux behavior with its own evidence manifest.
+discovery only. Use WSL2 for the supported Linux behavior and its separate evidence manifest.
 
 ## Upgrade
 
@@ -52,6 +51,7 @@ The release order is quality and platform gates, signed artifacts, clean install
 release, PyPI, GHCR verification, then Homebrew. A failed channel leaves earlier immutable bytes and
 hashes untouched. Recovery resumes only the missing channel from the retained release bundle.
 
-Registry lookups, observed MCP traffic, and explicitly approved `scan --mode deep` requests are the
-only outbound product paths. `--offline` disables all three. Retention, semantic disclosure, and
-cleanup details are in [privacy](privacy.md) and [limitations](limitations.md).
+The exhaustive outbound-product-path table—including registry/package installation, observed and
+remote MCP traffic, FIX-008 validation, and approved `scan --mode deep` requests—is in
+[privacy](privacy.md). `--offline` disables every path in that table. Retention, semantic
+disclosure, and cleanup details are in [privacy](privacy.md) and [limitations](limitations.md).
