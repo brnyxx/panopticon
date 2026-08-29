@@ -38,9 +38,9 @@ the release evidence or rerun any gate.
 ## Pending human action
 
 The first npm publication is blocked on a human npm organization owner completing the
-2FA/trusted-publisher bootstrap for `@brnyxx`. This cannot be performed by repository automation.
-Until it is complete, the scoped npm package and its four platform packages are planned distribution
-artifacts, not published evidence.
+2FA/trusted-publisher bootstrap for `@brnyxx/panopticon` and its four platform packages. This
+cannot be performed by repository automation. Until it is complete, the scoped npm package and its
+four platform packages are planned distribution artifacts, not published evidence.
 
 ## Prioritized residual risks
 

@@ -36,9 +36,11 @@ def release_version(project_root: Path) -> str:
     """Read the only release version authority and require stable X.Y.Z."""
     with (project_root / "pyproject.toml").open("rb") as source:
         project = tomllib.load(source).get("project")
-    if not isinstance(project, dict) or not isinstance(project.get("version"), str):
+    if not isinstance(project, dict):
         raise ValueError("INVALID_RELEASE_VERSION")
-    version = project["version"]
+    version = project.get("version")
+    if not isinstance(version, str):
+        raise ValueError("INVALID_RELEASE_VERSION")
     if not VERSION_RE.fullmatch(version):
         raise ValueError("INVALID_RELEASE_VERSION")
     return version
@@ -177,7 +179,7 @@ def build_npm_packages(project_root: Path, archives: Path, output: Path) -> tupl
     root["bin"] = {"pano": "bin/pano.cjs"}
     root["optionalDependencies"] = {package.name: version for package in platforms}
     artifacts: list[Path] = []
-    root_path = output / "brnyxx-panopticon.tgz"
+    root_path = output / f"brnyxx-panopticon-{version}.tgz"
     root_path.write_bytes(
         _tarball(
             {
@@ -196,7 +198,8 @@ def build_npm_packages(project_root: Path, archives: Path, output: Path) -> tupl
         manifest["cpu"] = [package.cpu]
         if package.libc is not None:
             manifest["libc"] = [package.libc]
-        path = output / f"{package.name.removeprefix('@').replace('/', '-')}.tgz"
+        package_slug = package.name.removeprefix("@").replace("/", "-")
+        path = output / f"{package_slug}-{version}.tgz"
         path.write_bytes(
             _tarball(
                 {
@@ -214,8 +217,8 @@ def build_npm_packages(project_root: Path, archives: Path, output: Path) -> tupl
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--archives", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--archives-dir", dest="archives", type=Path, required=True)
+    parser.add_argument("--output-dir", dest="output", type=Path, required=True)
     parser.add_argument("--project-root", type=Path, default=Path(__file__).resolve().parents[1])
     args = parser.parse_args()
     build_npm_packages(args.project_root.resolve(), args.archives.resolve(), args.output.resolve())

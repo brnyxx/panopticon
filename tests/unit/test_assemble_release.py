@@ -25,7 +25,8 @@ def test_release_manifest_is_deterministic_and_complete(tmp_path: Path) -> None:
     assert second == first
     assert first.manifest["version"] == VERSION
     checksums = first.checksums.splitlines()
-    assert len(checksums) == 12
+    assert len(checksums) == len(payload_names(VERSION)) * 2
+    assert f"brnyxx-panopticon-{VERSION}.tgz" in payload_names(VERSION)
     for line in checksums:
         digest, name = line.split("  ", 1)
         assert digest == hashlib.sha256((tmp_path / name).read_bytes()).hexdigest()

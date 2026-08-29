@@ -82,7 +82,13 @@ def test_public_package_names_and_version_come_only_from_pyproject(tmp_path: Pat
     )
     assert package_npm.release_version(project) == "2.3.4"
     artifacts = package_npm.build_npm_packages(project, archives, tmp_path / "npm")
-    assert len(artifacts) == 5
+    assert [artifact.name for artifact in artifacts] == [
+        "brnyxx-panopticon-2.3.4.tgz",
+        "brnyxx-panopticon-linux-x64-gnu-2.3.4.tgz",
+        "brnyxx-panopticon-linux-arm64-gnu-2.3.4.tgz",
+        "brnyxx-panopticon-darwin-x64-2.3.4.tgz",
+        "brnyxx-panopticon-darwin-arm64-2.3.4.tgz",
+    ]
     with tarfile.open(artifacts[0], "r:gz") as archive:
         manifest_file = archive.extractfile("package/package.json")
         assert manifest_file is not None

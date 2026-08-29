@@ -22,6 +22,7 @@ CHECKED_FILES = (
     "README.md",
     "SECURITY.md",
     "docs/DECISIONS.md",
+    "docs/PRODUCT_READINESS.md",
     "docs/PROGRESS.md",
     "docs/limitations.md",
     "docs/privacy.md",
@@ -47,7 +48,7 @@ NAMESPACE_TOKENS = {
 }
 
 EPIC_MARKERS = ("### Scope", "### Interfaces", "### Tests", "### Definition of done")
-EPICS = ("E17", "E18", "E19")
+EPICS = ("E17", "E18", "E19", "E20")
 
 RULE_INVENTORY = (
     (re.compile(r"\|\s*\*\*Observe subtotal\*\*\s*\|\s*\*\*30\*\*\s*\|"), "observe subtotal 30"),
@@ -85,6 +86,11 @@ CONTRACT_TOKENS = {
         "--offline",
         "e717e955",
     ),
+    "docs/PRODUCT_READINESS.md": (
+        "standard self-scan",
+        "@brnyxx/panopticon",
+        "Pending human action",
+    ),
 }
 
 DECISION_HEADING = re.compile(r"^#{2,3} (\d+[a-z]?)\. ", re.M)
@@ -97,6 +103,7 @@ UNRESOLVED = re.compile(r"\bTBD\b|\bTODO\b|\bdecide\b", re.I)
 LINK = re.compile(r"\]\(([^)\s]+)")
 # GitHub renders inline HTML in Markdown; README embeds its artwork that way.
 HTML_IMAGE = re.compile(r"<img\b[^>]*?\bsrc\s*=\s*[\"']([^\"']+)[\"']", re.I | re.S)
+RAW_REPOSITORY_PREFIX = "https://raw.githubusercontent.com/brnyxx/panopticon/main/"
 
 
 def _read(root: Path, rel: str) -> str | None:
@@ -129,10 +136,16 @@ def _check_links(root: Path, rel: str, text: str) -> list[str]:
     for kind, pattern in (("relative link", LINK), ("image source", HTML_IMAGE)):
         for target in pattern.findall(text):
             href = target.split("#")[0]
-            if not href or "://" in href or href.startswith(("#", "mailto:", "data:")):
+            if href.startswith(RAW_REPOSITORY_PREFIX):
+                display = href.removeprefix(RAW_REPOSITORY_PREFIX)
+                resolved = root / display
+            elif not href or "://" in href or href.startswith(("#", "mailto:", "data:")):
                 continue
-            if not (base / href).exists():
-                problems.append(f"{rel}: unresolvable {kind} {href}")
+            else:
+                display = href
+                resolved = base / href
+            if not resolved.exists():
+                problems.append(f"{rel}: unresolvable {kind} {display}")
     return problems
 
 

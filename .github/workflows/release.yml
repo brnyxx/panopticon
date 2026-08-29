@@ -175,10 +175,13 @@ jobs:
       - name: Verify scripts-disabled offline local root installation
         run: |
           npm --version
+          mkdir npm-smoke
+          cd npm-smoke
           npm install --ignore-scripts --offline --no-audit --no-fund \
-            "./npm-dist/brnyxx-panopticon-$PANO_VERSION.tgz" \
-            "./npm-dist/brnyxx-panopticon-linux-x64-gnu-$PANO_VERSION.tgz"
-          ./node_modules/.bin/pano --offline version
+            --omit=optional \
+            "../npm-dist/brnyxx-panopticon-$PANO_VERSION.tgz" \
+            "../npm-dist/brnyxx-panopticon-linux-x64-gnu-$PANO_VERSION.tgz"
+          ./node_modules/.bin/pano version
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: release-npm-package

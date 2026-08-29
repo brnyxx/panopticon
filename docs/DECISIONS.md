@@ -144,7 +144,7 @@ Numbered, append-only. Format: context / options / chosen / why.
   for the installed matching platform. The supported native boundary is GNU Linux x64/arm64 and
   macOS x64/arm64. `[project].version` in `pyproject.toml` remains the sole version authority and
   schema `1.0` remains frozen.
-- Chosen: **npm promotion is platform packages first, root last, from the signed rehearsal tarballs
+- **npm promotion is platform packages first, root last, from the signed rehearsal tarballs
   only.** An existing package version is reused only when its registry integrity exactly matches the
   retained tarball; otherwise promotion fails. The npm installer boundary is distinct from
   `pano --offline`: installation may resolve a selected native package, while `--offline` disables
@@ -152,6 +152,6 @@ Numbered, append-only. Format: context / options / chosen / why.
   human 2FA bootstrap using the exact retained artifact; later trusted publication is OIDC-only.
   Production and recovery download and re-verify the retained npm artifacts and resume the
   platform-first/root-last order without rebuilding or overwriting.
-- Why: exact optional dependencies select one native archive without downloads at install time,
-  retain build-once evidence, and make partial-publication recovery deterministic without adding a
-  runtime network or Python dependency.
+- Why: exact optional dependencies let npm fetch only the matching native package without a
+  postinstall downloader, retain build-once evidence, and make partial-publication recovery
+  deterministic without adding a launcher network or Python dependency.

@@ -14,6 +14,10 @@
 sandbox, and records files, network hosts, processes, and declared-versus-observed differences.
 It reports observation evidence; it does not make a verdict for you.
 
+<div align="center">
+<img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/panopticon.png" alt="An inspection tower at the centre of a ring of cells, each holding an MCP server" width="860"/>
+</div>
+
 ## Start here
 
 Choose **one** installation method. For a one-time run, use `uvx`:
@@ -59,10 +63,12 @@ coverage and rule identifiers rather than converting missing observation into a 
 ## Privacy and cleanup
 
 Read the complete [privacy and outbound-traffic table](https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md)
-before observation, especially before allowing real environment values or using deep analysis.
-Artifacts are leak-checked before persistence; storage, record retention, configuration undo, and
-package rollback are covered in the [release guide](https://github.com/brnyxx/panopticon/blob/main/docs/release.md)
-and [limitations](https://github.com/brnyxx/panopticon/blob/main/docs/limitations.md).
+before observation, especially before allowing real environment values or running
+`scan --mode deep`. `--offline` disables Panopticon's outbound product paths, but package
+installation uses the selected package registry before `pano` runs. Artifacts are leak-checked
+before persistence; storage, record retention, configuration undo, and package rollback are
+covered in the [release guide](https://github.com/brnyxx/panopticon/blob/main/docs/release.md) and
+[limitations](https://github.com/brnyxx/panopticon/blob/main/docs/limitations.md).
 
 ## Lineage
 

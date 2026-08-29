@@ -46,23 +46,28 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         "quality",
         "python-package",
         "binary",
+        "npm-package",
         "assemble",
         "draft",
         "verify-images",
         "testpypi",
         "promotion-verify",
         "pypi",
+        "npm",
         "promotion-images",
         "publish-github",
     } == set(jobs)
     assert jobs["testpypi"]["environment"] == "testpypi"
     assert jobs["pypi"]["environment"] == "pypi"
+    assert jobs["npm"]["environment"] == "npm"
+    assert jobs["npm"]["permissions"]["id-token"] == "write"
     assert jobs["promotion-images"]["permissions"] == {"packages": "read"}
     assert any(
         str(step.get("uses", "")).startswith("docker/login-action@")
         for step in jobs["promotion-images"]["steps"]
     )
     assert jobs["publish-github"]["environment"] == "release"
+    assert set(jobs["publish-github"]["needs"]) == {"pypi", "npm", "release-context"}
     text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "TODO" not in text
     assert "1.0.0" not in text
@@ -114,6 +119,7 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
         "contents": "write",
     }
     assert jobs["pypi"]["environment"] == "pypi"
+    assert jobs["npm"]["environment"] == "npm"
     assert jobs["publish-github"]["environment"] == "release"
     publish = next(
         step
@@ -131,6 +137,7 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
         "promotion-verify",
         "pypi",
         "promotion-images",
+        "npm",
         "publish-github",
     ):
         assert not any(item in str(jobs[name]) for item in forbidden)
@@ -139,7 +146,7 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
                 assert len(step["uses"].rsplit("@", 1)[1]) == 40
     downloads = [
         step
-        for name in ("promotion-verify", "pypi", "publish-github")
+        for name in ("promotion-verify", "pypi", "npm", "publish-github")
         for step in jobs[name]["steps"]
         if str(step.get("uses", "")).startswith("actions/download-artifact@")
     ]

@@ -17,8 +17,8 @@ from check_docs import CHECKED_FILES, CONTRACT_TOKENS, check, main
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Release guidance joined the authoritative surface with the 1.0 artifact flow.
-EXPECTED_AUTHORITATIVE_FILES = 11
+# Release guidance and the evidence-scoped readiness note are authoritative.
+EXPECTED_AUTHORITATIVE_FILES = 12
 
 # Every README contract token must be a machine-consumed identifier: a state name the
 # renderer emits, a command a user types, or the pinned upstream hash. Natural-language
@@ -144,7 +144,7 @@ def test_wrong_namespace_is_rejected(doc_tree: Path) -> None:
 
 
 def test_missing_epic_section_marker_is_rejected(doc_tree: Path) -> None:
-    # Given: E19 stripped of its definition-of-done marker
+    # Given: E20 stripped of its definition-of-done marker
     plan = doc_tree / "panopticon-buildplan.md"
     body = plan.read_text(encoding="utf-8")
     head, _, tail = body.rpartition("### Definition of done")
@@ -152,7 +152,7 @@ def test_missing_epic_section_marker_is_rejected(doc_tree: Path) -> None:
     # When: the checker runs
     problems = check(doc_tree)
     # Then: it reports the epic missing its required marker
-    assert any(p.startswith("panopticon-buildplan.md: E19 missing") for p in problems), problems
+    assert any(p.startswith("panopticon-buildplan.md: E20 missing") for p in problems), problems
 
 
 def test_wrong_rule_inventory_total_is_rejected(doc_tree: Path) -> None:
@@ -187,7 +187,9 @@ def test_broken_link_nested_inside_a_badge_is_rejected(doc_tree: Path) -> None:
     # Given: README's badge row, where the link target sits behind an image label
     readme = doc_tree / "README.md"
     readme.write_text(
-        readme.read_text(encoding="utf-8").replace("](LICENSE)", "](LICENCE)"),
+        readme.read_text(encoding="utf-8").replace(
+            "](https://github.com/brnyxx/panopticon/blob/main/LICENSE)", "](LICENCE)"
+        ),
         encoding="utf-8",
     )
     # When: the checker runs
@@ -261,4 +263,4 @@ def test_cli_surface_exits_zero_with_a_deterministic_summary(
     # Then: both exit 0 with identical output stating the frozen checked-file count
     assert codes == [0, 0], outputs
     assert outputs[0] == outputs[1]
-    assert outputs[0] == "checked 11 authoritative files, 0 problem(s)\n"
+    assert outputs[0] == "checked 12 authoritative files, 0 problem(s)\n"
