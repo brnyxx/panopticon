@@ -5,9 +5,11 @@ from pathlib import Path
 
 import pytest
 
+import panopticon.store.repository as repository_module
 from panopticon.models import Baseline, Observation, WrapRecord
 from panopticon.store.contracts import PersistSuccess
 from panopticon.store.repository import ArtifactRepository, LoadStatus, RemoveStatus
+from panopticon.store.unlink import ReadStatus, UnlinkStatus
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "schemas"
 
@@ -49,22 +51,18 @@ def test_load_rejects_symlink_and_permission_and_read_error(
     link = target.with_name("bl_link.json")
     link.symlink_to(target)
     assert repo.load_baseline("bl_link").reason_code == "SYMLINK_REJECTED"
-    original = Path.read_text
-
-    def denied(self: Path, *args, **kwargs):
-        if self == target:
-            raise PermissionError("denied")
-        return original(self, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "read_text", denied)
+    monkeypatch.setattr(
+        repository_module,
+        "read_regular",
+        lambda _path: (ReadStatus.PERMISSION, None),
+    )
     assert repo.load_baseline("bl_deadbeef").status is LoadStatus.PERMISSION
 
-    def failed(self: Path, *args, **kwargs):
-        if self == target:
-            raise OSError("io")
-        return original(self, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "read_text", failed)
+    monkeypatch.setattr(
+        repository_module,
+        "read_regular",
+        lambda _path: (ReadStatus.FAILED, None),
+    )
     assert repo.load_baseline("bl_deadbeef").reason_code == "BASELINE_READ_FAILED"
 
 
@@ -73,7 +71,7 @@ def test_list_and_remove_branches(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     baseline = _baseline()
     assert isinstance(repo.persist_baseline(baseline), PersistSuccess)
     assert repo.list_baselines()[0].baseline == baseline
-    assert repo.remove_baseline("missing") is RemoveStatus.NOT_FOUND
+    assert repo.remove_baseline("bl_missing") is RemoveStatus.NOT_FOUND
     assert repo.remove_baseline(baseline.baseline_id) is RemoveStatus.REMOVED
     target = tmp_path / "baselines" / "bl_link.json"
     target.parent.mkdir(exist_ok=True)
@@ -81,15 +79,30 @@ def test_list_and_remove_branches(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     real.write_text("{}")
     target.symlink_to(real)
     assert repo.remove_baseline("bl_link") is RemoveStatus.REJECTED
-    original_unlink = Path.unlink
-
-    def unlink_failed(self: Path, *args, **kwargs):
-        if self.name == "bl_fail.json":
-            raise OSError("io")
-        return original_unlink(self, *args, **kwargs)
-
-    monkeypatch.setattr(Path, "unlink", unlink_failed)
+    monkeypatch.setattr(
+        repository_module,
+        "unlink_regular",
+        lambda _path: UnlinkStatus.FAILED,
+    )
     assert repo.remove_baseline("bl_fail") is RemoveStatus.FAILED
+
+
+def test_baseline_paths_reject_traversal_and_symlinked_parent(tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    target = outside / "bl_target.json"
+    target.write_text("{}")
+    root = tmp_path / "state"
+    root.mkdir()
+    (root / "baselines").symlink_to(outside, target_is_directory=True)
+    repo = ArtifactRepository(root)
+
+    for malicious in ("../../bl_target", "/tmp/bl_target", "target", "bl_../target"):
+        assert repo.remove_baseline(malicious) is RemoveStatus.REJECTED
+        assert repo.load_baseline(malicious).reason_code == "BASELINE_ID_INVALID"
+    assert repo.remove_baseline("bl_target") is RemoveStatus.REJECTED
+    assert repo.load_baseline("bl_target").reason_code == "SYMLINK_REJECTED"
+    assert target.exists()
 
 
 def test_observation_load_latest_and_symlink(tmp_path: Path) -> None:

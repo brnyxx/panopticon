@@ -42,6 +42,7 @@ class WatchOptions:
     runtime: str | None = None
     png: bool = False
     raw: bool = False
+    self_command: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.calls < 0 or self.timeout <= 0 or self.idle < 0:
@@ -56,6 +57,10 @@ class WatchOptions:
             raise ValueError("real_env keys and real_env_all are exclusive")
         if self.runtime not in {None, "docker", "podman"}:
             raise ValueError("unsupported watch runtime")
+        if not isinstance(self.self_command, tuple) or any(
+            not isinstance(part, str) or not part for part in self.self_command
+        ):
+            raise ValueError("self command argv must be non-empty strings")
 
 
 @dataclass(frozen=True, slots=True)

@@ -187,6 +187,32 @@ def test_cli_raw_and_selective_environment_are_forwarded_with_deduplication(
     assert "real-environment-value" not in result.stderr
 
 
+def test_cli_self_command_override_is_forwarded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: list[WatchRequest] = []
+
+    def run_watch(request: WatchRequest) -> WatchServiceOutcome:
+        captured.append(request)
+        return WatchServiceOutcome(CompleteResult())
+
+    monkeypatch.setattr(engine, "run_watch", run_watch)
+    result = CliRunner().invoke(
+        app,
+        [
+            "watch",
+            "--self",
+            "--command",
+            "python3",
+            "--command",
+            "/self/server.py",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured[0].options.self_command == ("python3", "/self/server.py")
+
+
 def test_cli_rejects_empty_environment_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(engine, "run_watch", lambda request: WatchServiceOutcome(CompleteResult()))
     result = CliRunner().invoke(app, ["watch", "demo", "--real-env", " , "])

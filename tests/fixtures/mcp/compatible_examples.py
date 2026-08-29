@@ -1,4 +1,4 @@
-"""Local, vendored official-example-compatible MCP servers.
+"""Local protocol-compatible MCP servers.
 
 This fixture intentionally never accesses public services.  It provides the five
 example tool surfaces used by the probe acceptance tests plus protocol failure

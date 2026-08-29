@@ -7,11 +7,11 @@ from datetime import date, timedelta
 from enum import StrEnum
 from pathlib import Path
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from panopticon.baseline.migrate import migrate_baseline_json
 from panopticon.models.artifacts import Baseline, WrapRecord
-from panopticon.models.ids import BaselineId, InstallationId
+from panopticon.models.ids import BaselineId, BaselineIdValue, InstallationId
 from panopticon.models.observation import Observation
 from panopticon.store.contracts import (
     AtomicOperation,
@@ -25,7 +25,10 @@ from panopticon.store.contracts import (
     SinkKind,
 )
 from panopticon.store.gateway import persist
+from panopticon.store.unlink import ReadStatus, UnlinkStatus, read_regular, unlink_regular
 from panopticon.util.leak_check import LeakContext
+
+_BASELINE_ID = TypeAdapter(BaselineIdValue)
 
 
 class LoadStatus(StrEnum):
@@ -164,20 +167,23 @@ class ArtifactRepository:
                 continue
 
     def load_baseline(self, baseline_id: BaselineId | str) -> BaselineLoad:
-        path = self.root / "baselines" / f"{baseline_id}.json"
-        if path.is_symlink():
-            return BaselineLoad(LoadStatus.INVALID, reason_code="SYMLINK_REJECTED")
         try:
-            payload = path.read_text(encoding="utf-8")
-        except FileNotFoundError:
+            validated = _BASELINE_ID.validate_python(str(baseline_id))
+        except ValidationError:
+            return BaselineLoad(LoadStatus.INVALID, reason_code="BASELINE_ID_INVALID")
+        status, raw = read_regular(self.root / "baselines" / f"{validated}.json")
+        if status is ReadStatus.NOT_FOUND:
             return BaselineLoad(LoadStatus.NOT_FOUND, reason_code="BASELINE_NOT_FOUND")
-        except PermissionError:
+        if status is ReadStatus.PERMISSION:
             return BaselineLoad(LoadStatus.PERMISSION, reason_code="BASELINE_PERMISSION")
-        except OSError:
+        if status is ReadStatus.REJECTED:
+            return BaselineLoad(LoadStatus.INVALID, reason_code="SYMLINK_REJECTED")
+        if status is not ReadStatus.AVAILABLE or raw is None:
             return BaselineLoad(LoadStatus.INVALID, reason_code="BASELINE_READ_FAILED")
         try:
+            payload = raw.decode("utf-8")
             return BaselineLoad(LoadStatus.AVAILABLE, migrate_baseline_json(payload))
-        except (ValidationError, ValueError):
+        except (UnicodeDecodeError, ValidationError, ValueError):
             return BaselineLoad(LoadStatus.INVALID, reason_code="BASELINE_INVALID")
 
     def list_baselines(self) -> tuple[BaselineLoad, ...]:
@@ -228,18 +234,17 @@ class ArtifactRepository:
         return tuple(latest[key] for key in sorted(latest, key=str))
 
     def remove_baseline(self, baseline_id: BaselineId | str) -> RemoveStatus:
-        path = self.root / "baselines" / f"{baseline_id}.json"
-        if path.is_symlink():
-            return RemoveStatus.REJECTED
         try:
-            path.unlink()
-        except FileNotFoundError:
-            return RemoveStatus.NOT_FOUND
-        except PermissionError:
+            validated = _BASELINE_ID.validate_python(str(baseline_id))
+        except ValidationError:
             return RemoveStatus.REJECTED
-        except OSError:
-            return RemoveStatus.FAILED
-        return RemoveStatus.REMOVED
+        status = unlink_regular(self.root / "baselines" / f"{validated}.json")
+        return {
+            UnlinkStatus.REMOVED: RemoveStatus.REMOVED,
+            UnlinkStatus.NOT_FOUND: RemoveStatus.NOT_FOUND,
+            UnlinkStatus.REJECTED: RemoveStatus.REJECTED,
+            UnlinkStatus.FAILED: RemoveStatus.FAILED,
+        }[status]
 
 
 __all__ = [

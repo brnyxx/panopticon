@@ -79,7 +79,11 @@ def watch_outcome(request: WatchRequest) -> WatchServiceOutcome:
         home / ".panopticon",
         LeakContext(home_paths=(str(home),)),
     )
-    self_command = resolve_self_command(cwd) if request.selection.mode is TargetMode.SELF else None
+    self_command = (
+        request.options.self_command or resolve_self_command(cwd)
+        if request.selection.mode is TargetMode.SELF
+        else None
+    )
     return asyncio.run(
         run_watch_service(
             request,

@@ -38,24 +38,25 @@
       "source": "https://github.com/modelcontextprotocol/servers/tree/1f705677a930ec618b7a16d87d00cee7db747ff2/src/github",
       "integrity": "sha512-8N43bQw9MlUB0piTZHK2JMh8kYPKxH57d4Z7Wb8PS4by2MkZ0FzI5xPImg3xumpev82VZw2VWHQJJJYp+WkwEw==",
       "license": "MIT",
-      "status": "blocked",
-      "blocker": "Pinned source is available, but no local enterprise GitHub API fixture is vendored; tests must acquire one with the explicit vendor step."
+      "status": "verified",
+      "driver": ["node", "dist/index.js"],
+      "api_fixture": "tests/fixtures/mcp/official/github_fetch_mock.mjs"
     },
     {
       "name": "fetch",
       "package": null,
       "commit": "cda92bdaacd558192fedf1a60d2bb27510792388",
       "source": "https://github.com/modelcontextprotocol/servers/tree/cda92bdaacd558192fedf1a60d2bb27510792388/src/fetch",
-      "status": "blocked",
-      "blocker": "Pinned Python implementation exists at the current official commit, but no local vendored/cache artifact is present for offline execution."
+      "status": "verified",
+      "driver": [".venv/bin/mcp-server-fetch"]
     },
     {
       "name": "sqlite",
       "package": null,
       "commit": "1f705677a930ec618b7a16d87d00cee7db747ff2",
       "source": "https://github.com/modelcontextprotocol/servers/tree/1f705677a930ec618b7a16d87d00cee7db747ff2/src/sqlite",
-      "status": "blocked",
-      "blocker": "Pinned source is preserved in the archived official commit, but no local vendored/cache artifact is present for offline execution."
+      "status": "verified",
+      "driver": [".venv/bin/mcp-server-sqlite", "--db-path", "/tmp/official.sqlite"]
     }
   ]
 }

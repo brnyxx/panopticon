@@ -11,7 +11,7 @@ from panopticon.probe.client import McpClient
 from panopticon.probe.driver import CallDriver, DriverStatus
 from panopticon.probe.protocol import ProbeStatus
 
-FIXTURE = Path(__file__).parents[2] / "fixtures" / "mcp" / "official_examples.py"
+FIXTURE = Path(__file__).parents[2] / "fixtures" / "mcp" / "compatible_examples.py"
 
 
 async def spawn(mode: str) -> tuple[asyncio.subprocess.Process, McpClient]:
@@ -28,7 +28,7 @@ async def spawn(mode: str) -> tuple[asyncio.subprocess.Process, McpClient]:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode", ["filesystem", "github", "fetch", "memory", "sqlite"])
-async def test_official_example_modes_are_runnable(mode: str) -> None:
+async def test_compatible_example_modes_are_runnable(mode: str) -> None:
     process, client = await spawn(mode)
     try:
         assert (await client.initialize()).status is ProbeStatus.COMPLETE

@@ -35,6 +35,11 @@ def register(app: typer.Typer) -> None:
         raw: bool = typer.Option(
             False, "--raw", help="Retain raw tracer events for this run only."
         ),
+        command: list[str] | None = typer.Option(
+            None,
+            "--command",
+            help="Self MCP command argv element; repeat for each element.",
+        ),
     ) -> None:
         """Run an MCP in the decoy sandbox and record what it does per tool call. (E05-E10, E12)"""
         selected = sum((target is not None, all_targets, self_target))
@@ -47,6 +52,8 @@ def register(app: typer.Typer) -> None:
             raise typer.BadParameter("--real-env requires at least one key")
         if (real_keys or real_env_all) and self_target:
             raise typer.BadParameter("--real-env/--real-env-all cannot be combined with --self")
+        if command and not self_target:
+            raise typer.BadParameter("--command requires --self")
         if real_keys and real_env_all:
             raise typer.BadParameter("--real-env and --real-env-all are mutually exclusive")
         if real_env_all:
@@ -88,6 +95,7 @@ def register(app: typer.Typer) -> None:
                         runtime=runtime,
                         png=png,
                         raw=raw,
+                        self_command=tuple(command or ()),
                     ),
                 )
             ),

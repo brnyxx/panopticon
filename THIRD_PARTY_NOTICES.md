@@ -46,11 +46,12 @@ pinned to the current official repository commit
 archived official commit `1f705677a930ec618b7a16d87d00cee7db747ff2`.
 The npm SHA-512 values are retained for the package-backed entries; source-only
 entries identify their immutable GitHub tree directly. Network acquisition is
-never implicit: `scripts/vendor_upstream.py` is the explicit acquisition step,
-and probes run only from its pinned local output or an audited cache artifact.
-The GitHub probe uses an enterprise-base-URL fixture with a synthetic token, so
-no personal credential is required. Missing local artifacts remain blockers;
-they are reported as provenance/cache gaps rather than npm availability claims.
+never implicit: `scripts/vendor_upstream.py` vendors audited source, while
+`scripts/verify_official_examples.py` clones the two exact commits into a
+temporary directory, builds them from their lockfiles, executes every advertised
+tool through Panopticon, and deletes the directory. The GitHub run uses the
+deterministic in-memory fetch fixture and a synthetic token, so it cannot mutate
+GitHub or use a personal credential.
 
 MIT License
 

@@ -61,6 +61,7 @@ def locale_precedence(
     active = os.environ if environ is None else environ
     candidates = (
         explicit,
+        active.get("PANO_LANG"),
         active.get("LC_ALL"),
         active.get("LC_MESSAGES"),
         active.get("LANG"),

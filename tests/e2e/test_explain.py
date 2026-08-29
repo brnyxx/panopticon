@@ -70,6 +70,13 @@ def test_locale_precedence_explicit_then_environment(
     monkeypatch.setenv("LC_ALL", "en_US.UTF-8")
     monkeypatch.setenv("LC_MESSAGES", "ko_KR.UTF-8")
     monkeypatch.setenv("LANG", "en_US.UTF-8")
+    monkeypatch.setenv("PANO_LANG", "ko_KR.UTF-8")
+    assert runner.invoke(cli.app, ["explain", "WATCH-001"]).stdout.find("ko-WATCH") >= 0
+    assert (
+        runner.invoke(cli.app, ["explain", "WATCH-001", "--lang", "en"]).stdout.find("en-WATCH")
+        >= 0
+    )
+    monkeypatch.delenv("PANO_LANG")
     assert runner.invoke(cli.app, ["explain", "WATCH-001"]).stdout.find("en-WATCH") >= 0
     monkeypatch.delenv("LC_ALL")
     assert runner.invoke(cli.app, ["explain", "WATCH-001"]).stdout.find("ko-WATCH") >= 0
