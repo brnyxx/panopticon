@@ -27,6 +27,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         Loader=yaml.BaseLoader,
     )
     assert isinstance(document, dict)
+    assert document["env"]["PYTHONPATH"] == "src"
     trigger = document["on"]
     assert isinstance(trigger, dict)
     dispatch = trigger["workflow_dispatch"]
