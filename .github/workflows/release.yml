@@ -270,29 +270,21 @@ jobs:
           SOURCE_SHA: ${{ inputs.source_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > releases.json
+          python scripts/verify_release_recovery.py release-metadata --releases releases.json --metadata draft.json --downloads draft-downloads.tsv
+          mkdir draft-assets
+          while IFS=$'\t' read -r asset_id asset_name; do
+            gh api -H "Accept: application/octet-stream" "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "draft-assets/$asset_name"
+          done < draft-downloads.tsv
           python - <<'PY'
-          import json, os, subprocess
           from pathlib import Path
           from urllib.request import urlopen
-          raw = subprocess.run(
-              [
-                  "gh", "release", "view", "v1.0.0",
-                  "--repo", os.environ["GITHUB_REPOSITORY"],
-                  "--json", "targetCommitish,isDraft,isPrerelease,assets",
-              ],
-              check=True,
-              capture_output=True,
-              text=True,
-          ).stdout
-          release = json.loads(raw)
           with urlopen(
               "https://test.pypi.org/pypi/panopticon-mcp/1.0.0/json",
               timeout=30,
           ) as response:
               Path("testpypi.json").write_bytes(response.read())
-          Path("draft.json").write_text(json.dumps({"target_commitish": release["targetCommitish"], "draft": release["isDraft"], "prerelease": release["isPrerelease"], "assets": {x["name"]: x["digest"].removeprefix("sha256:") for x in release["assets"]}}), encoding="utf-8")
           PY
-          gh release download v1.0.0 --repo "$GITHUB_REPOSITORY" --dir draft-assets
           python scripts/verify_release_recovery.py source --source-run-id "$SOURCE_RUN_ID" --source-sha "$SOURCE_SHA" --bundle recovery-bundle --dist recovery-dist --index testpypi.json --release draft.json --release-assets draft-assets --run-metadata run-metadata.json
 
   recovery-pypi:
@@ -404,16 +396,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > run-metadata.json
-          gh release download v1.0.0 --repo "$GITHUB_REPOSITORY" --dir draft-assets
-          gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" --json targetCommitish,isDraft,isPrerelease,assets > release.json
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > releases.json
+          python scripts/verify_release_recovery.py release-metadata --releases releases.json --metadata draft.json --downloads draft-downloads.tsv
+          mkdir draft-assets
+          while IFS=$'\t' read -r asset_id asset_name; do
+            gh api -H "Accept: application/octet-stream" "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "draft-assets/$asset_name"
+          done < draft-downloads.tsv
           python - <<'PY'
           import json
-          from pathlib import Path
-          r = json.loads(Path("release.json").read_text())
-          Path("draft.json").write_text(json.dumps({"target_commitish": r["targetCommitish"], "draft": r["isDraft"], "prerelease": r["isPrerelease"], "assets": {x["name"]: x["digest"].removeprefix("sha256:") for x in r["assets"]}}), encoding="utf-8")
-          PY
-          python - <<'PY'
-          import os, json
+          import os
           from pathlib import Path
           from scripts.verify_release_recovery import validate_inputs, verify_bundle, verify_release_state, verify_run_metadata
           validate_inputs(os.environ["SOURCE_RUN_ID"], os.environ["SOURCE_SHA"])
@@ -425,25 +416,21 @@ jobs:
           if [ "$(cat flip)" = "true" ]; then
             gh release edit v1.0.0 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
           fi
-          gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" --json targetCommitish,isDraft,isPrerelease,assets > release-after.json
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > releases-after.json
+          python scripts/verify_release_recovery.py release-metadata --releases releases-after.json --metadata release-after.json --downloads public-downloads.tsv
           rm -rf public-assets
-          gh release download v1.0.0 --repo "$GITHUB_REPOSITORY" --dir public-assets
+          mkdir public-assets
+          while IFS=$'\t' read -r asset_id asset_name; do
+            gh api -H "Accept: application/octet-stream" "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "public-assets/$asset_name"
+          done < public-downloads.tsv
           python - <<'PY'
-          import json, os
+          import json
+          import os
           from pathlib import Path
           from scripts.verify_release_recovery import verify_release_state
           release = json.loads(Path("release-after.json").read_text())
-          metadata = {
-              "target_commitish": release["targetCommitish"],
-              "draft": release["isDraft"],
-              "prerelease": release["isPrerelease"],
-              "assets": {
-                  asset["name"]: asset["digest"].removeprefix("sha256:")
-                  for asset in release["assets"]
-              },
-          }
           if verify_release_state(
-              metadata,
+              release,
               Path("recovery-bundle"),
               os.environ["SOURCE_SHA"],
               Path("public-assets"),

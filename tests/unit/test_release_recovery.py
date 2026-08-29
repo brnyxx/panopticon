@@ -16,6 +16,7 @@ recovery = importlib.import_module("verify_release_recovery")
 PYPI_ASSETS = recovery.PYPI_ASSETS
 RELEASE_ASSETS = recovery.RELEASE_ASSETS
 missing_index_assets = recovery.missing_index_assets
+prepare_release_metadata = recovery.prepare_release_metadata
 stage_missing_index_assets = recovery.stage_missing_index_assets
 validate_inputs = recovery.validate_inputs
 verify_bundle = recovery.verify_bundle
@@ -94,6 +95,25 @@ def _release(bundle: Path, *, draft: bool = True) -> dict[str, object]:
         "prerelease": draft,
         "assets": {path.name: _digest(path) for path in bundle.iterdir()},
     }
+
+
+def _release_list(bundle: Path) -> list[dict[str, object]]:
+    return [
+        {
+            "tag_name": "v1.0.0",
+            "target_commitish": SHA,
+            "draft": True,
+            "prerelease": True,
+            "assets": [
+                {
+                    "id": index,
+                    "name": path.name,
+                    "digest": f"sha256:{_digest(path)}",
+                }
+                for index, path in enumerate(sorted(bundle.iterdir()), start=1)
+            ],
+        }
+    ]
 
 
 def _run() -> dict[str, object]:
@@ -237,6 +257,34 @@ def test_partial_index_rejects_changed_or_unexpected_existing_files(tmp_path: Pa
         missing_index_assets({name: "0" * 64}, dist)
     with pytest.raises(ValueError, match="INDEX"):
         missing_index_assets({"unexpected.whl": "0" * 64}, dist)
+
+
+def test_release_list_prepares_only_exact_sanitized_asset_downloads(tmp_path: Path) -> None:
+    bundle, _ = _bundle(tmp_path)
+    metadata, downloads = prepare_release_metadata(_release_list(bundle))
+    assert metadata == _release(bundle)
+    assert {name for _, name in downloads} == {path.name for path in bundle.iterdir()}
+
+    releases = _release_list(bundle)
+    assets = releases[0]["assets"]
+    assert isinstance(assets, list)
+    assets[0] = {**assets[0], "name": "../escape"}
+    with pytest.raises(ValueError, match="ASSETS"):
+        prepare_release_metadata(releases)
+
+
+def test_release_list_rejects_missing_or_duplicate_release(tmp_path: Path) -> None:
+    bundle, _ = _bundle(tmp_path)
+    with pytest.raises(ValueError, match="UNIQUE"):
+        prepare_release_metadata([])
+    releases = _release_list(bundle)
+    with pytest.raises(ValueError, match="UNIQUE"):
+        prepare_release_metadata(releases + releases)
+    assets = releases[0]["assets"]
+    assert isinstance(assets, list)
+    assets.pop()
+    with pytest.raises(ValueError, match="ASSETS"):
+        prepare_release_metadata(releases)
 
 
 def test_release_rejects_target_state_assets_and_download_mismatches(

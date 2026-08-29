@@ -35,6 +35,8 @@ RELEASE_ASSETS = frozenset(
     }
 )
 _METADATA_FILES = frozenset(("release-manifest.json", "SHA256SUMS"))
+_SIGNED_FILES = RELEASE_ASSETS | _METADATA_FILES
+_BUNDLE_FILES = _SIGNED_FILES | {f"{name}.sigstore.json" for name in _SIGNED_FILES}
 
 
 def _digest(path: Path) -> str:
@@ -123,15 +125,13 @@ def verify_bundle(bundle: Path, source_sha: str) -> Mapping[str, str]:
         raise ValueError("INVALID_RELEASE_ASSETS")
     if _checksums(bundle / "SHA256SUMS") != expected:
         raise ValueError("SHA256SUMS_MISMATCH")
-    signed = RELEASE_ASSETS | _METADATA_FILES
-    signatures = {f"{name}.sigstore.json" for name in signed}
     actual = {path.name for path in bundle.iterdir() if path.is_file()}
-    if actual != signed | signatures:
+    if actual != _BUNDLE_FILES:
         raise ValueError("RELEASE_ASSET_SET_MISMATCH")
     for name, digest in expected.items():
         if _digest(bundle / name) != digest:
             raise ValueError(f"RELEASE_ASSET_HASH_MISMATCH:{name}")
-    for name in signatures:
+    for name in _BUNDLE_FILES - _SIGNED_FILES:
         _verify_sigstore_bundle(bundle / name)
     return expected
 
@@ -203,6 +203,52 @@ def stage_missing_index_assets(metadata: object, dist: Path, staged: Path) -> fr
     return missing
 
 
+def prepare_release_metadata(
+    releases: object,
+) -> tuple[dict[str, object], tuple[tuple[int, str], ...]]:
+    if not isinstance(releases, list):
+        raise ValueError("INVALID_RELEASE_LIST")
+    matches = [
+        release
+        for release in releases
+        if isinstance(release, dict) and release.get("tag_name") == "v1.0.0"
+    ]
+    if len(matches) != 1:
+        raise ValueError("RELEASE_NOT_UNIQUE")
+    release = matches[0]
+    assets = release.get("assets")
+    if not isinstance(assets, list):
+        raise ValueError("INVALID_RELEASE_ASSETS")
+    digests: dict[str, str] = {}
+    downloads: list[tuple[int, str]] = []
+    for asset in assets:
+        if not isinstance(asset, dict):
+            raise ValueError("INVALID_RELEASE_ASSETS")
+        name = asset.get("name")
+        identifier = asset.get("id")
+        digest = asset.get("digest")
+        if not isinstance(name, str) or Path(name).name != name:
+            raise ValueError("INVALID_RELEASE_ASSETS")
+        if not isinstance(identifier, int) or identifier <= 0:
+            raise ValueError("INVALID_RELEASE_ASSETS")
+        if not isinstance(digest, str) or not digest.startswith("sha256:"):
+            raise ValueError("INVALID_RELEASE_ASSETS")
+        value = digest.removeprefix("sha256:")
+        if _HEX.fullmatch(value) is None or name in digests:
+            raise ValueError("INVALID_RELEASE_ASSETS")
+        digests[name] = value
+        downloads.append((identifier, name))
+    if set(digests) != _BUNDLE_FILES:
+        raise ValueError("INVALID_RELEASE_ASSETS")
+    metadata = {
+        "target_commitish": release.get("target_commitish"),
+        "draft": release.get("draft"),
+        "prerelease": release.get("prerelease"),
+        "assets": digests,
+    }
+    return metadata, tuple(sorted(downloads, key=lambda item: item[1]))
+
+
 def verify_release_state(
     metadata: object,
     bundle: Path,
@@ -262,6 +308,18 @@ def _source_command(args: argparse.Namespace) -> None:
     print("recovery verification: source-bound, byte-identical, remote checks passed")
 
 
+def _release_metadata_command(args: argparse.Namespace) -> None:
+    metadata, downloads = prepare_release_metadata(_json(args.releases, "INVALID_RELEASE_LIST"))
+    args.metadata.write_text(
+        json.dumps(metadata, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    args.downloads.write_text(
+        "".join(f"{identifier}\t{name}\n" for identifier, name in downloads),
+        encoding="utf-8",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -279,6 +337,11 @@ def main() -> None:
     index.add_argument("--metadata", type=Path, required=True)
     index.add_argument("--dist", type=Path, required=True)
     index.set_defaults(handler=lambda args: verify_index(args.metadata, args.dist))
+    release = subparsers.add_parser("release-metadata")
+    release.add_argument("--releases", type=Path, required=True)
+    release.add_argument("--metadata", type=Path, required=True)
+    release.add_argument("--downloads", type=Path, required=True)
+    release.set_defaults(handler=_release_metadata_command)
     args: Any = parser.parse_args()
     args.handler(args)
 
