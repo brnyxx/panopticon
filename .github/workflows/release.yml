@@ -136,8 +136,60 @@ jobs:
           name: release-${{ matrix.target }}
           path: release-assets/*
 
+  npm-package:
+    needs: [binary, release-context]
+    runs-on: ubuntu-24.04
+    env:
+      PANO_VERSION: ${{ needs.release-context.outputs.version }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.14.0"
+      - run: npm install --global npm@11.5.1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: release-*
+          path: retained-archives
+          merge-multiple: true
+      - name: Assemble npm packages from retained native archives
+        run: python scripts/package_npm.py --archives-dir retained-archives --output-dir npm-dist
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: npm-dist/npm-package.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Bind SBOM to each npm tarball
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("npm-dist/npm-package.cdx.json").read_bytes()
+          for package in Path("npm-dist").glob("*.tgz"):
+              package.with_name(package.name + ".cdx.json").write_bytes(source)
+          Path("npm-dist/npm-package.cdx.json").unlink()
+          PY
+      - name: Verify scripts-disabled offline local root installation
+        run: |
+          npm --version
+          npm install --ignore-scripts --offline --no-audit --no-fund \
+            "./npm-dist/brnyxx-panopticon-$PANO_VERSION.tgz" \
+            "./npm-dist/brnyxx-panopticon-linux-x64-gnu-$PANO_VERSION.tgz"
+          ./node_modules/.bin/pano --offline version
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-npm-package
+          path: npm-dist/*
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: npm-distributions
+          path: npm-dist/*.tgz
+
   assemble:
-    needs: [python-package, binary, release-context]
+    needs: [python-package, binary, npm-package, release-context]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -467,9 +519,92 @@ jobs:
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-node@sha256:d0f7cc3fcac6a24ea0f8b7b9d62c542a04642ca5b38a4e249e017a7311a8b7c5
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-python@sha256:3e2b99433c18506f59d0e44e40b8af2b0350ee4df903252a1ab462f0eac3f589
 
+  npm:
+    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    needs: [promotion-verify, release-context]
+    runs-on: ubuntu-24.04
+    environment: npm
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.14.0"
+      - run: npm install --global npm@11.5.1
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ needs.release-context.outputs.bundle_name }}
+          path: recovery-bundle
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: npm-distributions
+          path: npm-dist
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - name: Re-verify retained npm artifacts
+        env:
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.verify_release_recovery import verify_bundle
+
+          verify_bundle(Path("recovery-bundle"), os.environ["SOURCE_SHA"], os.environ["PANO_VERSION"])
+          for tarball in Path("npm-dist").glob("*.tgz"):
+              retained = Path("recovery-bundle", tarball.name)
+              if not retained.is_file() or retained.read_bytes() != tarball.read_bytes():
+                  raise ValueError(f"NPM_RETAINED_ARTIFACT_MISMATCH:{tarball.name}")
+          PY
+      - name: Publish or verify platform packages before root
+        env:
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
+        run: |
+          test "$(node -p 'process.versions.node')" = "22.14.0"
+          test "$(npm --version)" = "11.5.1"
+          publish_or_verify() {
+            local package="$1"
+            local tarball="$2"
+            local expected
+            expected=$(node -e '
+              const fs = require("fs");
+              const crypto = require("crypto");
+              process.stdout.write("sha512-" + crypto.createHash("sha512").update(fs.readFileSync(process.argv[1])).digest("base64"));
+            ' "$tarball")
+            local existing
+            if existing=$(npm view "$package@$PANO_VERSION" dist.integrity --json 2>npm-view.err); then
+              :
+            elif grep -q "E404" npm-view.err; then
+              existing=""
+            else
+              cat npm-view.err >&2
+              exit 1
+            fi
+            if [ -n "$existing" ]; then
+              test "$(node -e 'process.stdout.write(JSON.parse(process.argv[1]))' "$existing")" = "$expected"
+            else
+              npm publish "$tarball" --provenance --access public
+              existing=$(npm view "$package@$PANO_VERSION" dist.integrity --json)
+              test "$(node -e 'process.stdout.write(JSON.parse(process.argv[1]))' "$existing")" = "$expected"
+            fi
+          }
+          publish_or_verify @brnyxx/panopticon-linux-x64-gnu "npm-dist/brnyxx-panopticon-linux-x64-gnu-$PANO_VERSION.tgz"
+          publish_or_verify @brnyxx/panopticon-linux-arm64-gnu "npm-dist/brnyxx-panopticon-linux-arm64-gnu-$PANO_VERSION.tgz"
+          publish_or_verify @brnyxx/panopticon-darwin-x64 "npm-dist/brnyxx-panopticon-darwin-x64-$PANO_VERSION.tgz"
+          publish_or_verify @brnyxx/panopticon-darwin-arm64 "npm-dist/brnyxx-panopticon-darwin-arm64-$PANO_VERSION.tgz"
+          publish_or_verify @brnyxx/panopticon "npm-dist/brnyxx-panopticon-$PANO_VERSION.tgz"
+
   publish-github:
     if: inputs.channel == 'production' || inputs.channel == 'recovery'
-    needs: [pypi, release-context]
+    needs: [pypi, npm, release-context]
     runs-on: ubuntu-24.04
     environment: release
     permissions:

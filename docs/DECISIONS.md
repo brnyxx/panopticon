@@ -132,3 +132,26 @@ Numbered, append-only. Format: context / options / chosen / why.
   constrained resolver keeps workflow data auditable. Reusing retained evidence and locked image
   digests preserves the build-once and immutable-publication guarantees without changing product
   behavior.
+
+## 20. npm distribution promotes retained native artifacts
+- Context: npm users need a native `pano` distribution without turning npm installation into a
+  networked Python launcher or creating a second version authority.
+- Chosen: **the five frozen package names are `@brnyxx/panopticon`,
+  `@brnyxx/panopticon-linux-x64-gnu`, `@brnyxx/panopticon-linux-arm64-gnu`,
+  `@brnyxx/panopticon-darwin-x64`, and `@brnyxx/panopticon-darwin-arm64`.** The root package has
+  exact-version optional dependencies on the four native packages. Its launcher has no install
+  script, network access, persistence, or Python feature import; it only execs the retained binary
+  for the installed matching platform. The supported native boundary is GNU Linux x64/arm64 and
+  macOS x64/arm64. `[project].version` in `pyproject.toml` remains the sole version authority and
+  schema `1.0` remains frozen.
+- Chosen: **npm promotion is platform packages first, root last, from the signed rehearsal tarballs
+  only.** An existing package version is reused only when its registry integrity exactly matches the
+  retained tarball; otherwise promotion fails. The npm installer boundary is distinct from
+  `pano --offline`: installation may resolve a selected native package, while `--offline` disables
+  all product outbound paths after installation. First creation of each npm package is a documented
+  human 2FA bootstrap using the exact retained artifact; later trusted publication is OIDC-only.
+  Production and recovery download and re-verify the retained npm artifacts and resume the
+  platform-first/root-last order without rebuilding or overwriting.
+- Why: exact optional dependencies select one native archive without downloads at install time,
+  retain build-once evidence, and make partial-publication recovery deterministic without adding a
+  runtime network or Python dependency.

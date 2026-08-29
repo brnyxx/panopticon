@@ -909,3 +909,24 @@ def t(key: MessageKey, locale: Locale, **params: object) -> str  # falls back to
 
 ### Definition of done
 - Every platform and runtime gate is green with its evidence manifest; native Windows and WSL2 are separately proven. Schema `1.0` remains frozen, and the release version is resolved solely from `[project].version` in `pyproject.toml` as a stable `X.Y.Z` value. The public GitHub Release carries four binaries, wheel, sdist, checksums, SBOMs, and signatures; PyPI hashes match the tested artifacts; GHCR digests match `sandbox/images.lock` and pull anonymously; the Homebrew formula audits, installs, and reports the resolved version. The recorded rehearsal workflow run ID and source SHA bind the retained bundle, whose bytes have been re-verified exactly before production promotion or recovery. `uvx`, `pipx`, and direct binary installs all work on a clean host. CI and the repository self-scan are green on the tag. Every epic row in `docs/PROGRESS.md` is CLOSED with an evidence link, and no `OWNER`, `<domain>`, TODO release step, or mutable third-party action remains.
+
+---
+
+## 29. E20 — npm native distribution and production hardening
+
+### Scope
+- **Frozen npm identity and platform boundary.** Publish exactly `@brnyxx/panopticon`, `@brnyxx/panopticon-linux-x64-gnu`, `@brnyxx/panopticon-linux-arm64-gnu`, `@brnyxx/panopticon-darwin-x64`, and `@brnyxx/panopticon-darwin-arm64`. The root package declares exact-version optional dependencies on the four native packages. The supported npm-native targets are GNU Linux x64/arm64 and macOS x64/arm64 only. Schema `1.0` remains unchanged and `[project].version` remains the sole release-version authority.
+- **Native-only launcher.** npm packages are assembled from the four retained native archives. The root launcher has no lifecycle scripts, postinstall download, network operation, persistence, or Python wrapper/import; it executes only the installed matching retained binary. The installer boundary is separate from `pano --offline`, which remains the product-wide outbound-path boundary.
+- **One bundle, exact assets.** Rehearsal creates and signs `brnyxx-panopticon-<version>.tgz`, `brnyxx-panopticon-linux-x64-gnu-<version>.tgz`, `brnyxx-panopticon-linux-arm64-gnu-<version>.tgz`, `brnyxx-panopticon-darwin-x64-<version>.tgz`, and `brnyxx-panopticon-darwin-arm64-<version>.tgz`, with an SBOM for each, in the existing signed build-once bundle. A scripts-disabled, offline local npm install of root plus the matching platform tarball proves no registry fallback and runs `pano --offline`.
+- **Promotion and recovery.** Production and recovery download the retained npm artifact set; they never rebuild, overwrite, or substitute it. A GitHub-hosted Node >=22.14/npm >=11.5.1 job in the protected `npm` environment uses trusted OIDC publishing. It checks existing registry versions for exact retained-artifact integrity, fails on a mismatch, publishes/verifies all platform packages before the root, and makes GitHub publication depend on both PyPI and npm. Initial package creation is a documented human 2FA bootstrap using these exact artifacts; all subsequent trusted publication is OIDC-only.
+
+### Interfaces
+- `scripts/package_npm.py --archives-dir <retained-archives> --output-dir <npm-dist>` — creates the five versioned tarballs from retained native archives.
+
+### Tests
+- The release manifest rejects a missing, extra, or renamed npm tarball or SBOM.
+- A scripts-disabled offline local install of root and each matching platform tarball has no registry fallback and executes the retained binary.
+- Existing npm versions pass only when registry integrity equals the retained tarball; a mismatch, a root-before-platform attempt, or an unavailable retained artifact blocks promotion/recovery.
+
+### Definition of done
+- The signed rehearsal bundle, production/recovery workflow, and release manifest enumerate the same five npm tarballs. npm retains the four-target GNU/macOS boundary and contains no Python launcher, install script, or runtime network/persistence path. npm recovery is non-atomic but exact-integrity, platform-first, and root-last; schema `1.0` and the existing E19 release guarantees remain unchanged.

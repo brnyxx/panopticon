@@ -120,3 +120,11 @@ There is no telemetry, no crash reporting, no update ping, and no upload path.
 `cli → engine → *`. `analyzers → findings, rules`. `probe → sandbox`. `diff → baseline, findings`. `reporters` read the sanitized render model only. `store` is imported by everything that persists and imports no feature package. `sandbox` and `wrap` do not import each other. Boundaries are `Protocol`s: `Runtime`, `ClientAdapter`, `Extractor`, `Reporter`, `SecretStore`, `Clock`, `Http`.
 
 Collectors return results with a state instead of raising across epics, and `cli/` renders those states rather than interpreting them.
+
+## npm native distribution boundary
+
+The npm launcher is a distribution adapter, outside all Python feature imports and persistence
+boundaries. It has no lifecycle scripts, writes no state, contacts no service, and does not install
+or invoke Python. It identifies only the installed GNU Linux x64/arm64 or macOS x64/arm64 optional
+native package and `exec`s its retained `pano` binary. Product behavior, including the independent
+`pano --offline` network boundary, begins only after that exec.

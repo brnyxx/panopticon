@@ -34,6 +34,11 @@ def payload_names(version: str) -> tuple[str, ...]:
         f"panopticon-{version}-linux-arm64.tar.gz",
         f"panopticon-{version}-darwin-x86_64.tar.gz",
         f"panopticon-{version}-darwin-arm64.tar.gz",
+        f"brnyxx-panopticon-{version}.tgz",
+        f"brnyxx-panopticon-linux-x64-gnu-{version}.tgz",
+        f"brnyxx-panopticon-linux-arm64-gnu-{version}.tgz",
+        f"brnyxx-panopticon-darwin-x64-{version}.tgz",
+        f"brnyxx-panopticon-darwin-arm64-{version}.tgz",
     )
 
 
