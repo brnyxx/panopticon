@@ -24,7 +24,7 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | E16 Analyze line | CLOSED | exact 125-test replay, typed scan modes, semantic disclosure, dynamic self analysis, deterministic SARIF/exit policy, provenance, and hardened self-scan pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E17 Reporters | CLOSED | terminal, JSON, SARIF, Markdown, deterministic ko/en PNG, accessible SVG, leak rejection, persistence, stable hashes, and live self-scan upload pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E18 i18n | CLOSED | all 47 bilingual six-section rule documents, locale precedence/fallback, CJK-safe explain, catalog generation, glossary, and phrase gates pass exact-product [CI][ci] and the final [audit bundle][audit] |
-| E19 Release | IN PROGRESS | v1.0.0 and public `ghcr.io/brnyxx` remain verified by the linked immutable evidence; v1.0.1 release tooling and privacy metadata pass local quality, Docker, preflight, and independent architecture review, while hosted build-once rehearsal, retained-byte promotion, public installs, and final audits remain |
+| E19 Release | CLOSED | v1.0.0 remains immutable; exact commit `1f92491` passes [patch CI][patch-ci] and the [six-platform matrix][patch-platform], [rehearsal][patch-source] built once, [promotion][patch-promotion] published the unchanged PyPI and 28-asset [v1.0.1 release][patch-release] while reusing public `ghcr.io/brnyxx` digests, and public uvx, pipx, native archive, and [Homebrew tap][patch-homebrew] installs pass |
 
 [ci]: https://github.com/brnyxx/panopticon/actions/runs/33226587357
 [platform]: https://github.com/brnyxx/panopticon/actions/runs/33226587338/attempts/2
@@ -33,6 +33,12 @@ An epic is CLOSED only when every item in its definition of done has been proven
 [promotion]: https://github.com/brnyxx/panopticon/actions/runs/33252756023/attempts/2
 [release]: https://github.com/brnyxx/panopticon/releases/tag/v1.0.0
 [homebrew]: https://github.com/brnyxx/homebrew-tap/commit/61541be837d9df9a895bcde69e42b7ac4ec50444
+[patch-ci]: https://github.com/brnyxx/panopticon/actions/runs/33257641232
+[patch-platform]: https://github.com/brnyxx/panopticon/actions/runs/33257641129
+[patch-source]: https://github.com/brnyxx/panopticon/actions/runs/33257963233/attempts/2
+[patch-promotion]: https://github.com/brnyxx/panopticon/actions/runs/33258298469/attempts/2
+[patch-release]: https://github.com/brnyxx/panopticon/releases/tag/v1.0.1
+[patch-homebrew]: https://github.com/brnyxx/homebrew-tap/commit/7733d8fec72c6bde2f6b9e284e29ba2c77272eb0
 
 ## Why E01 is closed
 

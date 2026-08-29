@@ -1,10 +1,9 @@
 # Release, installation, upgrade, and rollback
 
-Panopticon 1.0.1 is the current release target for the `panopticon-mcp` Python package, four native
+Panopticon 1.0.1 is the current release of the `panopticon-mcp` Python package, four native
 archives, and Homebrew formula `brnyxx/homebrew-tap/panopticon`. The existing `ghcr.io/brnyxx`
 sandbox image digests remain locked; this patch does not rebuild or republish them. Release promotion
-uses one signed asset bundle; later channels never rebuild it. Publication still requires the E19
-gates and recorded evidence; this guide does not assert that 1.0.1 is public.
+used one signed asset bundle; later channels did not rebuild it.
 
 ## Install
 
@@ -50,11 +49,12 @@ file changed since the recorded transaction.
 
 ## Promotion and recovery
 
-The release order is quality and platform gates, signed artifacts, clean installs, TestPyPI, GitHub
-release, PyPI, GHCR verification, then Homebrew. Before production promotion, the release handoff
-records the rehearsal workflow run ID and source commit SHA with the retained bundle, manifest,
-signatures, SBOM, provenance, and checksums. Production verifies that handoff and re-verifies every
-retained artifact byte-for-byte against the rehearsal manifest before any channel is promoted.
+The release order is quality and platform gates, signed artifacts, locked-image verification,
+TestPyPI publish and clean install, then an immutable GitHub draft. Production receives the
+rehearsal workflow run ID and source commit SHA, re-verifies the retained bundle, manifest,
+signatures, SBOM, checksums, TestPyPI files, draft assets, and locked image digests, then promotes the
+same Python files, publishes the verified draft without another upload, and updates Homebrew from
+the retained manifest hashes.
 
 A failed channel leaves earlier immutable bytes and hashes untouched. Recovery resumes only the
 missing channel from the retained release bundle after the same handoff and byte-for-byte
