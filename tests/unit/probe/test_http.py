@@ -222,6 +222,78 @@ async def test_redirect_blocked_resolver_and_transport_cancel_paths() -> None:
             await StreamableHttpClient("https://mcp.example/rpc", transport).request("x")
 
 
+@pytest.mark.asyncio
+async def test_http_error_and_notification_failure_are_typed() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        if "id" in payload:
+            return httpx.Response(404, request=request)
+        return httpx.Response(500, request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as transport:
+        client = StreamableHttpClient("https://mcp.example/rpc", transport)
+        request_result = await client.request("missing")
+        notification_result = await client.notify("notifications/initialized")
+
+    assert request_result.status is ProbeStatus.ERROR
+    assert request_result.reason_code == "HTTP_ERROR"
+    assert notification_result.status is ProbeStatus.ERROR
+    assert notification_result.reason_code == "HTTP_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_cross_ip_transport_preserves_host_and_sni_identity() -> None:
+    seen: list[httpx.Request] = []
+
+    class PublicResolver:
+        def resolve(self, _host: str) -> tuple[str, ...]:
+            return ("93.184.216.34",)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        payload = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={"jsonrpc": "2.0", "id": payload["id"], "result": {}},
+            request=request,
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as transport:
+        client = StreamableHttpClient(
+            "https://mcp.example/rpc", transport, resolver=PublicResolver()
+        )
+        result = await client.request("tools/list")
+
+    assert result.status is ProbeStatus.COMPLETE
+    assert seen[0].url.host == "93.184.216.34"
+    assert seen[0].headers["host"] == "mcp.example"
+    assert seen[0].extensions["sni_hostname"] == "mcp.example"
+
+
+@pytest.mark.asyncio
+async def test_close_with_blocked_resolver_records_typed_reason() -> None:
+    calls = 0
+
+    class BlockedResolver:
+        def resolve(self, _host: str) -> tuple[str, ...]:
+            return ("10.0.0.1",)
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as transport:
+        client = StreamableHttpClient(
+            "https://mcp.example/rpc", transport, resolver=BlockedResolver()
+        )
+        client.session_id = "session-1"
+        await client.close()
+
+    assert client.close_reason == "SESSION_DELETE_BLOCKED"
+    assert calls == 0
+
+
 def test_sse_response_payload_and_endpoint_parsing() -> None:
     payload = {"jsonrpc": "2.0", "id": 7, "result": {"ok": True}}
     response = httpx.Response(

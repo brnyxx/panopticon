@@ -4,6 +4,7 @@ prefixes:
   - /sys
   - /dev
   - /etc/ssl
+  - /lib
   - /etc/resolv.conf
   - /etc/hosts
   - /etc/nsswitch.conf
@@ -14,5 +15,7 @@ prefixes:
   - /usr/share/locale
   - /pano-cache
 exact:
+  - /etc/ld.so.cache
+  - /etc/localtime
   - /dev/null
   - /dev/urandom

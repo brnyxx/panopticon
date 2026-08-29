@@ -28,19 +28,23 @@ let pending = Buffer.alloc(0);
 process.stdin.on('data', (chunk) => {
   pending = Buffer.concat([pending, chunk]);
   while (true) {
-    const marker = pending.indexOf('\r\n\r\n');
-    if (marker < 0) break;
-    const header = pending.subarray(0, marker).toString();
-    const match = header.match(/^Content-Length:\s*(\d+)$/im);
-    if (!match) {
-      pending = pending.subarray(marker + 4);
-      continue;
+    let body;
+    if (pending.subarray(0, 15).toString().toLowerCase() === 'content-length:') {
+      const marker = pending.indexOf('\r\n\r\n');
+      if (marker < 0) break;
+      const match = pending.subarray(0, marker).toString().match(/^Content-Length:\s*(\d+)$/im);
+      if (!match) break;
+      const length = Number(match[1]);
+      const end = marker + 4 + length;
+      if (pending.length < end) break;
+      body = pending.subarray(marker + 4, end);
+      pending = pending.subarray(end);
+    } else {
+      const marker = pending.indexOf('\n');
+      if (marker < 0) break;
+      body = pending.subarray(0, marker);
+      pending = pending.subarray(marker + 1);
     }
-    const length = Number(match[1]);
-    const end = marker + 4 + length;
-    if (pending.length < end) break;
-    const body = pending.subarray(marker + 4, end);
-    pending = pending.subarray(end);
     let request;
     try {
       request = JSON.parse(body.toString('utf8'));

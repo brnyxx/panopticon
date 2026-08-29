@@ -27,7 +27,7 @@ class ReactiveStream:
         return await self.queue.get()
 
     def write(self, data: bytes) -> None:
-        payload: Any = json.loads(data.split(b"\r\n\r\n", 1)[1])
+        payload: Any = json.loads(data)
         identifier = payload.get("id")
         method = payload["method"]
         if identifier is None:

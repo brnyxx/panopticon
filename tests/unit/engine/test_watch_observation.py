@@ -17,6 +17,7 @@ from panopticon.engine.watch_local_model import (
 )
 from panopticon.engine.watch_model import Coverage, TargetMode, TargetSelection
 from panopticon.engine.watch_observation import build_watch_observation
+from panopticon.engine.watch_observation_events import assigned_events
 from panopticon.models.ids import derive_span_id
 from panopticon.models.observation import DeclaredCompleteness
 from panopticon.models.state import StageStatus
@@ -25,6 +26,7 @@ from panopticon.probe.driver import CallStatus, DriverResult, DriverStatus, Tool
 from panopticon.probe.protocol import MODERN_PROTOCOL, ProbeResult, ProbeStatus, ProtocolEra
 from panopticon.sandbox.base import StreamResult
 from panopticon.sandbox.decoy import generate_decoy_home
+from panopticon.sandbox.netlog import NetworkEvent, NetworkLogSource
 from panopticon.sandbox.trace_model import TraceEvent, TraceReason, TraceResult, TraceStatus
 
 NOW = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
@@ -48,6 +50,9 @@ def _result(
     legacy: bool = False,
     outside: bool = False,
     early: bool = False,
+    extra_spans: tuple[LocalSpan, ...] = (),
+    trace_events: tuple[TraceEvent, ...] | None = None,
+    network_events: tuple[NetworkEvent, ...] = (),
 ) -> LocalWatchResult:
     context = _context(tmp_path)
     manifest = generate_decoy_home("seed", str(context.target.installation_id))
@@ -74,7 +79,8 @@ def _result(
     )
     timestamp = (NOW + timedelta(seconds=3 if outside else 0.96 if early else 1.5)).timestamp()
     trace = TraceResult(
-        (
+        trace_events
+        or (
             TraceEvent(
                 10,
                 timestamp,
@@ -136,11 +142,25 @@ def _result(
         tools=(LocalTool("read_data", "2" * 16, True, False, False),),
         raw_tools=(raw_tool,),
         calls=calls,
-        spans=(startup, call),
+        spans=(startup, call, *extra_spans),
         trace=trace,
         stderr=StreamResult(b""),
         manifest=manifest,
         coverage=coverage,
+        network_events=network_events,
+    )
+
+
+def _span(name: str, index: int, start: float, end: float, kind: SpanKind) -> LocalSpan:
+    return LocalSpan(
+        derive_span_id(name, index),
+        name,
+        index,
+        NOW + timedelta(seconds=start),
+        NOW + timedelta(seconds=end),
+        f"{index:x}" * 16,
+        "OK",
+        kind,
     )
 
 
@@ -211,3 +231,89 @@ def test_call_events_allow_bounded_clock_skew(tmp_path: Path) -> None:
     assert build.observation is not None
     call = next(span for span in build.observation.spans if span.tool == "read_data")
     assert any(event.root.kind == "file" for event in call.events)
+
+
+def test_event_attribution_prefers_exact_idle_and_tolerates_call_skew(tmp_path: Path) -> None:
+    idle = _span("idle", 2, 2.0, 3.0, SpanKind.IDLE)
+    events = (
+        TraceEvent(
+            10, (NOW + timedelta(seconds=2.5)).timestamp(), "openat", "open", (), 3, "/idle"
+        ),
+        TraceEvent(
+            10, (NOW + timedelta(seconds=0.96)).timestamp(), "openat", "open", (), 3, "/call"
+        ),
+    )
+    result = _result(tmp_path, extra_spans=(idle,), trace_events=events)
+    assigned, uncovered = assigned_events(result)
+
+    assert uncovered == 0
+    assert [event.path for event in assigned[idle.span_id]] == ["/idle"]
+    call_id = derive_span_id("read_data", 1)
+    assert [event.path for event in assigned[call_id]] == ["/call"]
+
+
+def test_event_attribution_falls_back_to_startup_then_session(tmp_path: Path) -> None:
+    session = _span("session", 3, -1.0, 4.0, SpanKind.SESSION)
+    events = (
+        TraceEvent(
+            10, (NOW + timedelta(seconds=0.5)).timestamp(), "openat", "open", (), 3, "/startup"
+        ),
+        TraceEvent(
+            10, (NOW - timedelta(seconds=0.5)).timestamp(), "openat", "open", (), 3, "/session"
+        ),
+    )
+    assigned, uncovered = assigned_events(
+        _result(tmp_path, extra_spans=(session,), trace_events=events)
+    )
+
+    assert uncovered == 0
+    assert assigned[derive_span_id("startup", 0)][0].path == "/startup"
+    assert assigned[session.span_id][0].path == "/session"
+
+
+def test_timed_network_events_are_attributed_to_call_idle_and_session(tmp_path: Path) -> None:
+    idle = _span("idle", 2, 2.0, 3.0, SpanKind.IDLE)
+    session = _span("session", 3, -1.0, 4.0, SpanKind.SESSION)
+    network = tuple(
+        NetworkEvent(NetworkLogSource.DNS, host, timestamp=NOW + timedelta(seconds=offset))
+        for host, offset in (("call.example", 1.5), ("idle.example", 2.5), ("session.example", 3.5))
+    )
+    build = build_watch_observation(
+        _result(tmp_path, extra_spans=(idle, session), network_events=network)
+    )
+
+    assert build.observation is not None
+    by_tool = {span.tool: span for span in build.observation.spans}
+    assert [
+        event.root.host for event in by_tool["read_data"].events if event.root.kind == "net"
+    ] == ["call.example"]
+    assert [event.root.host for event in by_tool["idle"].events if event.root.kind == "net"] == [
+        "idle.example"
+    ]
+    assert [event.root.host for event in by_tool["session"].events if event.root.kind == "net"] == [
+        "session.example"
+    ]
+
+
+def test_timestamp_less_network_event_uses_first_session(tmp_path: Path) -> None:
+    session = _span("session", 3, -1.0, 4.0, SpanKind.SESSION)
+    event = NetworkEvent(NetworkLogSource.PROXY, "fallback.example", port=443)
+    build = build_watch_observation(
+        _result(tmp_path, extra_spans=(session,), network_events=(event,))
+    )
+
+    assert build.observation is not None
+    span = next(span for span in build.observation.spans if span.tool == "session")
+    assert [item.root.host for item in span.events if item.root.kind == "net"] == [
+        "fallback.example"
+    ]
+
+
+def test_event_outside_all_spans_is_uncovered(tmp_path: Path) -> None:
+    event = TraceEvent(
+        10, (NOW + timedelta(seconds=10)).timestamp(), "openat", "open", (), 3, "/outside"
+    )
+    assigned, uncovered = assigned_events(_result(tmp_path, trace_events=(event,)))
+
+    assert uncovered == 1
+    assert all(not events for events in assigned.values())

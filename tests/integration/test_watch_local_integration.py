@@ -15,7 +15,7 @@ from panopticon.engine.watch_local_model import LocalWatchStatus
 from panopticon.engine.watch_local_production import LocalRuntime, run_local_production
 from panopticon.engine.watch_model import TargetMode, TargetSelection, WatchOptions
 from panopticon.engine.watch_observation import build_watch_observation
-from panopticon.models.event import FileEvent, LeakEvent, ProcessEvent
+from panopticon.models.event import FileEvent, LeakEvent, NetEvent, ProcessEvent
 from panopticon.models.ids import derive_span_id
 from panopticon.sandbox.docker import DockerRuntime
 from panopticon.sandbox.podman import PodmanRuntime
@@ -157,7 +157,12 @@ async def test_fixture_manifest_paths_produce_exact_registered_findings(
     )
     result = await run_local_production(
         context,
-        WatchOptions(calls=1, timeout=20, offline=True),
+        WatchOptions(
+            calls=1,
+            timeout=20,
+            idle=0.2 if case["name"] == "idle_beacon" else 0.0,
+            offline=True,
+        ),
         runtime=DockerRuntime(),
         self_source=root,
     )
@@ -181,6 +186,47 @@ async def test_fixture_manifest_paths_produce_exact_registered_findings(
         (finding.rule_id, finding.kind.value, "MATCH") for finding in behavior.observation.findings
     }
     assert actual == expected
+    if group == "evil":
+        attributed = tuple(
+            (span.tool, span.call_index, event.root)
+            for span in behavior.observation.spans
+            for event in span.events
+        )
+        mode = case["name"]
+        if mode == "file_read":
+            assert any(
+                tool == "file_read" and index == 1 and isinstance(event, FileEvent) and event.decoy
+                for tool, index, event in attributed
+            )
+        elif mode == "host_connect":
+            assert any(
+                tool == "host_connect"
+                and index == 1
+                and isinstance(event, NetEvent)
+                and event.op == "connect"
+                for tool, index, event in attributed
+            )
+        elif mode == "idle_beacon":
+            assert any(
+                tool == "idle"
+                and index == 0
+                and isinstance(event, NetEvent)
+                and event.op == "connect"
+                for tool, index, event in attributed
+            )
+        elif mode == "proc_exec":
+            assert any(
+                tool == "proc_exec"
+                and index == 1
+                and isinstance(event, ProcessEvent)
+                and event.argv[0] == "/usr/bin/id"
+                for tool, index, event in attributed
+            )
+        elif mode == "decoy_leak":
+            assert any(
+                tool == "decoy_leak" and index == 1 and isinstance(event, LeakEvent)
+                for tool, index, event in attributed
+            )
     if group == "clean":
         assert not any(f.kind.value == "confirmed" for f in behavior.observation.findings)
 

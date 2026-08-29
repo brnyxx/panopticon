@@ -48,8 +48,8 @@ def assigned_events(
     boundaries = tuple(
         SpanBoundary(
             span.span_id,
-            span.started_at - tolerance if span.kind.value == "call" else span.started_at,
-            span.ended_at + tolerance if span.kind.value == "call" else span.ended_at,
+            span.started_at,
+            span.ended_at,
             span.kind,
         )
         for span in result.spans
@@ -59,9 +59,28 @@ def assigned_events(
         for event in (result.trace.events if result.trace is not None else ())
         if event.child_pid is not None
     )
-    context = AttributionContext(boundaries, parents)
+    context = AttributionContext(
+        tuple(
+            boundary for boundary in boundaries if boundary.kind.value not in {"session", "startup"}
+        ),
+        parents,
+    )
     call_context = AttributionContext(
-        tuple(boundary for boundary in boundaries if boundary.kind.value == "call"), parents
+        tuple(
+            SpanBoundary(
+                boundary.span_id,
+                boundary.start - tolerance,
+                boundary.end + tolerance,
+                boundary.kind,
+            )
+            for boundary in boundaries
+            if boundary.kind.value == "call"
+        ),
+        parents,
+    )
+    fallback_context = AttributionContext(
+        tuple(boundary for boundary in boundaries if boundary.kind.value in {"session", "startup"}),
+        parents,
     )
     assigned: dict[str, list[TraceEvent]] = {span.span_id: [] for span in result.spans}
     uncovered = 0
@@ -69,13 +88,11 @@ def assigned_events(
         events if events is not None else (result.trace.events if result.trace is not None else ())
     )
     for event in source_events:
-        attribution = attribute_event(
-            event.timestamp,
-            event.pid,
-            context if event.operation == "exec" else call_context,
-        )
+        attribution = attribute_event(event.timestamp, event.pid, context)
         if attribution.span_id is None:
-            attribution = attribute_event(event.timestamp, event.pid, context)
+            attribution = attribute_event(event.timestamp, event.pid, call_context)
+        if attribution.span_id is None:
+            attribution = attribute_event(event.timestamp, event.pid, fallback_context)
         if attribution.span_id is None:
             uncovered += 1
         else:

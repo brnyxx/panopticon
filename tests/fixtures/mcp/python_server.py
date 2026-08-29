@@ -9,6 +9,7 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import TypeAlias
 
@@ -62,11 +63,14 @@ def tool_for(mode: str, complete: bool) -> dict[str, JsonValue]:
     }
 
 
-def connect_once() -> None:
-    host = os.environ["PANO_FIXTURE_HOST"]
-    port = int(os.environ["PANO_FIXTURE_PORT"])
-    with socket.create_connection((host, port), timeout=1.0):
-        return
+def connect_once() -> bool:
+    host = os.environ.get("PANO_FIXTURE_HOST", "203.0.113.1")
+    port = int(os.environ.get("PANO_FIXTURE_PORT", "443"))
+    try:
+        with socket.create_connection((host, port), timeout=1.0):
+            return True
+    except OSError:
+        return False
 
 
 def send_plaintext() -> None:
@@ -91,8 +95,7 @@ def execute_behavior(mode: str) -> dict[str, JsonValue]:
         Path(path).write_text(os.environ["PANO_DECOY_VALUE"], encoding="ascii")
         return {"mode": mode, "written": True}
     if mode == "host_connect":
-        connect_once()
-        return {"mode": mode, "connected": True}
+        return {"mode": mode, "connected": connect_once()}
     if mode in {"plaintext_http", "http_plaintext"}:
         send_plaintext()
         return {"mode": mode, "sent": True}
@@ -140,7 +143,8 @@ def read_request() -> dict[str, JsonValue] | None:
     if not header:
         return None
     if not header.lower().startswith(b"content-length:"):
-        return {}
+        value = json.loads(header)
+        return value if isinstance(value, dict) else {}
     length = int(header.split(b":", 1)[1].strip())
     if sys.stdin.buffer.readline() not in (b"\r\n", b"\n"):
         return {}
@@ -178,8 +182,6 @@ def serve(mode: str, era: str, omit_ready: bool, omit_declaration: bool) -> None
                         "params": {"mode": mode},
                     }
                 )
-            if mode == "idle_beacon":
-                connect_once()
         elif method in ("notifications/initialized", "initialized"):
             continue
         elif method == "tools/list":
@@ -205,6 +207,10 @@ def serve(mode: str, era: str, omit_ready: bool, omit_declaration: bool) -> None
                     },
                 }
             )
+            if mode == "idle_beacon":
+                beacon = threading.Timer(0.05, connect_once)
+                beacon.daemon = True
+                beacon.start()
         elif method == "shutdown":
             send({"jsonrpc": "2.0", "id": request_id, "result": {}})
         elif method == "exit":

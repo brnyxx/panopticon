@@ -86,12 +86,13 @@ def main() -> None:
         header = sys.stdin.buffer.readline()
         if not header:
             return
-        if not header.lower().startswith(b"content-length:"):
-            return
-        length = int(header.split(b":", 1)[1])
-        if sys.stdin.buffer.readline() != b"\r\n":
-            return
-        request = json.loads(sys.stdin.buffer.read(length))
+        if header.lower().startswith(b"content-length:"):
+            length = int(header.split(b":", 1)[1])
+            if sys.stdin.buffer.readline() != b"\r\n":
+                return
+            request = json.loads(sys.stdin.buffer.read(length))
+        else:
+            request = json.loads(header)
         if "id" not in request:
             continue
         identifier = request["id"]

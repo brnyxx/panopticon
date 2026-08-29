@@ -8,11 +8,76 @@ import json
 import pytest
 
 from panopticon.probe.client import McpClient, ProbeStatus, ProtocolEra
+from panopticon.probe.protocol import FrameDecoder, FrameError, encode_message
 
 
 def frame(value: object) -> bytes:
     body = json.dumps(value, separators=(",", ":")).encode()
     return b"Content-Length: " + str(len(body)).encode() + b"\r\n\r\n" + body
+
+
+def sent(value: bytes) -> dict[str, object]:
+    decoded = json.loads(value)
+    assert isinstance(decoded, dict)
+    return decoded
+
+
+def test_jsonl_frame_decoder_handles_fragmented_multiple_and_blank_lines() -> None:
+    decoder = FrameDecoder()
+    payload = b'\n{"id":1,"result":"one"}\r\n{"id":2,"result":"two"}\n'
+    assert decoder.feed(payload[:10]) == ()
+    assert decoder.feed(payload[10:20]) == ()
+    assert decoder.feed(payload[20:]) == (
+        {"id": 1, "result": "one"},
+        {"id": 2, "result": "two"},
+    )
+
+
+def test_frame_decoder_accepts_legacy_content_length_and_truncation() -> None:
+    decoder = FrameDecoder()
+    body = b'{"id":7,"result":"ok"}'
+    framed = b"Content-Length: " + str(len(body)).encode() + b"\r\n\r\n" + body
+    assert decoder.feed(framed[:-2]) == ()
+    assert decoder.feed(framed[-2:]) == ({"id": 7, "result": "ok"},)
+
+
+def test_frame_decoder_rejects_malformed_json_and_batches() -> None:
+    with pytest.raises(FrameError, match="MALFORMED_FRAME"):
+        FrameDecoder().feed(b'{"id":1\n')
+    with pytest.raises(FrameError, match="BATCH_UNSUPPORTED"):
+        FrameDecoder().feed(b'[{"id":1}]\n')
+
+
+def test_frame_decoder_rejects_oversized_response_and_invalid_max_frame() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        FrameDecoder(0)
+    with pytest.raises(FrameError, match="RESPONSE_TOO_LARGE"):
+        FrameDecoder(max_frame=8).feed(b'{"value":"too-large"}\n')
+    with pytest.raises(FrameError, match="RESPONSE_TOO_LARGE"):
+        FrameDecoder(max_frame=8).feed(b"Content-Length: 9\r\n\r\n123456789")
+    with pytest.raises(FrameError, match="RESPONSE_TOO_LARGE"):
+        FrameDecoder(max_frame=8).feed(b"x" * 17)
+
+
+def test_frame_decoder_rejects_malformed_content_length_headers() -> None:
+    malformed = (
+        b"Content-Length: nope\r\n\r\n{}",
+        b"Content-Length: -1\r\n\r\n{}",
+        b"Content-Length: 2\r\nX\r\n\r\n{}",
+        b"Content-Length: 2\r\nContent-Length: 2\r\n\r\n{}",
+    )
+    for payload in malformed:
+        with pytest.raises(FrameError, match="MALFORMED_HEADER"):
+            FrameDecoder().feed(payload)
+
+
+def test_encode_message_emits_jsonl_and_rejects_oversized_requests() -> None:
+    encoded = encode_message({"jsonrpc": "2.0", "method": "ping"})
+    assert encoded.endswith(b"\n")
+    assert b"Content-Length" not in encoded
+    assert json.loads(encoded) == {"jsonrpc": "2.0", "method": "ping"}
+    with pytest.raises(FrameError, match="REQUEST_TOO_LARGE"):
+        encode_message({"value": "x" * 20}, max_frame=8)
 
 
 class Stream:
@@ -39,7 +104,7 @@ class Stream:
 
     async def respond_to(self, index: int, result: object) -> None:
         await self.write_event.wait()
-        request = json.loads(self.writes[index].split(b"\r\n\r\n", 1)[1])
+        request = sent(self.writes[index])
         await self.chunks.put(frame({"jsonrpc": "2.0", "id": request["id"], "result": result}))
         self.write_event.clear()
 
@@ -61,7 +126,7 @@ async def test_modern_initialize_records_metadata_and_sends_initialized() -> Non
     assert result.status is ProbeStatus.COMPLETE
     assert client.era is ProtocolEra.MODERN
     assert client.server_info == {"name": "srv", "version": "9"}
-    initialize = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
+    initialize = sent(stream.writes[0])
     assert initialize["params"]["_meta"]["protocolVersion"] == "2026-07-28"
     assert b"notifications/initialized" in stream.writes[-1]
 
@@ -72,7 +137,7 @@ async def test_initialize_retries_legacy_version_after_modern_error() -> None:
     client = McpClient(stream, stream)
     task = asyncio.create_task(client.initialize())
     await stream.write_event.wait()
-    req = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
+    req = sent(stream.writes[0])
     await stream.chunks.put(frame({"jsonrpc": "2.0", "id": req["id"], "error": {"code": -32602}}))
     stream.write_event.clear()
     await stream.respond_to(
@@ -83,11 +148,8 @@ async def test_initialize_retries_legacy_version_after_modern_error() -> None:
     assert result.status is ProbeStatus.COMPLETE
     assert result.reason_code == "LEGACY_FALLBACK"
     assert client.era is ProtocolEra.LEGACY
-    assert (
-        json.loads(stream.writes[1].split(b"\r\n\r\n", 1)[1])["params"]["protocolVersion"]
-        == "2024-11-05"
-    )
-    assert "_meta" not in json.loads(stream.writes[1].split(b"\r\n\r\n", 1)[1])["params"]
+    assert sent(stream.writes[1])["params"]["protocolVersion"] == "2024-11-05"
+    assert "_meta" not in sent(stream.writes[1])["params"]
 
 
 @pytest.mark.asyncio
@@ -96,7 +158,7 @@ async def test_advertised_server_discovery_is_capability_gated() -> None:
     client = McpClient(stream, stream)
     task = asyncio.create_task(client.initialize())
     initialize = await stream.write_queue.get()
-    initialize_id = json.loads(initialize.split(b"\r\n\r\n", 1)[1])["id"]
+    initialize_id = sent(initialize)["id"]
     await stream.chunks.put(
         frame(
             {
@@ -111,7 +173,7 @@ async def test_advertised_server_discovery_is_capability_gated() -> None:
     initialized_notification = await stream.write_queue.get()
     discover_request = await stream.write_queue.get()
     assert b"notifications/initialized" in initialized_notification
-    discover_payload = json.loads(discover_request.split(b"\r\n\r\n", 1)[1])
+    discover_payload = sent(discover_request)
     assert discover_payload["method"] == "server/discover"
     await stream.chunks.put(frame({"id": discover_payload["id"], "result": {"transports": []}}))
 
@@ -125,7 +187,7 @@ async def test_fragmented_content_length_and_out_of_order_ids() -> None:
     first = asyncio.create_task(client.request("a"))
     second = asyncio.create_task(client.request("b"))
     await stream.write_event.wait()
-    ids = [json.loads(x.split(b"\r\n\r\n", 1)[1])["id"] for x in stream.writes]
+    ids = [sent(x)["id"] for x in stream.writes]
     payload = frame({"id": ids[1], "result": "second"}) + frame({"id": ids[0], "result": "first"})
     for part in (payload[:3], payload[3:17], payload[17:]):
         await stream.chunks.put(part)
@@ -139,7 +201,7 @@ async def test_malformed_batch_oversized_timeout_cancellation_and_early_exit() -
     client = McpClient(stream, stream, max_frame=256, timeout=0.01)
     malformed = asyncio.create_task(client.request("bad"))
     await stream.write_event.wait()
-    req = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
+    req = sent(stream.writes[0])
     await stream.chunks.put(frame([{"id": req["id"], "result": 1}]))
     assert (await malformed).reason_code == "BATCH_UNSUPPORTED"
     assert (await client.request("after-batch")).reason_code == "STREAM_DESYNCHRONIZED"
@@ -182,7 +244,7 @@ async def test_capability_gated_lists_and_duplicate_cursor() -> None:
     client.capabilities = {"tools": {}}
     task = asyncio.create_task(client.list_paginated("tools/list"))
     await stream.write_event.wait()
-    req = json.loads(stream.writes[0].split(b"\r\n\r\n", 1)[1])
+    req = sent(stream.writes[0])
     await stream.chunks.put(
         frame({"id": req["id"], "result": {"tools": [{"name": "x"}], "nextCursor": "same"}})
     )

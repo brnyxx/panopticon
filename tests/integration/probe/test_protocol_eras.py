@@ -25,7 +25,7 @@ class InMemoryMcpServer:
         return await self.responses.get()
 
     def write(self, data: bytes) -> None:
-        payload = json.loads(data.split(b"\r\n\r\n", 1)[1])
+        payload = json.loads(data)
         self.requests.append(payload)
         if "id" not in payload:
             return

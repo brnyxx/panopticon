@@ -1,4 +1,4 @@
-"""Typed MCP JSON-RPC contracts and bounded Content-Length framing."""
+"""Typed MCP JSON-RPC contracts and bounded stdio framing."""
 
 from __future__ import annotations
 
@@ -77,18 +77,28 @@ class FrameDecoder:
             raise FrameError("RESPONSE_TOO_LARGE")
         messages: list[dict[str, object]] = []
         while True:
-            marker = self.buffer.find(b"\r\n\r\n")
-            if marker < 0:
-                return tuple(messages)
-            raw_header = bytes(self.buffer[:marker])
-            length = _content_length(raw_header)
-            if length > self.max_frame:
-                raise FrameError("RESPONSE_TOO_LARGE")
-            frame_end = marker + 4 + length
-            if len(self.buffer) < frame_end:
-                return tuple(messages)
-            payload = bytes(self.buffer[marker + 4 : frame_end])
-            del self.buffer[:frame_end]
+            if self.buffer.lower().startswith(b"content-length:"):
+                marker = self.buffer.find(b"\r\n\r\n")
+                if marker < 0:
+                    return tuple(messages)
+                length = _content_length(bytes(self.buffer[:marker]))
+                if length > self.max_frame:
+                    raise FrameError("RESPONSE_TOO_LARGE")
+                frame_end = marker + 4 + length
+                if len(self.buffer) < frame_end:
+                    return tuple(messages)
+                payload = bytes(self.buffer[marker + 4 : frame_end])
+                del self.buffer[:frame_end]
+            else:
+                marker = self.buffer.find(b"\n")
+                if marker < 0:
+                    return tuple(messages)
+                if marker > self.max_frame:
+                    raise FrameError("RESPONSE_TOO_LARGE")
+                payload = bytes(self.buffer[:marker]).rstrip(b"\r")
+                del self.buffer[: marker + 1]
+                if not payload:
+                    continue
             try:
                 decoded: object = json.loads(payload)
             except (UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -102,7 +112,7 @@ def encode_message(message: dict[str, JsonValue], max_frame: int = MAX_FRAME) ->
     body = json.dumps(message, ensure_ascii=True, separators=(",", ":")).encode()
     if len(body) > max_frame:
         raise FrameError("REQUEST_TOO_LARGE")
-    return b"Content-Length: " + str(len(body)).encode() + b"\r\n\r\n" + body
+    return body + b"\n"
 
 
 def response_value(value: object) -> JsonValue:
