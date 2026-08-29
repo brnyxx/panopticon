@@ -12,8 +12,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--assets", type=Path, required=True)
     parser.add_argument("--commit", required=True)
+    parser.add_argument("--version", required=True)
     args = parser.parse_args()
-    assembly = assemble_release(args.assets, args.commit)
+    assembly = assemble_release(args.assets, args.commit, args.version)
     (args.assets / "SHA256SUMS").write_text(
         assembly.checksums,
         encoding="utf-8",

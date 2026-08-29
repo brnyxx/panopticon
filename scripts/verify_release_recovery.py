@@ -11,32 +11,31 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from panopticon.release import payload_names, validate_version
+
 _SHA = re.compile(r"[0-9a-f]{40}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 _RUN_ID = re.compile(r"[0-9]+")
 _SIGSTORE_MEDIA_TYPE = "application/vnd.dev.sigstore.bundle.v0.3+json"
-WHEEL = "panopticon_mcp-1.0.0-py3-none-any.whl"
-SDIST = "panopticon_mcp-1.0.0.tar.gz"
-PYPI_ASSETS = frozenset((WHEEL, SDIST))
-RELEASE_ASSETS = frozenset(
-    {
-        "panopticon-1.0.0-darwin-arm64.tar.gz",
-        "panopticon-1.0.0-darwin-arm64.tar.gz.cdx.json",
-        "panopticon-1.0.0-darwin-x86_64.tar.gz",
-        "panopticon-1.0.0-darwin-x86_64.tar.gz.cdx.json",
-        "panopticon-1.0.0-linux-arm64.tar.gz",
-        "panopticon-1.0.0-linux-arm64.tar.gz.cdx.json",
-        "panopticon-1.0.0-linux-x86_64.tar.gz",
-        "panopticon-1.0.0-linux-x86_64.tar.gz.cdx.json",
-        WHEEL,
-        f"{WHEEL}.cdx.json",
-        SDIST,
-        f"{SDIST}.cdx.json",
-    }
-)
 _METADATA_FILES = frozenset(("release-manifest.json", "SHA256SUMS"))
-_SIGNED_FILES = RELEASE_ASSETS | _METADATA_FILES
-_BUNDLE_FILES = _SIGNED_FILES | {f"{name}.sigstore.json" for name in _SIGNED_FILES}
+
+
+def pypi_assets(version: str) -> frozenset[str]:
+    return frozenset(payload_names(validate_version(version))[:2])
+
+
+def release_assets(version: str) -> frozenset[str]:
+    payloads = payload_names(validate_version(version))
+    return frozenset((*payloads, *(f"{name}.cdx.json" for name in payloads)))
+
+
+def signed_files(version: str) -> frozenset[str]:
+    return release_assets(version) | _METADATA_FILES
+
+
+def bundle_files(version: str) -> frozenset[str]:
+    signed = signed_files(version)
+    return signed | {f"{name}.sigstore.json" for name in signed}
 
 
 def _digest(path: Path) -> str:
@@ -81,6 +80,29 @@ def verify_run_metadata(metadata: object, source_run_id: str, source_sha: str) -
         raise ValueError("RUN_WORKFLOW_MISMATCH")
 
 
+def verify_run_jobs(metadata: object) -> None:
+    if not isinstance(metadata, dict):
+        raise ValueError("INVALID_RUN_JOBS")
+    jobs = metadata.get("jobs")
+    if not isinstance(jobs, list):
+        raise ValueError("INVALID_RUN_JOBS")
+    conclusions: dict[str, str] = {}
+    binary_jobs = 0
+    for job in jobs:
+        if not isinstance(job, dict):
+            raise ValueError("INVALID_RUN_JOBS")
+        name = job.get("name")
+        conclusion = job.get("conclusion")
+        if not isinstance(name, str) or not isinstance(conclusion, str) or name in conclusions:
+            raise ValueError("INVALID_RUN_JOBS")
+        conclusions[name] = conclusion
+        if name.startswith("binary (") and conclusion == "success":
+            binary_jobs += 1
+    required = {"quality", "python-package", "assemble", "verify-images", "testpypi", "draft"}
+    if any(conclusions.get(name) != "success" for name in required) or binary_jobs != 4:
+        raise ValueError("RUN_CHANNEL_MISMATCH")
+
+
 def _checksums(path: Path) -> dict[str, str]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -107,43 +129,47 @@ def _verify_sigstore_bundle(path: Path) -> None:
         raise ValueError("INVALID_SIGSTORE_BUNDLE")
 
 
-def verify_bundle(bundle: Path, source_sha: str) -> Mapping[str, str]:
+def verify_bundle(bundle: Path, source_sha: str, version: str) -> Mapping[str, str]:
+    version = validate_version(version)
     manifest = _json(bundle / "release-manifest.json", "INVALID_RELEASE_MANIFEST")
     if not isinstance(manifest, dict):
         raise ValueError("INVALID_RELEASE_MANIFEST")
     if set(manifest) != {"assets", "commit", "schema_version", "version"}:
         raise ValueError("INVALID_RELEASE_MANIFEST")
-    if manifest.get("schema_version") != 1 or manifest.get("version") != "1.0.0":
+    if manifest.get("schema_version") != 1 or manifest.get("version") != version:
         raise ValueError("INVALID_RELEASE_MANIFEST")
     if manifest.get("commit") != source_sha:
         raise ValueError("RELEASE_COMMIT_MISMATCH")
     assets = manifest.get("assets")
-    if not isinstance(assets, dict) or set(assets) != RELEASE_ASSETS:
+    expected_assets = release_assets(version)
+    if not isinstance(assets, dict) or set(assets) != expected_assets:
         raise ValueError("INVALID_RELEASE_ASSETS")
     expected = {str(name): str(value) for name, value in assets.items()}
     if any(_HEX.fullmatch(value) is None for value in expected.values()):
         raise ValueError("INVALID_RELEASE_ASSETS")
     if _checksums(bundle / "SHA256SUMS") != expected:
         raise ValueError("SHA256SUMS_MISMATCH")
+    expected_bundle = bundle_files(version)
     actual = {path.name for path in bundle.iterdir() if path.is_file()}
-    if actual != _BUNDLE_FILES:
+    if actual != expected_bundle:
         raise ValueError("RELEASE_ASSET_SET_MISMATCH")
     for name, digest in expected.items():
         if _digest(bundle / name) != digest:
             raise ValueError(f"RELEASE_ASSET_HASH_MISMATCH:{name}")
-    for name in _BUNDLE_FILES - _SIGNED_FILES:
+    for name in expected_bundle - signed_files(version):
         _verify_sigstore_bundle(bundle / name)
     return expected
 
 
-def verify_dist(bundle: Path, dist: Path) -> None:
+def verify_dist(bundle: Path, dist: Path, version: str) -> None:
+    expected_assets = pypi_assets(version)
     try:
         actual = {path.name for path in dist.iterdir() if path.is_file()}
     except OSError as exc:
         raise ValueError("INVALID_DIST_ASSETS") from exc
-    if actual != PYPI_ASSETS:
+    if actual != expected_assets:
         raise ValueError("INVALID_DIST_ASSETS")
-    for name in PYPI_ASSETS:
+    for name in expected_assets:
         if _digest(bundle / name) != _digest(dist / name):
             raise ValueError(f"DIST_MISMATCH:{name}")
 
@@ -176,14 +202,14 @@ def _remote_assets(value: object) -> dict[str, str]:
     return result
 
 
-def verify_index(metadata: object | Path, dist: Path) -> None:
+def verify_index(metadata: object | Path, dist: Path, version: str) -> None:
     value = _json(metadata, "INVALID_INDEX_METADATA") if isinstance(metadata, Path) else metadata
-    if missing_index_assets(value, dist):
+    if missing_index_assets(value, dist, version):
         raise ValueError("INDEX_ASSET_MISMATCH")
 
 
-def missing_index_assets(metadata: object, dist: Path) -> frozenset[str]:
-    expected = {name: _digest(dist / name) for name in PYPI_ASSETS}
+def missing_index_assets(metadata: object, dist: Path, version: str) -> frozenset[str]:
+    expected = {name: _digest(dist / name) for name in pypi_assets(version)}
     observed = _remote_assets(metadata)
     if not set(observed).issubset(expected):
         raise ValueError("INDEX_ASSET_MISMATCH")
@@ -192,8 +218,10 @@ def missing_index_assets(metadata: object, dist: Path) -> frozenset[str]:
     return frozenset(set(expected) - set(observed))
 
 
-def stage_missing_index_assets(metadata: object, dist: Path, staged: Path) -> frozenset[str]:
-    missing = missing_index_assets(metadata, dist)
+def stage_missing_index_assets(
+    metadata: object, dist: Path, staged: Path, version: str
+) -> frozenset[str]:
+    missing = missing_index_assets(metadata, dist, version)
     try:
         staged.mkdir()
         for name in sorted(missing):
@@ -204,14 +232,15 @@ def stage_missing_index_assets(metadata: object, dist: Path, staged: Path) -> fr
 
 
 def prepare_release_metadata(
-    releases: object,
+    releases: object, version: str
 ) -> tuple[dict[str, object], tuple[tuple[int, str], ...]]:
+    version = validate_version(version)
     if not isinstance(releases, list):
         raise ValueError("INVALID_RELEASE_LIST")
     matches = [
         release
         for release in releases
-        if isinstance(release, dict) and release.get("tag_name") == "v1.0.0"
+        if isinstance(release, dict) and release.get("tag_name") == f"v{version}"
     ]
     if len(matches) != 1:
         raise ValueError("RELEASE_NOT_UNIQUE")
@@ -238,7 +267,7 @@ def prepare_release_metadata(
             raise ValueError("INVALID_RELEASE_ASSETS")
         digests[name] = value
         downloads.append((identifier, name))
-    if set(digests) != _BUNDLE_FILES:
+    if set(digests) != bundle_files(version):
         raise ValueError("INVALID_RELEASE_ASSETS")
     metadata = {
         "target_commitish": release.get("target_commitish"),
@@ -254,7 +283,9 @@ def verify_release_state(
     bundle: Path,
     source_sha: str,
     downloaded: Path,
+    version: str,
 ) -> bool:
+    expected_names = bundle_files(version)
     if not isinstance(metadata, dict):
         raise ValueError("INVALID_RELEASE_STATE")
     state = (metadata.get("draft"), metadata.get("prerelease"))
@@ -262,7 +293,10 @@ def verify_release_state(
         raise ValueError("RELEASE_STATE_MISMATCH")
     if metadata.get("target_commitish") != source_sha:
         raise ValueError("RELEASE_TARGET_MISMATCH")
-    expected = {path.name: _digest(path) for path in bundle.iterdir() if path.is_file()}
+    actual_bundle = {path.name for path in bundle.iterdir() if path.is_file()}
+    if actual_bundle != expected_names:
+        raise ValueError("RELEASE_ASSET_SET_MISMATCH")
+    expected = {name: _digest(bundle / name) for name in expected_names}
     if _remote_assets(metadata.get("assets")) != expected:
         raise ValueError("RELEASE_ASSETS_MISMATCH")
     try:
@@ -279,6 +313,7 @@ def verify_release_state(
 def verify_recovery(
     source_run_id: str,
     source_sha: str,
+    version: str,
     bundle: Path,
     dist: Path,
     index_metadata: object,
@@ -287,17 +322,20 @@ def verify_recovery(
     run_metadata: object,
 ) -> None:
     validate_inputs(source_run_id, source_sha)
+    version = validate_version(version)
     verify_run_metadata(run_metadata, source_run_id, source_sha)
-    verify_bundle(bundle, source_sha)
-    verify_dist(bundle, dist)
-    verify_index(index_metadata, dist)
-    verify_release_state(release_metadata, bundle, source_sha, release_assets)
+    verify_run_jobs(run_metadata)
+    verify_bundle(bundle, source_sha, version)
+    verify_dist(bundle, dist, version)
+    verify_index(index_metadata, dist, version)
+    verify_release_state(release_metadata, bundle, source_sha, release_assets, version)
 
 
 def _source_command(args: argparse.Namespace) -> None:
     verify_recovery(
         args.source_run_id,
         args.source_sha,
+        args.version,
         args.bundle,
         args.dist,
         _json(args.index, "INVALID_INDEX_METADATA"),
@@ -309,7 +347,9 @@ def _source_command(args: argparse.Namespace) -> None:
 
 
 def _release_metadata_command(args: argparse.Namespace) -> None:
-    metadata, downloads = prepare_release_metadata(_json(args.releases, "INVALID_RELEASE_LIST"))
+    metadata, downloads = prepare_release_metadata(
+        _json(args.releases, "INVALID_RELEASE_LIST"), args.version
+    )
     args.metadata.write_text(
         json.dumps(metadata, sort_keys=True, separators=(",", ":")),
         encoding="utf-8",
@@ -324,6 +364,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
     source = subparsers.add_parser("source")
+    source.add_argument("--version", required=True)
     source.add_argument("--source-run-id", required=True)
     source.add_argument("--source-sha", required=True)
     source.add_argument("--bundle", type=Path, required=True)
@@ -334,10 +375,12 @@ def main() -> None:
     source.add_argument("--run-metadata", type=Path, required=True)
     source.set_defaults(handler=_source_command)
     index = subparsers.add_parser("index")
+    index.add_argument("--version", required=True)
     index.add_argument("--metadata", type=Path, required=True)
     index.add_argument("--dist", type=Path, required=True)
-    index.set_defaults(handler=lambda args: verify_index(args.metadata, args.dist))
+    index.set_defaults(handler=lambda args: verify_index(args.metadata, args.dist, args.version))
     release = subparsers.add_parser("release-metadata")
+    release.add_argument("--version", required=True)
     release.add_argument("--releases", type=Path, required=True)
     release.add_argument("--metadata", type=Path, required=True)
     release.add_argument("--downloads", type=Path, required=True)

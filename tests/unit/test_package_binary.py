@@ -9,6 +9,8 @@ import pytest
 
 from panopticon.release import build_binary_archive
 
+VERSION = "1.0.1"
+
 
 def test_binary_archive_is_deterministic_and_portable(tmp_path: Path) -> None:
     root = tmp_path / "root"
@@ -20,17 +22,17 @@ def test_binary_archive_is_deterministic_and_portable(tmp_path: Path) -> None:
     first = tmp_path / "first.tar.gz"
     second = tmp_path / "second.tar.gz"
 
-    first.write_bytes(build_binary_archive(root, binary, "linux-x86_64"))
-    second.write_bytes(build_binary_archive(root, binary, "linux-x86_64"))
+    first.write_bytes(build_binary_archive(root, binary, "linux-x86_64", VERSION))
+    second.write_bytes(build_binary_archive(root, binary, "linux-x86_64", VERSION))
 
     assert first.read_bytes() == second.read_bytes()
     tar_payload = gzip.decompress(first.read_bytes())
     with tarfile.open(fileobj=io.BytesIO(tar_payload), mode="r:") as archive:
         members = archive.getmembers()
         assert [member.name for member in members] == [
-            "panopticon-1.0.0-linux-x86_64/pano",
-            "panopticon-1.0.0-linux-x86_64/LICENSE",
-            "panopticon-1.0.0-linux-x86_64/THIRD_PARTY_NOTICES.md",
+            "panopticon-1.0.1-linux-x86_64/pano",
+            "panopticon-1.0.1-linux-x86_64/LICENSE",
+            "panopticon-1.0.1-linux-x86_64/THIRD_PARTY_NOTICES.md",
         ]
         assert members[0].mode == 0o755
         assert all(member.mtime == 0 for member in members)
@@ -41,4 +43,13 @@ def test_binary_archive_rejects_untrusted_target(tmp_path: Path) -> None:
     binary.write_bytes(b"executable")
 
     with pytest.raises(ValueError, match="INVALID_BINARY_ARCHIVE_INPUT"):
-        build_binary_archive(tmp_path, binary, "../escape")
+        build_binary_archive(tmp_path, binary, "../escape", VERSION)
+
+
+@pytest.mark.parametrize("version", ("1.0", "v1.0.1", "1.0.1rc1", "01.0.1"))
+def test_binary_archive_rejects_invalid_stable_version(tmp_path: Path, version: str) -> None:
+    binary = tmp_path / "pano"
+    binary.write_bytes(b"executable")
+
+    with pytest.raises(ValueError, match="INVALID_RELEASE_VERSION"):
+        build_binary_archive(tmp_path, binary, "linux-x86_64", version)

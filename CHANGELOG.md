@@ -4,6 +4,10 @@ All notable changes are recorded here. Versions advance by closed epics (panopti
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-29
+- Corrected the public privacy summary to direct users to the exhaustive outbound-path disclosure.
+- Single-sourced version-aware build-once patch-release tooling.
+
 ## [1.0.0] - 2026-08-28
 - Initial local-first MCP behavior observatory release.
 - Six-client discovery, isolated local/remote observation, coverage-aware findings, baselines,

@@ -1,4 +1,4 @@
-"""Validate and hash the exact build-once v1.0.0 release asset set."""
+"""Validate and hash the exact release asset set."""
 
 from __future__ import annotations
 
@@ -8,15 +8,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-PAYLOADS = (
-    "panopticon_mcp-1.0.0-py3-none-any.whl",
-    "panopticon_mcp-1.0.0.tar.gz",
-    "panopticon-1.0.0-linux-x86_64.tar.gz",
-    "panopticon-1.0.0-linux-arm64.tar.gz",
-    "panopticon-1.0.0-darwin-x86_64.tar.gz",
-    "panopticon-1.0.0-darwin-arm64.tar.gz",
-)
-_SBOMS = tuple(f"{name}.cdx.json" for name in PAYLOADS)
+_VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
@@ -27,6 +19,24 @@ class ReleaseAssembly:
     checksums: str
 
 
+def validate_version(version: str) -> str:
+    if _VERSION.fullmatch(version) is None:
+        raise ValueError("INVALID_RELEASE_VERSION")
+    return version
+
+
+def payload_names(version: str) -> tuple[str, ...]:
+    version = validate_version(version)
+    return (
+        f"panopticon_mcp-{version}-py3-none-any.whl",
+        f"panopticon_mcp-{version}.tar.gz",
+        f"panopticon-{version}-linux-x86_64.tar.gz",
+        f"panopticon-{version}-linux-arm64.tar.gz",
+        f"panopticon-{version}-darwin-x86_64.tar.gz",
+        f"panopticon-{version}-darwin-arm64.tar.gz",
+    )
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -35,18 +45,23 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def assemble_release(assets: Path, commit: str) -> ReleaseAssembly:
+def assemble_release(assets: Path, commit: str, version: str) -> ReleaseAssembly:
     if _COMMIT.fullmatch(commit) is None:
         raise ValueError("INVALID_RELEASE_COMMIT")
-    required = (*PAYLOADS, *_SBOMS)
+    version = validate_version(version)
+    payloads = payload_names(version)
+    required = (*payloads, *(f"{name}.cdx.json" for name in payloads))
     missing = [name for name in required if not (assets / name).is_file()]
     if missing:
         raise ValueError("MISSING_RELEASE_ASSETS:" + ",".join(missing))
+    actual = {path.name for path in assets.iterdir() if path.is_file()}
+    if actual != set(required):
+        raise ValueError("RELEASE_ASSET_SET_MISMATCH")
     hashes = {name: _sha256(assets / name) for name in sorted(required)}
     checksums = "".join(f"{digest}  {name}\n" for name, digest in hashes.items())
     manifest: dict[str, object] = {
         "schema_version": 1,
-        "version": "1.0.0",
+        "version": version,
         "commit": commit,
         "assets": hashes,
     }

@@ -24,7 +24,7 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | E16 Analyze line | CLOSED | exact 125-test replay, typed scan modes, semantic disclosure, dynamic self analysis, deterministic SARIF/exit policy, provenance, and hardened self-scan pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E17 Reporters | CLOSED | terminal, JSON, SARIF, Markdown, deterministic ko/en PNG, accessible SVG, leak rejection, persistence, stable hashes, and live self-scan upload pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E18 i18n | CLOSED | all 47 bilingual six-section rule documents, locale precedence/fallback, CJK-safe explain, catalog generation, glossary, and phrase gates pass exact-product [CI][ci] and the final [audit bundle][audit] |
-| E19 Release | CLOSED | the [source release run][source] built exact product commit `206e5ca6` once; [recovery attempt 2][promotion] published the unchanged PyPI, public `ghcr.io/brnyxx`, and 28-asset [v1.0.0 release][release]; public uvx, pipx, native archive, and [Homebrew tap][homebrew] installs pass |
+| E19 Release | IN PROGRESS | v1.0.0 and public `ghcr.io/brnyxx` remain verified by the linked immutable evidence; v1.0.1 release tooling and privacy metadata pass local quality, Docker, preflight, and independent architecture review, while hosted build-once rehearsal, retained-byte promotion, public installs, and final audits remain |
 
 [ci]: https://github.com/brnyxx/panopticon/actions/runs/33226587357
 [platform]: https://github.com/brnyxx/panopticon/actions/runs/33226587338/attempts/2

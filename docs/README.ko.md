@@ -10,7 +10,7 @@ uvx panopticon-mcp watch --all   # Docker 또는 Podman 필요
 ```
 
 고정 버전 설치, `pipx`, Homebrew, 네이티브 아카이브, 업그레이드와 롤백 절차는
-[`release.md`](release.md)에 있습니다. `pano version`은 `pano 1.0.0 (schema 1.0)`을
+[`release.md`](release.md)에 있습니다. `pano version`은 `pano 1.0.1 (schema 1.0)`을
 출력합니다.
 
 원칙: 판단보다 관측이 먼저 · 관측하지 못한 것은 안전하다고 말하지 않음 · 사용자 홈은 컨테이너에 들어가지 않음(업로드·telemetry 없음).

@@ -4,7 +4,7 @@
 
 <img src=".github/assets/hero.svg" alt="Panopticon — We don't watch you. We watch your MCPs. A local-first MCP behavior observatory." width="920"/>
 
-[![Version](https://img.shields.io/badge/version-1.0.0-orange?style=flat-square&labelColor=0A0E1A)](docs/release.md) [![Python](https://img.shields.io/badge/python-3.11%2B-4B8BBE?style=flat-square&labelColor=0A0E1A)](pyproject.toml) [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL2-8B98B8?style=flat-square&labelColor=0A0E1A)](panopticon-buildplan.md) [![License](https://img.shields.io/badge/license-MIT-E8EDF7?style=flat-square&labelColor=0A0E1A)](LICENSE) [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043?style=flat-square&labelColor=0A0E1A)](#principles)
+[![Version](https://img.shields.io/badge/version-1.0.1-orange?style=flat-square&labelColor=0A0E1A)](docs/release.md) [![Python](https://img.shields.io/badge/python-3.11%2B-4B8BBE?style=flat-square&labelColor=0A0E1A)](pyproject.toml) [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL2-8B98B8?style=flat-square&labelColor=0A0E1A)](panopticon-buildplan.md) [![License](https://img.shields.io/badge/license-MIT-E8EDF7?style=flat-square&labelColor=0A0E1A)](LICENSE) [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043?style=flat-square&labelColor=0A0E1A)](#principles)
 
 </div>
 
@@ -53,9 +53,8 @@ See the [release, installation, upgrade, and rollback guide](docs/release.md) fo
 
 ## Status
 
-The 1.0 contracts and artifacts are built from the implementation plan; release-channel status and
-remaining external promotion work are tracked in [`docs/PROGRESS.md`](docs/PROGRESS.md). Agents:
-read [`AGENTS.md`](AGENTS.md).
+The 1.0 contracts and artifacts are built from the implementation plan. Agents: read
+[`AGENTS.md`](AGENTS.md).
 
 ## Lineage
 

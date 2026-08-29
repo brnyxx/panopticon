@@ -116,3 +116,19 @@ Numbered, append-only. Format: context / options / chosen / why.
 - Why: prohibiting telemetry and undisclosed traffic is compatible with bounded operations the user
   explicitly requests. One exhaustive table prevents concise summaries and runtime behavior from
   drifting apart.
+
+## 19. Patch releases resolve their version from `pyproject.toml`
+- Context: patch-release scripts and workflows previously repeated a release version, which can
+  drift from package metadata and makes rehearsal-to-production handoff ambiguous.
+- Options: retain separately maintained version values; derive a version dynamically in each caller;
+  or use one checked-in resolver reading `pyproject.toml`.
+- Chosen: **`[project].version` in `pyproject.toml` is the sole patch-release authority.** A
+  checked-in resolver validates a stable `X.Y.Z` version and supplies only controlled workflow
+  outputs. Schema `1.0` remains frozen. Patch releases reuse locked GHCR digests and retained
+  rehearsal artifacts; their handoff records the rehearsal run ID and source SHA, and production or
+  recovery re-verifies the retained bytes exactly. Published versions, including 1.0.0, are
+  immutable and are never overwritten or reused.
+- Why: one authoritative package version prevents release metadata drift, while a checked-in,
+  constrained resolver keeps workflow data auditable. Reusing retained evidence and locked image
+  digests preserves the build-once and immutable-publication guarantees without changing product
+  behavior.

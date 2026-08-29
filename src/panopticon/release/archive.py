@@ -7,6 +7,8 @@ import io
 import tarfile
 from pathlib import Path
 
+from .manifest import validate_version
+
 _ARCHIVE_FILES = ("LICENSE", "THIRD_PARTY_NOTICES.md")
 
 
@@ -22,10 +24,10 @@ def _add_bytes(archive: tarfile.TarFile, name: str, payload: bytes, mode: int) -
     archive.addfile(info, io.BytesIO(payload))
 
 
-def build_binary_archive(root: Path, binary: Path, target: str) -> bytes:
+def build_binary_archive(root: Path, binary: Path, target: str, version: str) -> bytes:
     if not binary.is_file() or not target or "/" in target or ".." in target:
         raise ValueError("INVALID_BINARY_ARCHIVE_INPUT")
-    prefix = f"panopticon-1.0.0-{target}"
+    prefix = f"panopticon-{validate_version(version)}-{target}"
     tar_buffer = io.BytesIO()
     with tarfile.open(fileobj=tar_buffer, mode="w", format=tarfile.PAX_FORMAT) as archive:
         _add_bytes(archive, f"{prefix}/pano", binary.read_bytes(), 0o755)

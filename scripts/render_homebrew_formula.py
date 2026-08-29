@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from panopticon.release import render_formula
+from panopticon.release import render_formula, validate_version
 
 
 def main() -> None:
@@ -16,8 +16,9 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     document: Any = json.loads(args.manifest.read_text(encoding="utf-8"))
-    if not isinstance(document, dict) or document.get("version") != "1.0.0":
+    if not isinstance(document, dict) or not isinstance(document.get("version"), str):
         raise ValueError("INVALID_RELEASE_MANIFEST")
+    version = validate_version(document["version"])
     hashes = document.get("assets")
     if not isinstance(hashes, dict) or not all(
         isinstance(key, str) and isinstance(value, str) for key, value in hashes.items()
@@ -25,7 +26,8 @@ def main() -> None:
         raise ValueError("INVALID_RELEASE_MANIFEST")
     formula = render_formula(
         hashes,
-        "https://github.com/brnyxx/panopticon/releases/download/v1.0.0/",
+        f"https://github.com/brnyxx/panopticon/releases/download/v{version}/",
+        version,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(formula, encoding="utf-8", newline="\n")

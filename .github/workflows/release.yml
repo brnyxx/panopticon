@@ -10,11 +10,11 @@ on:
         type: choice
         options: [build, rehearsal, production, recovery]
       source_run_id:
-        description: Successful rehearsal run containing retained artifacts (recovery only)
+        description: Successful rehearsal run containing retained artifacts (production or recovery)
         required: false
         type: string
       source_sha:
-        description: Exact 40-character product commit (recovery only)
+        description: Exact 40-character rehearsal commit (production or recovery)
         required: false
         type: string
 
@@ -22,8 +22,23 @@ permissions:
   contents: read
 
 jobs:
+  release-context:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.context.outputs.version }}
+      tag: ${{ steps.context.outputs.tag }}
+      bundle_name: ${{ steps.context.outputs.bundle_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - id: context
+        run: PYTHONPATH=src python scripts/release_context.py --github-output "$GITHUB_OUTPUT"
+
   quality:
-    if: inputs.channel != 'recovery'
+    if: inputs.channel == 'build' || inputs.channel == 'rehearsal'
+    needs: release-context
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -32,15 +47,17 @@ jobs:
       - run: make ci
 
   python-package:
-    needs: quality
+    needs: [quality, release-context]
     runs-on: ubuntu-24.04
+    env:
+      PANO_VERSION: ${{ needs.release-context.outputs.version }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
       - run: uv build --no-sources --out-dir release-assets
-      - run: uvx --from release-assets/panopticon_mcp-1.0.0-py3-none-any.whl pano version
+      - run: uvx --from "release-assets/panopticon_mcp-$PANO_VERSION-py3-none-any.whl" pano version
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
         with:
           path: .
@@ -51,11 +68,12 @@ jobs:
       - name: Bind SBOM to each Python artifact
         run: |
           python - <<'PY'
+          import os
           from pathlib import Path
           source = Path("release-assets/python-package.cdx.json").read_bytes()
           for name in (
-              "panopticon_mcp-1.0.0-py3-none-any.whl",
-              "panopticon_mcp-1.0.0.tar.gz",
+              f"panopticon_mcp-{os.environ['PANO_VERSION']}-py3-none-any.whl",
+              f"panopticon_mcp-{os.environ['PANO_VERSION']}.tar.gz",
           ):
               Path("release-assets", name + ".cdx.json").write_bytes(source)
           Path("release-assets/python-package.cdx.json").unlink()
@@ -68,11 +86,11 @@ jobs:
         with:
           name: pypi-distributions
           path: |
-            release-assets/panopticon_mcp-1.0.0-py3-none-any.whl
-            release-assets/panopticon_mcp-1.0.0.tar.gz
+            release-assets/panopticon_mcp-${{ needs.release-context.outputs.version }}-py3-none-any.whl
+            release-assets/panopticon_mcp-${{ needs.release-context.outputs.version }}.tar.gz
 
   binary:
-    needs: quality
+    needs: [quality, release-context]
     strategy:
       fail-fast: false
       matrix:
@@ -88,6 +106,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     env:
       UV_MANAGED_PYTHON: "1"
+      PANO_VERSION: ${{ needs.release-context.outputs.version }}
     permissions:
       contents: read
     steps:
@@ -101,12 +120,12 @@ jobs:
       - name: Package deterministic binary archive
         env:
           PANO_TARGET: ${{ matrix.target }}
-        run: uv run python scripts/package_binary.py --binary dist/pano --target "$PANO_TARGET" --output "release-assets/panopticon-1.0.0-$PANO_TARGET.tar.gz"
+        run: uv run python scripts/package_binary.py --binary dist/pano --target "$PANO_TARGET" --version "$PANO_VERSION" --output "release-assets/panopticon-$PANO_VERSION-$PANO_TARGET.tar.gz"
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
         with:
           path: .
           format: cyclonedx-json
-          output-file: release-assets/panopticon-1.0.0-${{ matrix.target }}.tar.gz.cdx.json
+          output-file: release-assets/panopticon-${{ needs.release-context.outputs.version }}-${{ matrix.target }}.tar.gz.cdx.json
           upload-artifact: false
           upload-release-assets: false
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -115,7 +134,7 @@ jobs:
           path: release-assets/*
 
   assemble:
-    needs: [python-package, binary]
+    needs: [python-package, binary, release-context]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -131,7 +150,8 @@ jobs:
       - name: Verify exact set and create hash manifest
         env:
           PANO_COMMIT: ${{ github.sha }}
-        run: uv run python scripts/assemble_release.py --assets release-assets --commit "$PANO_COMMIT"
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
+        run: uv run python scripts/assemble_release.py --assets release-assets --commit "$PANO_COMMIT" --version "$PANO_VERSION"
       - uses: sigstore/gh-action-sigstore-python@f7ad0af51a5648d09a20d00370f0a91c3bdf8f84
         with:
           inputs: release-assets/*
@@ -139,12 +159,12 @@ jobs:
           release-signing-artifacts: false
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: panopticon-1.0.0-release-bundle
+          name: ${{ needs.release-context.outputs.bundle_name }}
           path: release-assets/*
 
   draft:
-    if: inputs.channel != 'build'
-    needs: assemble
+    if: inputs.channel == 'rehearsal'
+    needs: [assemble, testpypi, verify-images, release-context]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -152,17 +172,20 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: panopticon-1.0.0-release-bundle
+          name: ${{ needs.release-context.outputs.bundle_name }}
           path: release-assets
-      - name: Create or update immutable draft
+      - name: Create immutable draft with the verified bundle
         env:
           GH_TOKEN: ${{ github.token }}
           PANO_COMMIT: ${{ github.sha }}
+          PANO_TAG: ${{ needs.release-context.outputs.tag }}
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
         run: |
-          if ! gh release view v1.0.0 --repo "$GITHUB_REPOSITORY"; then
-            gh release create v1.0.0 --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$PANO_COMMIT" --title "Panopticon 1.0.0" --notes-file CHANGELOG.md
+          if gh release view "$PANO_TAG" --repo "$GITHUB_REPOSITORY"; then
+            echo "release tag already exists: $PANO_TAG" >&2
+            exit 1
           fi
-          gh release upload v1.0.0 --repo "$GITHUB_REPOSITORY" --clobber release-assets/*
+          gh release create "$PANO_TAG" release-assets/* --repo "$GITHUB_REPOSITORY" --draft --prerelease --target "$PANO_COMMIT" --title "Panopticon $PANO_VERSION" --notes-file CHANGELOG.md
 
   verify-images:
     needs: assemble
@@ -182,53 +205,94 @@ jobs:
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-python@sha256:3e2b99433c18506f59d0e44e40b8af2b0350ee4df903252a1ab462f0eac3f589
 
   testpypi:
-    if: inputs.channel != 'build'
-    needs: [assemble, draft]
+    if: inputs.channel == 'rehearsal'
+    needs: [assemble, release-context]
     runs-on: ubuntu-24.04
     environment: testpypi
     permissions:
       id-token: write
     steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: pypi-distributions
           path: dist
+      - name: Stage only missing exact TestPyPI files
+        id: testpypi-state
+        env:
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.error import HTTPError
+          from urllib.request import urlopen
+          from scripts.verify_release_recovery import stage_missing_index_assets
+
+          version = os.environ["PANO_VERSION"]
+          metadata = {}
+          try:
+              with urlopen(
+                  f"https://test.pypi.org/pypi/panopticon-mcp/{version}/json",
+                  timeout=30,
+              ) as response:
+                  metadata = json.loads(response.read())
+          except HTTPError as error:
+              if error.code != 404:
+                  raise
+          missing = stage_missing_index_assets(
+              metadata,
+              Path("dist"),
+              Path("publish-dist"),
+              version,
+          )
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"publish={'true' if missing else 'false'}\n")
+          PY
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
+        if: steps.testpypi-state.outputs.publish == 'true'
         with:
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: dist
-
-  pypi:
-    if: inputs.channel == 'production'
-    needs: testpypi
-    runs-on: ubuntu-24.04
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          name: pypi-distributions
-          path: dist
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
-        with:
-          packages-dir: dist
-
-  publish-github:
-    if: inputs.channel == 'production'
-    needs: [assemble, pypi, verify-images]
-    runs-on: ubuntu-24.04
-    environment: release
-    permissions:
-      contents: write
-    steps:
-      - name: Publish the verified draft without rebuilding
+          packages-dir: publish-dist
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+      - name: Verify exact TestPyPI bytes and clean install
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release edit v1.0.0 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          from urllib.request import urlopen
+          from scripts.verify_release_recovery import verify_index
 
-  recovery-verify:
-    if: inputs.channel == 'recovery'
+          version = os.environ["PANO_VERSION"]
+          with urlopen(
+              f"https://test.pypi.org/pypi/panopticon-mcp/{version}/json",
+              timeout=30,
+          ) as response:
+              metadata = json.loads(response.read())
+          verify_index(metadata, Path("dist"), version)
+          wheel_name = f"panopticon_mcp-{version}-py3-none-any.whl"
+          wheel_urls = [
+              item["url"] for item in metadata["urls"] if item.get("filename") == wheel_name
+          ]
+          if len(wheel_urls) != 1:
+              raise ValueError("TESTPYPI_WHEEL_NOT_UNIQUE")
+          parsed = urlsplit(wheel_urls[0])
+          if parsed.scheme != "https" or parsed.hostname != "test-files.pythonhosted.org":
+              raise ValueError("TESTPYPI_WHEEL_URL_INVALID")
+          Path("testpypi-wheel-url").write_text(wheel_urls[0], encoding="utf-8")
+          PY
+          wheel_url=$(cat testpypi-wheel-url)
+          output=$(uvx --from "$wheel_url" pano version)
+          test "$output" = "pano $PANO_VERSION (schema 1.0)"
+
+  promotion-verify:
+    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    needs: release-context
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -250,10 +314,24 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > run-metadata.json
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > run-metadata.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" > run-jobs.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          metadata = json.loads(Path("run-metadata.json").read_text(encoding="utf-8"))
+          jobs = json.loads(Path("run-jobs.json").read_text(encoding="utf-8"))
+          metadata["jobs"] = jobs["jobs"]
+          Path("run-metadata.json").write_text(
+              json.dumps(metadata, sort_keys=True, separators=(",", ":")),
+              encoding="utf-8",
+          )
+          PY
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: panopticon-1.0.0-release-bundle
+          name: ${{ needs.release-context.outputs.bundle_name }}
           path: recovery-bundle
           repository: ${{ github.repository }}
           run-id: ${{ inputs.source_run_id }}
@@ -269,28 +347,30 @@ jobs:
         env:
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_SHA: ${{ inputs.source_sha }}
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > releases.json
-          python scripts/verify_release_recovery.py release-metadata --releases releases.json --metadata draft.json --downloads draft-downloads.tsv
+          python scripts/verify_release_recovery.py release-metadata --version "$PANO_VERSION" --releases releases.json --metadata draft.json --downloads draft-downloads.tsv
           mkdir draft-assets
           while IFS=$'\t' read -r asset_id asset_name; do
             gh api -H "Accept: application/octet-stream" "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "draft-assets/$asset_name"
           done < draft-downloads.tsv
           python - <<'PY'
+          import os
           from pathlib import Path
           from urllib.request import urlopen
           with urlopen(
-              "https://test.pypi.org/pypi/panopticon-mcp/1.0.0/json",
+              f"https://test.pypi.org/pypi/panopticon-mcp/{os.environ['PANO_VERSION']}/json",
               timeout=30,
           ) as response:
               Path("testpypi.json").write_bytes(response.read())
           PY
-          python scripts/verify_release_recovery.py source --source-run-id "$SOURCE_RUN_ID" --source-sha "$SOURCE_SHA" --bundle recovery-bundle --dist recovery-dist --index testpypi.json --release draft.json --release-assets draft-assets --run-metadata run-metadata.json
+          python scripts/verify_release_recovery.py source --version "$PANO_VERSION" --source-run-id "$SOURCE_RUN_ID" --source-sha "$SOURCE_SHA" --bundle recovery-bundle --dist recovery-dist --index testpypi.json --release draft.json --release-assets draft-assets --run-metadata run-metadata.json
 
-  recovery-pypi:
-    if: inputs.channel == 'recovery'
-    needs: [recovery-verify, recovery-images]
+  pypi:
+    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    needs: [promotion-verify, promotion-images, release-context]
     runs-on: ubuntu-24.04
     environment: pypi
     permissions:
@@ -301,7 +381,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: panopticon-1.0.0-release-bundle
+          name: ${{ needs.release-context.outputs.bundle_name }}
           path: recovery-bundle
           repository: ${{ github.repository }}
           run-id: ${{ inputs.source_run_id }}
@@ -317,6 +397,7 @@ jobs:
         id: pypi-state
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
         run: |
           python - <<'PY'
           import json
@@ -325,19 +406,19 @@ jobs:
           from urllib.error import HTTPError
           from urllib.request import urlopen
           from scripts.verify_release_recovery import verify_bundle, verify_dist, stage_missing_index_assets
-          verify_bundle(Path("recovery-bundle"), os.environ["SOURCE_SHA"])
-          verify_dist(Path("recovery-bundle"), Path("dist"))
+          verify_bundle(Path("recovery-bundle"), os.environ["SOURCE_SHA"], os.environ["PANO_VERSION"])
+          verify_dist(Path("recovery-bundle"), Path("dist"), os.environ["PANO_VERSION"])
           metadata = {}
           try:
               with urlopen(
-                  "https://pypi.org/pypi/panopticon-mcp/1.0.0/json",
+                  f"https://pypi.org/pypi/panopticon-mcp/{os.environ['PANO_VERSION']}/json",
                   timeout=30,
               ) as response:
                   metadata = json.loads(response.read())
           except HTTPError as error:
               if error.code != 404:
                   raise
-          missing = stage_missing_index_assets(metadata, Path("dist"), Path("publish-dist"))
+          missing = stage_missing_index_assets(metadata, Path("dist"), Path("publish-dist"), os.environ["PANO_VERSION"])
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"publish={'true' if missing else 'false'}\n")
           PY
@@ -346,36 +427,46 @@ jobs:
         with:
           packages-dir: publish-dist
       - name: Require exact PyPI hashes after publish or reuse
+        env:
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
         run: |
           python - <<'PY'
+          import os
           from pathlib import Path
           from urllib.request import urlopen
           with urlopen(
-              "https://pypi.org/pypi/panopticon-mcp/1.0.0/json",
+              f"https://pypi.org/pypi/panopticon-mcp/{os.environ['PANO_VERSION']}/json",
               timeout=30,
           ) as response:
               Path("pypi-after.json").write_bytes(response.read())
           PY
           python - <<'PY'
+          import os
           from pathlib import Path
           from scripts.verify_release_recovery import verify_index
-          verify_index(Path("pypi-after.json"), Path("dist"))
+          verify_index(Path("pypi-after.json"), Path("dist"), os.environ["PANO_VERSION"])
           PY
 
-  recovery-images:
-    if: inputs.channel == 'recovery'
+  promotion-images:
+    if: inputs.channel == 'production' || inputs.channel == 'recovery'
     runs-on: ubuntu-24.04
-    permissions: {}
+    permissions:
+      packages: read
     steps:
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-base@sha256:0b88136f67f67f463ac1e9cc531dbe1bad7ea95d5ad5e4afd68337b966e24249
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-node@sha256:2ef58b44bd9ebc247e97d1b3c54f63570ae206b925b277d86d93e5319d1cd367
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-node@sha256:d0f7cc3fcac6a24ea0f8b7b9d62c542a04642ca5b38a4e249e017a7311a8b7c5
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-python@sha256:3e2b99433c18506f59d0e44e40b8af2b0350ee4df903252a1ab462f0eac3f589
 
-  recovery-github:
-    if: inputs.channel == 'recovery'
-    needs: recovery-pypi
+  publish-github:
+    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    needs: [pypi, release-context]
     runs-on: ubuntu-24.04
     environment: release
     permissions:
@@ -385,7 +476,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: panopticon-1.0.0-release-bundle
+          name: ${{ needs.release-context.outputs.bundle_name }}
           path: recovery-bundle
           repository: ${{ github.repository }}
           run-id: ${{ inputs.source_run_id }}
@@ -394,11 +485,14 @@ jobs:
         env:
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           SOURCE_SHA: ${{ inputs.source_sha }}
+          PANO_VERSION: ${{ needs.release-context.outputs.version }}
+          PANO_TAG: ${{ needs.release-context.outputs.tag }}
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > run-metadata.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/jobs?per_page=100" > run-jobs.json
           gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > releases.json
-          python scripts/verify_release_recovery.py release-metadata --releases releases.json --metadata draft.json --downloads draft-downloads.tsv
+          python scripts/verify_release_recovery.py release-metadata --version "$PANO_VERSION" --releases releases.json --metadata draft.json --downloads draft-downloads.tsv
           mkdir draft-assets
           while IFS=$'\t' read -r asset_id asset_name; do
             gh api -H "Accept: application/octet-stream" "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" > "draft-assets/$asset_name"
@@ -407,18 +501,28 @@ jobs:
           import json
           import os
           from pathlib import Path
-          from scripts.verify_release_recovery import validate_inputs, verify_bundle, verify_release_state, verify_run_metadata
+          from scripts.verify_release_recovery import (
+              validate_inputs,
+              verify_bundle,
+              verify_release_state,
+              verify_run_jobs,
+              verify_run_metadata,
+          )
           validate_inputs(os.environ["SOURCE_RUN_ID"], os.environ["SOURCE_SHA"])
-          verify_run_metadata(json.loads(Path("run-metadata.json").read_text()), os.environ["SOURCE_RUN_ID"], os.environ["SOURCE_SHA"])
-          verify_bundle(Path("recovery-bundle"), os.environ["SOURCE_SHA"])
-          flip = verify_release_state(json.loads(Path("draft.json").read_text()), Path("recovery-bundle"), os.environ["SOURCE_SHA"], Path("draft-assets"))
+          metadata = json.loads(Path("run-metadata.json").read_text(encoding="utf-8"))
+          jobs = json.loads(Path("run-jobs.json").read_text(encoding="utf-8"))
+          metadata["jobs"] = jobs["jobs"]
+          verify_run_metadata(metadata, os.environ["SOURCE_RUN_ID"], os.environ["SOURCE_SHA"])
+          verify_run_jobs(metadata)
+          verify_bundle(Path("recovery-bundle"), os.environ["SOURCE_SHA"], os.environ["PANO_VERSION"])
+          flip = verify_release_state(json.loads(Path("draft.json").read_text()), Path("recovery-bundle"), os.environ["SOURCE_SHA"], Path("draft-assets"), os.environ["PANO_VERSION"])
           Path("flip").write_text("true" if flip else "false", encoding="utf-8")
           PY
           if [ "$(cat flip)" = "true" ]; then
-            gh release edit v1.0.0 --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+            gh release edit "$PANO_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
           fi
           gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" > releases-after.json
-          python scripts/verify_release_recovery.py release-metadata --releases releases-after.json --metadata release-after.json --downloads public-downloads.tsv
+          python scripts/verify_release_recovery.py release-metadata --version "$PANO_VERSION" --releases releases-after.json --metadata release-after.json --downloads public-downloads.tsv
           rm -rf public-assets
           mkdir public-assets
           while IFS=$'\t' read -r asset_id asset_name; do
@@ -435,6 +539,7 @@ jobs:
               Path("recovery-bundle"),
               os.environ["SOURCE_SHA"],
               Path("public-assets"),
+              os.environ["PANO_VERSION"],
           ):
               raise ValueError("RELEASE_STILL_DRAFT")
           PY

@@ -4,23 +4,25 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from .manifest import validate_version
+
 _TARGETS = {
     "macos": ("darwin-arm64", "darwin-x86_64"),
     "linux": ("linux-arm64", "linux-x86_64"),
 }
 
 
-def _artifact(hashes: Mapping[str, str], target: str) -> tuple[str, str]:
-    archive = f"panopticon-1.0.0-{target}.tar.gz"
+def _artifact(hashes: Mapping[str, str], target: str, version: str) -> tuple[str, str]:
+    archive = f"panopticon-{version}-{target}.tar.gz"
     digest = hashes.get(archive, "")
     if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
         raise ValueError(f"INVALID_HOMEBREW_DIGEST:{archive}")
     return archive, digest
 
 
-def _platform_block(hashes: Mapping[str, str], base_url: str, os_name: str) -> str:
-    arm_archive, arm_digest = _artifact(hashes, _TARGETS[os_name][0])
-    intel_archive, intel_digest = _artifact(hashes, _TARGETS[os_name][1])
+def _platform_block(hashes: Mapping[str, str], base_url: str, os_name: str, version: str) -> str:
+    arm_archive, arm_digest = _artifact(hashes, _TARGETS[os_name][0], version)
+    intel_archive, intel_digest = _artifact(hashes, _TARGETS[os_name][1], version)
     return f'''  on_{os_name} do
     if Hardware::CPU.arm?
       url "{base_url}{arm_archive}"
@@ -32,11 +34,13 @@ def _platform_block(hashes: Mapping[str, str], base_url: str, os_name: str) -> s
   end'''
 
 
-def render_formula(hashes: Mapping[str, str], base_url: str) -> str:
-    if not base_url.startswith("https://github.com/brnyxx/panopticon/releases/download/v1.0.0/"):
+def render_formula(hashes: Mapping[str, str], base_url: str, version: str) -> str:
+    version = validate_version(version)
+    expected_url = f"https://github.com/brnyxx/panopticon/releases/download/v{version}/"
+    if base_url != expected_url:
         raise ValueError("INVALID_HOMEBREW_RELEASE_URL")
     platforms = "\n".join(
-        _platform_block(hashes, base_url, os_name) for os_name in ("macos", "linux")
+        _platform_block(hashes, base_url, os_name, version) for os_name in ("macos", "linux")
     )
     return f"""class Panopticon < Formula
   desc "Local-first MCP behavior observatory"
@@ -50,7 +54,7 @@ def render_formula(hashes: Mapping[str, str], base_url: str) -> str:
   end
 
   test do
-    assert_match "pano 1.0.0 (schema 1.0)", shell_output("#{{bin}}/pano version")
+    assert_match "pano {version} (schema 1.0)", shell_output("#{{bin}}/pano version")
   end
 end
 """

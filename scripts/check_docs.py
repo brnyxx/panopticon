@@ -74,7 +74,7 @@ CONTRACT_TOKENS = {
         "--offline",
     ),
     "docs/privacy.md": ("--offline", "--real-env", "scan --mode deep", "credential store"),
-    "docs/release.md": ("1.0.0", "uvx", "pipx", "Homebrew", "SHA256SUMS", "Sigstore"),
+    "docs/release.md": ("1.0.1", "uvx", "pipx", "Homebrew", "SHA256SUMS", "Sigstore"),
     "SECURITY.md": ("--real-env", "ghcr.io/brnyxx", "sandbox/images.lock"),
     "AGENTS.md": ("installation_id", "reason_code", "SecretStore", "store/", "e717e955"),
     "docs/limitations.md": ("UNSUPPORTED", "UNKNOWN", "PARTIAL"),

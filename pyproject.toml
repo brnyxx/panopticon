@@ -1,6 +1,6 @@
 [project]
 name = "panopticon-mcp"
-version = "1.0.0"
+version = "1.0.1"
 description = "Local-first MCP behavior observatory. We don't watch you. We watch your MCPs."
 readme = "README.md"
 license = { file = "LICENSE" }

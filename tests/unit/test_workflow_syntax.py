@@ -41,6 +41,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     jobs = document["jobs"]
     assert isinstance(jobs, dict)
     assert {
+        "release-context",
         "quality",
         "python-package",
         "binary",
@@ -48,18 +49,46 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         "draft",
         "verify-images",
         "testpypi",
+        "promotion-verify",
         "pypi",
+        "promotion-images",
         "publish-github",
-        "recovery-verify",
-        "recovery-pypi",
-        "recovery-images",
-        "recovery-github",
     } == set(jobs)
     assert jobs["testpypi"]["environment"] == "testpypi"
     assert jobs["pypi"]["environment"] == "pypi"
+    assert jobs["promotion-images"]["permissions"] == {"packages": "read"}
+    assert any(
+        str(step.get("uses", "")).startswith("docker/login-action@")
+        for step in jobs["promotion-images"]["steps"]
+    )
     assert jobs["publish-github"]["environment"] == "release"
     text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "TODO" not in text
+    assert "1.0.0" not in text
+    assert "v1.0.0" not in text
+    assert "scripts/release_context.py" in text
+    assert "inputs.version" not in text
+    assert jobs["draft"]["if"] == "inputs.channel == 'rehearsal'"
+    assert set(jobs["draft"]["needs"]) == {
+        "assemble",
+        "testpypi",
+        "verify-images",
+        "release-context",
+    }
+    assert jobs["testpypi"]["if"] == "inputs.channel == 'rehearsal'"
+    assert set(jobs["testpypi"]["needs"]) == {"assemble", "release-context"}
+    assert "--clobber" not in str(jobs["draft"])
+    testpypi_publish = next(
+        step
+        for step in jobs["testpypi"]["steps"]
+        if str(step.get("uses", "")).startswith("pypa/gh-action-pypi-publish@")
+    )
+    assert testpypi_publish["if"] == "steps.testpypi-state.outputs.publish == 'true'"
+    assert testpypi_publish["with"]["packages-dir"] == "publish-dist"
+    assert "verify_index" in str(jobs["testpypi"])
+    assert "test-files.pythonhosted.org" in str(jobs["testpypi"])
+    assert 'uvx --from "$wheel_url" pano version' in str(jobs["testpypi"])
+    assert "pano $PANO_VERSION (schema 1.0)" in str(jobs["testpypi"])
     for job in jobs.values():
         for step in job.get("steps", []):
             if "uses" in step:
@@ -75,29 +104,33 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
     assert dispatch["inputs"]["source_run_id"]["required"] == "false"
     assert dispatch["inputs"]["source_sha"]["required"] == "false"
     jobs = document["jobs"]
-    assert jobs["quality"]["if"] == "inputs.channel != 'recovery'"
-    assert jobs["recovery-verify"]["if"] == "inputs.channel == 'recovery'"
-    assert jobs["recovery-verify"]["permissions"] == {
+    assert jobs["quality"]["if"] == "inputs.channel == 'build' || inputs.channel == 'rehearsal'"
+    assert jobs["promotion-verify"]["if"] == (
+        "inputs.channel == 'production' || inputs.channel == 'recovery'"
+    )
+    assert jobs["promotion-verify"]["permissions"] == {
         "actions": "read",
         "contents": "write",
     }
-    assert jobs["recovery-pypi"]["environment"] == "pypi"
-    assert jobs["recovery-github"]["environment"] == "release"
+    assert jobs["pypi"]["environment"] == "pypi"
+    assert jobs["publish-github"]["environment"] == "release"
     publish = next(
         step
-        for step in jobs["recovery-pypi"]["steps"]
+        for step in jobs["pypi"]["steps"]
         if str(step.get("uses", "")).startswith("pypa/gh-action-pypi-publish@")
     )
     assert publish["if"] == "steps.pypi-state.outputs.publish == 'true'"
     assert publish["with"]["packages-dir"] == "publish-dist"
     text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "recovery-bundle" in text
+    assert "/jobs?per_page=100" in str(jobs["promotion-verify"])
+    assert "verify_run_jobs" in str(jobs["publish-github"])
     forbidden = ("uv build", "pyinstaller", "assemble_release.py", "release upload", "--clobber")
     for name in (
-        "recovery-verify",
-        "recovery-pypi",
-        "recovery-images",
-        "recovery-github",
+        "promotion-verify",
+        "pypi",
+        "promotion-images",
+        "publish-github",
     ):
         assert not any(item in str(jobs[name]) for item in forbidden)
         for step in jobs[name]["steps"]:
@@ -105,7 +138,7 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
                 assert len(step["uses"].rsplit("@", 1)[1]) == 40
     downloads = [
         step
-        for name in ("recovery-verify", "recovery-pypi", "recovery-github")
+        for name in ("promotion-verify", "pypi", "publish-github")
         for step in jobs[name]["steps"]
         if str(step.get("uses", "")).startswith("actions/download-artifact@")
     ]
