@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from panopticon.analyzers.static.model import ScannerConfig, SourceRange, StaticMatch
 from panopticon.engine.scan import ScanConfig, ScanMode
 from panopticon.engine.scan_adapters import ProductionSemgrep, build_scan_request
 
 
 def test_production_semgrep_delegates_config_files_rules_and_pinned_runner(
-    monkeypatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     config = ScanConfig(
         ScanMode.STANDARD,
