@@ -66,7 +66,8 @@ Read the complete [privacy and outbound-traffic table](https://github.com/brnyxx
 before observation, especially before allowing real environment values or running
 `scan --mode deep`. `--offline` disables Panopticon's outbound product paths, but package
 installation uses the selected package registry before `pano` runs. Artifacts are leak-checked
-before persistence; storage, record retention, configuration undo, and package rollback are
+before persistence. Standard/deep scan sends exact locked package coordinates—not source—to OSV
+for advisory lookup. Storage, record retention, configuration undo, and package rollback are
 covered in the [release guide](https://github.com/brnyxx/panopticon/blob/main/docs/release.md) and
 [limitations](https://github.com/brnyxx/panopticon/blob/main/docs/limitations.md).
 

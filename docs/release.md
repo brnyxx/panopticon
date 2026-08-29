@@ -98,7 +98,10 @@ the default wrap-log retention is 30 days. See [privacy](privacy.md) for local s
 ## Maintainer promotion and recovery
 
 The release workflow builds once, rehearses through TestPyPI, verifies retained bytes, then promotes
-the same bundle. Start the rehearsal from the release commit:
+the same bundle. The repository workflow owns PyPI, npm, and GitHub publication. The Homebrew tap
+update remains a separate cross-repository step generated from the retained manifest and must pass
+`brew audit`, install, and version checks before the release is closed. Start the rehearsal from
+the release commit:
 
 ```bash
 gh workflow run release.yml --ref main -f channel=rehearsal
@@ -109,7 +112,9 @@ commit SHA as the `source_run_id` and `source_sha` workflow inputs. The workflow
 retained bundle, PyPI files, signatures, SBOM, checksums, draft assets, and image digests; it
 publishes only a missing channel and never rebuilds or overwrites published bytes. Select
 `production` to promote every pending production channel or `recovery` to resume only a missing
-channel.
+channel. Before either path, the checked-in preflight binds those inputs to the successful
+`release` workflow dispatch and requires protected branches, a reviewer, and disabled admin bypass
+on the `npm`, `pypi`, `testpypi`, and `release` environments.
 
 Before the first npm publication, a human organization owner must complete npm's 2FA/trusted
 publisher bootstrap for `@brnyxx`. That authorization is intentionally human-only; no repository

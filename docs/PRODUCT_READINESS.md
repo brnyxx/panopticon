@@ -34,24 +34,50 @@ the release evidence or rerun any gate.
   `--real-env-all`, persistence rejection, installer traffic, runtime traffic, and `--offline`.
 - Documented released and forthcoming distribution paths, archive verification, retention,
   rollback, and release recovery.
+- Added deterministic root plus four native npm packages that preserve the retained executable
+  bytes and use no lifecycle downloader or Python bridge.
+- Restored production standard scan with the declared Semgrep version and bounded exact-version
+  OSV advisory lookup; offline standard scan remains explicitly `INCOMPLETE`.
+- Bound production/recovery to the exact successful rehearsal and protected `npm`, `pypi`,
+  `testpypi`, and `release` environments.
+- Pinned the release frontend/backend, added a two-build byte comparison, modernized PyPI license
+  metadata, and expanded tested Python metadata through 3.14.
+
+## Local verification for the 1.0.2 candidate
+
+- `make ci`: 1,605 passed, 1 skipped, 32 Docker/network tests deselected; branch coverage 85.29%.
+- Python 3.13 and 3.14 non-Docker/network runs: 1,605 passed and 1 skipped on each interpreter.
+- Online `pano ci . --mode standard --fail-on never`: `COMPLETE`, 15 repository findings, SARIF
+  persisted. Offline standard scan: `INCOMPLETE`, as required.
+- Two clean 1.0.2 wheel/sdist builds matched byte for byte; `twine check` passed. Wheel metadata
+  contains `License-Expression: MIT`, both license/notice files, and Python 3.11–3.14 classifiers.
+- The npm packager consumed the four retained 1.0.1 native archives, produced five deterministic
+  local tarballs, installed root plus Darwin arm64 payload with scripts and registry fallback
+  disabled, and reported `pano 1.0.1 (schema 1.0)`. The 1.0.2 signed bundle is still pending.
+- The hardened release preflight returned `PASS` for the exact successful 1.0.1 rehearsal after all
+  four GitHub release environments were changed to protected-branch, required-reviewer,
+  no-admin-bypass policy.
+- `uv pip check` passed and `pip-audit` found no known vulnerability in resolved third-party
+  dependencies; unpublished local `panopticon-mcp` 1.0.2 was not available for registry lookup.
 
 ## Pending human action
 
 The first npm publication is blocked on a human npm organization owner completing the
 2FA/trusted-publisher bootstrap for `@brnyxx/panopticon` and its four platform packages. This
 cannot be performed by repository automation. Until it is complete, the scoped npm package and its
-four platform packages are planned distribution artifacts, not published evidence.
+four platform packages are planned distribution artifacts, not published evidence. A signed 1.0.2
+rehearsal and exact npm/PyPI promotion must follow that bootstrap; local checks do not replace them.
 
 ## Prioritized residual risks
 
-1. **Highest — standard self-scan:** rerun the relevant release and platform evidence after the
-   contract fix; the existing v1.0.1 evidence predates that correction.
-2. **High — npm publication:** complete the human bootstrap, then prove platform-first publication,
-   root-package integrity, installation, upgrade, and recovery from retained artifacts.
-3. **Medium — documentation behavior:** run the repository documentation and phrase gates after
-   these wording changes; they have not been run for this work.
-4. **Medium — installer boundaries:** validate each installer path on a clean environment and keep
-   its network traffic distinction from `pano --offline` visible.
+1. **Highest — public npm/PyPI evidence:** complete the human bootstrap, signed rehearsal,
+   platform-first npm publication, exact PyPI promotion, and clean public install/recovery checks.
+2. **High — hosted matrix evidence:** local Python 3.13/3.14 checks pass, but the expanded hosted
+   Python and six-platform workflows have not run on this candidate commit.
+3. **High — npm Linux boundary:** prove the declared GNU libc baseline on both Linux architectures;
+   do not widen the package claim to musl or native Windows.
+4. **Medium — Homebrew orchestration:** the existing public formula is proven for 1.0.1, but the
+   cross-repository 1.0.2 formula handoff remains a separately operated release step.
 
 Authoritative release history remains [PROGRESS.md](https://github.com/brnyxx/panopticon/blob/main/docs/PROGRESS.md);
 this readiness note is evidence-scoped to the links above.
