@@ -1,0 +1,11 @@
+{
+  "scope": "@brnyxx",
+  "root": "panopticon",
+  "packages": [
+    {"name": "@brnyxx/panopticon", "kind": "root"},
+    {"name": "@brnyxx/panopticon-linux-x64-gnu", "target": "linux-x86_64", "os": "linux", "cpu": "x64", "libc": "glibc"},
+    {"name": "@brnyxx/panopticon-linux-arm64-gnu", "target": "linux-arm64", "os": "linux", "cpu": "arm64", "libc": "glibc"},
+    {"name": "@brnyxx/panopticon-darwin-x64", "target": "darwin-x86_64", "os": "darwin", "cpu": "x64"},
+    {"name": "@brnyxx/panopticon-darwin-arm64", "target": "darwin-arm64", "os": "darwin", "cpu": "arm64"}
+  ]
+}
