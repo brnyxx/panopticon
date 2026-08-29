@@ -15,9 +15,10 @@ foundation:
 	uv run mypy --strict tests/unit/engine
 	uv run mypy --strict scripts/check_rules.py
 	uv run mypy --strict scripts/check_engine_loc.py scripts/check_no_excuse_rules.py
-	uv run mypy --strict scripts/release_gate.py scripts/release_evidence.py scripts/performance_gate.py scripts/release_preflight.py scripts/package_binary.py scripts/assemble_release.py scripts/render_homebrew_formula.py scripts/release_context.py scripts/verify_release_recovery.py
+	uv run mypy --strict scripts/release_gate.py scripts/release_evidence.py scripts/performance_gate.py scripts/release_preflight.py scripts/package_binary.py scripts/package_npm.py scripts/assemble_release.py scripts/render_homebrew_formula.py scripts/release_context.py scripts/verify_release_recovery.py scripts/check_docs.py
 	uv run python scripts/check_no_excuse_rules.py tests/unit/engine scripts/check_rules.py
 	uv run python scripts/check_engine_loc.py  # 250 pure LOC maximum
+	uv run python scripts/check_docs.py
 
 test:
 	uv run pytest -m "not docker and not network" --cov=panopticon --cov-report=term

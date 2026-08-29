@@ -38,7 +38,7 @@ jobs:
         with:
           version: "0.10.9"
       - name: Install test dependencies
-        run: uv sync --all-extras
+        run: uv sync --frozen --all-extras
       - name: Build local sandbox image
         if: startsWith(matrix.label, 'linux-')
         run: make images

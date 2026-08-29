@@ -9,6 +9,7 @@ of runtime outbound traffic follows.
 | When | Destination | What | Your key needed |
 |---|---|---|---|
 | `doctor`, `diff` (HIST rules) | registry.npmjs.org, pypi.org, api.github.com | package names only; `GITHUB_TOKEN` is used if set and is leak-checked before anything is written | no |
+| `scan --mode standard` or `deep` | api.osv.dev | normalized PyPI package names and exact versions resolved from the target's lock data; no source, path, or credential; responses remain in memory | no |
 | `watch` / `scan --mode deep` | package registries, from inside the sandbox | package-install traffic | no |
 | `watch` | wherever the *MCP under test* connects, inside the sandbox through the logging proxy | whatever the MCP sends, with decoy values by default | no |
 | remote `watch` | configured remote MCP endpoint | bounded MCP JSON-RPC requests; configured real header values leave only when explicitly permitted and are never persisted | maybe |
@@ -69,7 +70,8 @@ which mounts your MCP source read-only so it can be built and observed.
 
 ## `--offline`
 
-`--offline` disables registry lookups, sandbox package-install traffic, FIX-008 endpoint validation,
-the semantic analyzer, and every other Panopticon runtime outbound call. Cached registry data may
-still be read; when it is missing, results are `UNKNOWN`. An offline FIX-008 request is
-guidance-only and does not change the configured URL.
+`--offline` disables registry lookups, OSV advisory lookup, sandbox package-install traffic,
+FIX-008 endpoint validation, the semantic analyzer, and every other Panopticon runtime outbound
+call. Cached registry data may still be read; when it is missing, results are `UNKNOWN`. An offline
+standard/deep scan reports the advisory dimension `UNSUPPORTED` and the scan `INCOMPLETE`. An
+offline FIX-008 request is guidance-only and does not change the configured URL.

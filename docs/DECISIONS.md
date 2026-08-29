@@ -155,3 +155,15 @@ Numbered, append-only. Format: context / options / chosen / why.
 - Why: exact optional dependencies let npm fetch only the matching native package without a
   postinstall downloader, retain build-once evidence, and make partial-publication recovery
   deterministic without adding a launcher network or Python dependency.
+
+## 21. Standard scan advisory lookup sends exact package coordinates only
+- Context: E16 requires OSV/advisory lookup in standard mode, but the production CLI previously
+  supplied no advisory adapter and the exhaustive privacy inventory did not name its destination.
+- Chosen: **standard and deep scans may send normalized PyPI package names and exact versions
+  resolved from lock data to `https://api.osv.dev/v1/querybatch`.** The request contains no source,
+  path, environment value, or credential; the response remains in memory and is never persisted.
+  Missing or ambiguous versions, malformed responses, and network failures are typed
+  `INCOMPLETE`. `--offline` makes the advisory dimension `UNSUPPORTED` and the whole standard/deep
+  scan `INCOMPLETE`; it never falls back to quick mode.
+- Why: exact coordinates make advisory evidence meaningful, one bounded batch makes the outbound
+  path auditable, and explicit incomplete states preserve the product's unknown-evidence contract.

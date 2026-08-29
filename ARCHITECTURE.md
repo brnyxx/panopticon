@@ -107,13 +107,14 @@ Era selection is cached per transport and every observation records the requeste
 
 ## Network exceptions
 
-Panopticon is local-first. Three outbound destinations exist and each is enumerated in `docs/privacy.md`:
+Panopticon is local-first. The exhaustive runtime paths are enumerated in `docs/privacy.md`:
+package registries; exact package-coordinate advisory queries to OSV in standard/deep scan; the
+observed MCP's sandbox traffic; explicitly permitted remote observation; bounded unauthenticated
+FIX-008 validation; and the user-keyed semantic analyzer in `scan --mode deep`. `--offline`
+disables each path. Advisory and semantic dimensions then report `UNSUPPORTED`, and a scan that
+requires them is `INCOMPLETE`.
 
-1. Package registries, for release and maintainer history.
-2. Whatever the observed MCP itself contacts, inside the sandbox, through the logging proxy.
-3. The semantic analyzer in `scan --mode deep`: user-invoked, user-keyed, disclosed before the first request, redacted, and disabled by `--offline`, in which case semantic results are typed `UNSUPPORTED` and the scan is `INCOMPLETE`.
-
-There is no telemetry, no crash reporting, no update ping, and no upload path.
+There is no telemetry, crash reporting, update ping, background upload, or automatic upload.
 
 ## Dependency direction
 

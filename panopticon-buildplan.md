@@ -89,7 +89,7 @@ Both lines share one CLI, one finding model, and one set of reporters. The obser
 5. Same input, same output. Diff is deterministic.
 6. Fix is always: diff → confirm → backup → apply → re-check → undo available.
 7. Korean and English share rule IDs, evidence, and structure.
-8. We don't watch the user. Network use is limited to registry lookups, the MCP's own traffic inside the sandbox, and the user-invoked semantic analyzer in `scan --mode deep`, which needs the user's own key and discloses its payload before sending. `--offline` disables all three.
+8. We don't watch the user. Network use is limited to the exhaustive paths in `docs/privacy.md`: registry/package-install lookups, exact-version OSV advisory queries in standard/deep scan, the MCP's sandbox traffic, explicitly permitted remote observation, bounded FIX-008 validation, and the user-invoked semantic analyzer in `scan --mode deep`. `--offline` disables every path.
 9. Identity is explicit: `server_id` groups, `installation_id` addresses one config entry, `logical_key` addresses one finding across runs.
 10. State is structured: every stage carries an exhaustive status, a stable `reason_code`, and explicit coverage dimensions.
 

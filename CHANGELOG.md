@@ -5,6 +5,7 @@ All notable changes are recorded here. Versions advance by closed epics (panopti
 ## [Unreleased]
 - Added deterministic `@brnyxx/panopticon` native npm packages for four macOS/GNU Linux targets.
 - Restored standard-mode repository self-scan with the declared Semgrep toolchain.
+- Wired standard scan to bounded exact-version OSV advisory lookup with explicit offline coverage.
 - Bound release promotion to protected environments and the exact successful rehearsal.
 - Added novice-first English/Korean onboarding, explicit installer/privacy boundaries, and a
   current product-readiness record.
