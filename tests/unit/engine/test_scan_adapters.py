@@ -31,9 +31,7 @@ def test_production_semgrep_delegates_config_files_rules_and_pinned_runner(
     monkeypatch.setattr(
         "panopticon.engine.scan_adapters.run_semgrep",
         lambda collected, selected, root, *, deadline: (
-            calls.update(
-                collected=collected, runner_selected=selected, deadline=deadline
-            )
+            calls.update(collected=collected, runner_selected=selected, deadline=deadline)
             or {
                 "SENT-002": [
                     StaticMatch("SENT-002", "z.py", SourceRange(3, 2, 3, 4), "z"),
@@ -62,9 +60,7 @@ def test_scan_request_factory_is_mode_aware_and_preserves_request_options(tmp_pa
         cache_available=False,
         config_path=Path("custom.toml"),
     )
-    standard = build_scan_request(
-        tmp_path, ScanMode.STANDARD, config_path=Path("custom.toml")
-    )
+    standard = build_scan_request(tmp_path, ScanMode.STANDARD, config_path=Path("custom.toml"))
     deep = build_scan_request(tmp_path, ScanMode.DEEP)
 
     assert quick.semgrep is None and quick.advisory is None

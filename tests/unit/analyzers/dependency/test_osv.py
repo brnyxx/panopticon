@@ -47,6 +47,10 @@ def test_osv_uses_exact_requirements_without_lock_and_sorts_findings(tmp_path: P
                     {
                         "vulns": [
                             {
+                                "id": "OSV-0",
+                                "summary": "review severity",
+                            },
+                            {
                                 "id": "OSV-2",
                                 "summary": "second",
                                 "database_specific": {"severity": "high"},
@@ -66,6 +70,7 @@ def test_osv_uses_exact_requirements_without_lock_and_sorts_findings(tmp_path: P
 
     assert result.status is AdvisoryStatus.COMPLETE
     assert [(item.advisory_id, item.severity) for item in result.findings] == [
+        ("OSV-0", "REVIEW"),
         ("OSV-1", "LOW"),
         ("OSV-2", "HIGH"),
     ]
@@ -100,10 +105,12 @@ def test_osv_resolves_versions_from_uv_lock(tmp_path: Path) -> None:
 
     assert result.status is AdvisoryStatus.COMPLETE
     assert payloads[0] == {
-        "queries": [{
+        "queries": [
+            {
                 "package": {"name": "requests", "ecosystem": "PyPI"},
                 "version": "2.32.3",
-            }]
+            }
+        ]
     }
 
 

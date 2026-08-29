@@ -216,6 +216,10 @@ def test_traversal_ignore_and_symlink_warning(tmp_path: Path) -> None:
     (tmp_path / ".gitignore").write_text("ignored.py\n", encoding="utf-8")
     (tmp_path / "ignored.py").write_text("x=1\n", encoding="utf-8")
     (tmp_path / "ok.py").write_text("x=1\n", encoding="utf-8")
+    (tmp_path / ".gjc" / "state").mkdir(parents=True)
+    (tmp_path / ".gjc" / "state" / "invalid.json").write_text("", encoding="utf-8")
+    (tmp_path / ".omo").mkdir()
+    (tmp_path / ".omo" / "invalid.toml").write_text("not toml", encoding="utf-8")
     (tmp_path / "link.py").symlink_to(tmp_path / "ok.py")
     files = collect_static_files(tmp_path, ())
     assert [f.relative_path for f in files.python_files] == ["ok.py"]

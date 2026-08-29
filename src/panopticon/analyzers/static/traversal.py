@@ -24,6 +24,8 @@ _DEFAULT_DIRS = {
     "node_modules",
     ".mypy_cache",
     ".pytest_cache",
+    ".gjc",
+    ".omo",
 }
 
 

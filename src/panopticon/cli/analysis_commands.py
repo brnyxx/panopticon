@@ -74,7 +74,7 @@ def scan(
     try:
         selected_mode = ScanMode(mode)
     except ValueError:
-        raise typer.BadParameter("mode must be quick or standard") from None
+        raise typer.BadParameter("mode must be quick, standard, or deep") from None
     rendered = render_scan(
         run_scan(build_scan_request(Path(path), selected_mode, offline=offline)),
         sarif=sarif or json_out,

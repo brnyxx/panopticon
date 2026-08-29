@@ -147,9 +147,7 @@ def _findings(
             advisory_id, summary = vulnerability.get("id"), vulnerability.get("summary")
             if not isinstance(advisory_id, str) or not isinstance(summary, str):
                 raise ValueError("vulnerability fields are invalid")
-            severity = _severity(vulnerability)
-            if severity is not None:
-                findings.add(DependencyFinding(advisory_id, package, severity, summary))
+            findings.add(DependencyFinding(advisory_id, package, _severity(vulnerability), summary))
     return tuple(
         sorted(
             findings, key=lambda item: (item.advisory_id, item.package, item.severity, item.summary)
@@ -157,14 +155,14 @@ def _findings(
     )
 
 
-def _severity(vulnerability: Mapping[object, object]) -> str | None:
+def _severity(vulnerability: Mapping[object, object]) -> str:
     for field in ("database_specific", "ecosystem_specific"):
         details = vulnerability.get(field)
         if isinstance(details, Mapping):
             value = details.get("severity")
             if isinstance(value, str) and value.upper() in _SEVERITIES:
                 return value.upper()
-    return None
+    return "REVIEW"
 
 
 __all__ = ["OSV_BATCH_LIMIT", "OSV_QUERY_BATCH_URL", "OSV_TIMEOUT_SECONDS", "OsvAdvisory"]
