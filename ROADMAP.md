@@ -16,6 +16,8 @@ Versions advance by closed epics, never by dates. Full definitions: `panopticon-
 | 0.8 | E19 (binaries, brew, signing, SBOM) | every install path |
 | 0.9 | §22 quality bar, schema 1.0 frozen, docs complete | release candidate |
 | **1.0.0** | §2 checklist in full | — |
+| 1.0.1 | E19 patch release | privacy metadata and release-evidence correction |
+| 1.0.2 | E20 | scoped npm native packages, standard self-scan repair, release hardening, novice onboarding |
 
 ## Explicit non-goals (any version)
 Safety scores, "Safe/Certified" badges, telemetry, SaaS, exploitation of third-party services.

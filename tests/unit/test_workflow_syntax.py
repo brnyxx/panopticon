@@ -43,6 +43,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     assert isinstance(jobs, dict)
     assert {
         "release-context",
+        "preflight",
         "quality",
         "python-package",
         "binary",
@@ -58,6 +59,10 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         "publish-github",
     } == set(jobs)
     assert jobs["testpypi"]["environment"] == "testpypi"
+    assert jobs["preflight"]["if"] == (
+        "inputs.channel == 'production' || inputs.channel == 'recovery'"
+    )
+    assert set(jobs["promotion-verify"]["needs"]) == {"preflight", "release-context"}
     assert jobs["pypi"]["environment"] == "pypi"
     assert jobs["npm"]["environment"] == "npm"
     assert jobs["npm"]["permissions"]["id-token"] == "write"

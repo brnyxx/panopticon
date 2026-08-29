@@ -1,9 +1,10 @@
 [project]
 name = "panopticon-mcp"
-version = "1.0.1"
+version = "1.0.2"
 description = "Local-first MCP behavior observatory. We don't watch you. We watch your MCPs."
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 requires-python = ">=3.11"
 authors = [{ name = "Panopticon contributors" }]
 keywords = ["mcp", "model-context-protocol", "security", "sandbox", "observability"]
@@ -14,6 +15,8 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Security",
 ]
 dependencies = [
@@ -36,6 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "hatchling==1.32.0",
   "pytest>=8.2",
   "pytest-asyncio>=0.23",
   "pytest-cov>=5.0",
@@ -68,7 +72,7 @@ Changelog = "https://github.com/brnyxx/panopticon/blob/main/CHANGELOG.md"
 "Security policy" = "https://github.com/brnyxx/panopticon/security/policy"
 
 [build-system]
-requires = ["hatchling>=1.24"]
+requires = ["hatchling==1.32.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]

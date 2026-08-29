@@ -22,9 +22,9 @@ def test_help_is_user_facing_and_documents_real_environment_opt_ins() -> None:
 
     watch_help = runner.invoke(app, ["watch", "--help"])
     assert watch_help.exit_code == 0
-    assert "selected declared environment values" in watch_help.stdout
-    assert "all declared environment values" in watch_help.stdout
-    assert "broad exposure" in watch_help.stdout
+    assert "--real-env" in watch_help.stdout
+    assert "--real-env-all" in watch_help.stdout
+    assert not re.search(r"\(E\d{2}[^)]*\)|upstream line", watch_help.stdout, re.IGNORECASE)
 
 
 def test_doctor_without_configs_is_explicitly_incomplete(monkeypatch, tmp_path) -> None:

@@ -17,7 +17,7 @@ def test_release_context_reads_canonical_package_version(tmp_path: Path) -> None
     release_context.main_for_output(output)
 
     assert output.read_text(encoding="utf-8") == (
-        "version=1.0.1\ntag=v1.0.1\nbundle_name=release-bundle-1.0.1\n"
+        "version=1.0.2\ntag=v1.0.2\nbundle_name=release-bundle-1.0.2\n"
     )
 
 

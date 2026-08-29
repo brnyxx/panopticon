@@ -122,7 +122,9 @@ def test_preflight_accepts_exact_governance_and_rehearsal(
     ("content", "expected"),
     [
         (
-            f'jobs:\n  build:\n    steps:\n      # - uses: evil/action@v1\n      - uses: "actions/checkout@{SHA}"\n',
+            "jobs:\n  build:\n    steps:\n"
+            "      # - uses: evil/action@v1\n"
+            f'      - uses: "actions/checkout@{SHA}"\n',
             None,
         ),
         ("jobs:\n  build:\n    steps:\n      - uses: ./actions/release\n", None),

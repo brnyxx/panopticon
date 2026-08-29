@@ -33,11 +33,13 @@ OBSERVED_ON = date(2026, 1, 30)
 PNG_GOLDEN_HASHES = {
     "en": {
         "0a72d7f2eae00bd439ecce18db7ee4b0ebe5db956cd9d01f070cdce8a69a39fd",
+        "5d79c7a526d43bba4817e1096f972ae1641bd3198cded27f4d830036a8c82188",
         "6eab82f1c7dd486a61b50cd1b8f1f8bd5d817e15fda5096843209cb249d28390",
     },
     "ko": {
         "58a8c52c66e37b17cf4e03c3a6163ef5b9047e4ba4b1658c38bc150f03197c90",
         "8d9de8d193b609703b0e72e8b036f41876c87e64d405ca8417f756dc22e4c52f",
+        "ee9e17cc5018346f6e3e119c88bc9ca87bf745e0a8dcc7340812b33538bc9ae3",
     },
 }
 SVG_GOLDEN_HASHES = {

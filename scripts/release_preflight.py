@@ -21,8 +21,12 @@ _REQUIRED_CHECKS = {
     "self-scan",
     "test (macos-latest, 3.11)",
     "test (macos-latest, 3.12)",
+    "test (macos-latest, 3.13)",
+    "test (macos-latest, 3.14)",
     "test (ubuntu-latest, 3.11)",
     "test (ubuntu-latest, 3.12)",
+    "test (ubuntu-latest, 3.13)",
+    "test (ubuntu-latest, 3.14)",
     "test-docker",
     "validate",
 }

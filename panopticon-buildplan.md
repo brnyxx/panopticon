@@ -8,7 +8,8 @@
 | Product | Panopticon |
 | CLI | `pano` |
 | PyPI | `panopticon-mcp` |
-| Document type | Complete implementation plan toward v1.0.0 — no timelines, definition-of-done driven |
+| npm | `@brnyxx/panopticon` |
+| Document type | Complete v1.0.0 plan plus accepted post-1.0 hardening — no timelines, definition-of-done driven |
 | Upstream | `BashaarJavaid/MCP-Sentinel` @ pinned commit `e717e955` (MIT) — static/semantic/dependency analysis assets vendored into the `scan` line with per-file provenance and checksums |
 | Repository | `brnyxx/panopticon` |
 | Images | `ghcr.io/brnyxx/pano-sandbox-*`, trusted by digest |
@@ -30,6 +31,7 @@ This document defines **everything that must exist in v1.0.0**. There are no wee
 - §24 Open decisions
 - §25 Product description
 - §26–§28 Epic details for E17 (reporters), E18 (i18n), E19 (release)
+- §29 E20 post-1.0 npm distribution and production hardening
 
 Precedence, highest first: an accepted entry in `docs/DECISIONS.md` overrides this document; this document overrides the prose of any execution plan. Execution ordering and evidence live in the execution plan `.omo/plans/panopticon-v1-completion.md`, held outside version control and cited by the `Plan:` footer of every commit; it sequences the work but never redefines a contract. A conflict at any level is amended in the authoritative source before work continues, in the same change that found it.
 
@@ -158,6 +160,7 @@ v1.0.0 exists when all of the following hold. Any gap keeps the version at 0.x.
 | E17 | Reporters (terminal, JSON, SARIF, Markdown, PNG, badge) | E11 |
 | E18 | i18n (rule docs, glossary, explain) | E12 |
 | E19 | Distribution, docs, security verification, release | all |
+| E20 | npm native distribution and production hardening | E19 |
 
 The discovery branch (E02–E04) and the observation-engine branch (E05–E08) can proceed in parallel; they merge at E12.
 
@@ -929,4 +932,4 @@ def t(key: MessageKey, locale: Locale, **params: object) -> str  # falls back to
 - Existing npm versions pass only when registry integrity equals the retained tarball; a mismatch, a root-before-platform attempt, or an unavailable retained artifact blocks promotion/recovery.
 
 ### Definition of done
-- The signed rehearsal bundle, production/recovery workflow, and release manifest enumerate the same five npm tarballs. npm retains the four-target GNU/macOS boundary and contains no Python launcher, install script, or runtime network/persistence path. npm recovery is non-atomic but exact-integrity, platform-first, and root-last; schema `1.0` and the existing E19 release guarantees remain unchanged.
+- The signed rehearsal bundle, production/recovery workflow, and release manifest enumerate the same five npm tarballs. All five scoped packages are public from those exact retained bytes, registry integrity matches the signed bundle, and clean `npm install` plus `npx` checks execute `pano version` on every supported target. The matching PyPI patch files are the exact rehearsed files. Standard self-scan, protected-environment preflight, bilingual onboarding, CLI help, and the existing E19 gates pass on the release commit. npm retains the four-target GNU/macOS boundary and contains no Python launcher, install script, or runtime network/persistence path. npm recovery is non-atomic but exact-integrity, platform-first, and root-last; schema `1.0` and the existing E19 release guarantees remain unchanged.
