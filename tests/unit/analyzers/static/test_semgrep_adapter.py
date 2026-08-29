@@ -21,14 +21,28 @@ def _files(tmp_path: Path) -> StaticFileSet:
 def test_run_semgrep_filters_rules_and_requires_pinned_version(monkeypatch, tmp_path: Path) -> None:
     files = _files(tmp_path)
     assert adapter.run_semgrep(files, ("SENT-001",), tmp_path, deadline=999) == {}
+    assert adapter.SEMGREP_VERSION == "1.175.0"
     monkeypatch.setattr(adapter, "version", lambda _: "1.169.0")
-    with pytest.raises(adapter.SemgrepExecutionError, match="version mismatch"):
-        adapter.run_semgrep(files, ("SENT-002",), tmp_path, deadline=999)
+    with pytest.raises(adapter.SemgrepExecutionError) as error:
+        adapter._verify_version()
+    assert str(error.value) == (
+        f"Semgrep version mismatch: expected {adapter.SEMGREP_VERSION}, found 1.169.0"
+    )
     monkeypatch.setattr(adapter, "version", lambda _: adapter.SEMGREP_VERSION)
     monkeypatch.setattr(adapter.shutil, "which", lambda _: None)
     monkeypatch.setattr(adapter.sys, "executable", str(tmp_path / "python"))
     with pytest.raises(adapter.SemgrepExecutionError, match="not available"):
         adapter.run_semgrep(files, ("SENT-002",), tmp_path, deadline=adapter.time.monotonic() + 10)
+
+
+def test_verify_version_reports_pinned_version_when_semgrep_is_missing(monkeypatch) -> None:
+    def missing(_: str) -> str:
+        raise adapter.PackageNotFoundError
+
+    monkeypatch.setattr(adapter, "version", missing)
+    with pytest.raises(adapter.SemgrepExecutionError) as error:
+        adapter._verify_version()
+    assert str(error.value) == f"Semgrep {adapter.SEMGREP_VERSION} is not installed"
 
 
 @pytest.mark.parametrize(

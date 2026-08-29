@@ -19,7 +19,7 @@ import certifi
 
 from panopticon.analyzers.static.model import SourceRange, StaticFileSet, StaticMatch
 
-SEMGREP_VERSION = "1.170.0"
+SEMGREP_VERSION = "1.175.0"
 SEMGREP_BATCH_SIZE = 200
 SEMGREP_TIMEOUT_SECONDS = 10
 
@@ -127,7 +127,7 @@ def _verify_version() -> None:
     try:
         installed = version("semgrep")
     except PackageNotFoundError as error:
-        raise SemgrepExecutionError("Semgrep 1.170.0 is not installed") from error
+        raise SemgrepExecutionError(f"Semgrep {SEMGREP_VERSION} is not installed") from error
     if installed != SEMGREP_VERSION:
         raise SemgrepExecutionError(
             f"Semgrep version mismatch: expected {SEMGREP_VERSION}, found {installed}"

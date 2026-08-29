@@ -6,6 +6,7 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +31,59 @@ def test_clean_checkout_action_uploads_valid_sarif() -> None:
     )
     assert steps[2]["if"] == "always()"
     assert steps[2]["with"]["sarif_file"] == "pano.sarif"
+    assert steps[1]["with"]["mode"] == "standard"
+
+
+@pytest.mark.parametrize(
+    ("mode", "extras"),
+    [
+        ("quick", []),
+        ("standard", ["--extra", "static"]),
+        ("deep", ["--extra", "static", "--extra", "semantic"]),
+    ],
+)
+def test_action_selects_extras_for_scan_mode(tmp_path: Path, mode: str, extras: list[str]) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    (fake_bin / "uv").write_text(
+        '#!/bin/sh\nprintf \'%s\\n\' "$@" > "$PANO_ARGS"\n', encoding="utf-8"
+    )
+    (fake_bin / "uv").chmod(0o755)
+    output = tmp_path / "output"
+    args = tmp_path / "args"
+    env = {
+        **os.environ,
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "GITHUB_ACTION_PATH": str(ROOT),
+        "GITHUB_OUTPUT": str(output),
+        "PANO_ARGS": str(args),
+        "PANO_INPUT_PATH": ".",
+        "PANO_INPUT_MODE": mode,
+        "PANO_INPUT_SARIF": str(tmp_path / "report.sarif"),
+        "PANO_INPUT_FAIL_ON": "high",
+        "PANO_INPUT_CONFIG": "panopticon.toml",
+    }
+
+    completed = subprocess.run(["bash", "-c", _action_run()], env=env, check=False)
+
+    assert completed.returncode == 0
+    assert args.read_text(encoding="utf-8").splitlines() == [
+        "run",
+        "--directory",
+        str(ROOT),
+        *extras,
+        "pano",
+        "ci",
+        ".",
+        "--mode",
+        mode,
+        "--sarif",
+        str(tmp_path / "report.sarif"),
+        "--fail-on",
+        "high",
+        "--config",
+        "panopticon.toml",
+    ]
 
 
 def test_malicious_action_input_cannot_execute_shell(tmp_path: Path) -> None:

@@ -38,8 +38,14 @@ runs:
         case "$PANO_INPUT_SARIF" in
           *$'\n'*|*$'\r'*) exit 2 ;;
         esac
+        case "$PANO_INPUT_MODE" in
+          quick) extras=() ;;
+          standard) extras=(--extra static) ;;
+          deep) extras=(--extra static --extra semantic) ;;
+          *) extras=() ;;
+        esac
         set +e
-        uv run --directory "$GITHUB_ACTION_PATH" pano ci "$PANO_INPUT_PATH" \
+        uv run --directory "$GITHUB_ACTION_PATH" "${extras[@]}" pano ci "$PANO_INPUT_PATH" \
           --mode "$PANO_INPUT_MODE" \
           --sarif "$PANO_INPUT_SARIF" \
           --fail-on "$PANO_INPUT_FAIL_ON" \
