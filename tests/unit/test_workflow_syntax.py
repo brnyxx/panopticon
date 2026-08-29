@@ -77,6 +77,10 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
     jobs = document["jobs"]
     assert jobs["quality"]["if"] == "inputs.channel != 'recovery'"
     assert jobs["recovery-verify"]["if"] == "inputs.channel == 'recovery'"
+    assert jobs["recovery-verify"]["permissions"] == {
+        "actions": "read",
+        "contents": "write",
+    }
     assert jobs["recovery-pypi"]["environment"] == "pypi"
     assert jobs["recovery-github"]["environment"] == "release"
     publish = next(
