@@ -10,7 +10,8 @@ from panopticon.engine.baseline import BaselineRequest, run_baseline
 from panopticon.engine.ci import FailOn, ci_exit_code
 from panopticon.engine.diff import DiffRequest, run_diff
 from panopticon.engine.explain import explain_rule
-from panopticon.engine.scan import ScanMode, ScanRequest, run_scan
+from panopticon.engine.scan import ScanMode, run_scan
+from panopticon.engine.scan_adapters import build_scan_request
 from panopticon.reporters.baseline import render as render_baseline
 from panopticon.reporters.diff import render as render_diff
 from panopticon.reporters.explain import render as render_explain
@@ -75,7 +76,7 @@ def scan(
     except ValueError:
         raise typer.BadParameter("mode must be quick or standard") from None
     rendered = render_scan(
-        run_scan(ScanRequest(path=Path(path), mode=selected_mode, offline=offline)),
+        run_scan(build_scan_request(Path(path), selected_mode, offline=offline)),
         sarif=sarif or json_out,
     )
     typer.echo(rendered.stdout, nl=False)
@@ -97,7 +98,7 @@ def ci(
     except ValueError:
         raise typer.BadParameter("invalid mode or fail-on policy") from None
     root = Path(path)
-    outcome = run_scan(ScanRequest(path=root, mode=selected_mode, config_path=Path(config)))
+    outcome = run_scan(build_scan_request(root, selected_mode, config_path=Path(config)))
     target = Path(sarif)
     saved = persist_succeeded(persist_scan(outcome, target))
     rendered = render_scan(outcome)
