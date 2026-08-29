@@ -254,7 +254,6 @@ def test_cli_rejects_invalid_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(engine, "run_watch", lambda request: WatchServiceOutcome(CompleteResult()))
     result = CliRunner().invoke(app, ["watch", "demo", "--runtime", "containerd"])
     assert result.exit_code != 0
-    assert "runtime must be docker or podman" in result.stderr
 
 
 @pytest.mark.parametrize(

@@ -122,6 +122,8 @@ async def _session(
         await request("notifications/initialized", expect_response=False)
         listed = await request("tools/list")
         called = await request("tools/call", {"name": mode, "arguments": {}})
+        await request("shutdown")
+        await request("exit", expect_response=False)
         return SessionOutcome(initialized, listed, called, ready)
     finally:
         process.stdin.close()
