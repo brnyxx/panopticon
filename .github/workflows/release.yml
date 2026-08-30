@@ -625,6 +625,16 @@ jobs:
           publish_or_verify() {
             local package="$1"
             local tarball="$2"
+            local registered
+            if registered=$(npm view "$package" name --json 2>npm-package.err); then
+              test "$(node -e 'process.stdout.write(JSON.parse(process.argv[1]))' "$registered")" = "$package"
+            elif grep -q "E404" npm-package.err; then
+              echo "::error title=npm bootstrap required::NPM_PACKAGE_BOOTSTRAP_REQUIRED:$package" >&2
+              exit 1
+            else
+              cat npm-package.err >&2
+              exit 1
+            fi
             local expected
             expected=$(node -e '
               const fs = require("fs");

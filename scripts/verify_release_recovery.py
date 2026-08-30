@@ -360,6 +360,10 @@ def _release_metadata_command(args: argparse.Namespace) -> None:
     )
 
 
+def _bundle_command(args: argparse.Namespace) -> None:
+    verify_bundle(args.bundle, args.source_sha, args.version)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -379,6 +383,11 @@ def main() -> None:
     index.add_argument("--metadata", type=Path, required=True)
     index.add_argument("--dist", type=Path, required=True)
     index.set_defaults(handler=lambda args: verify_index(args.metadata, args.dist, args.version))
+    bundle = subparsers.add_parser("bundle")
+    bundle.add_argument("--version", required=True)
+    bundle.add_argument("--source-sha", required=True)
+    bundle.add_argument("--bundle", type=Path, required=True)
+    bundle.set_defaults(handler=_bundle_command)
     release = subparsers.add_parser("release-metadata")
     release.add_argument("--version", required=True)
     release.add_argument("--releases", type=Path, required=True)

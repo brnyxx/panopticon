@@ -95,6 +95,28 @@ def _dist(root: Path, bundle: Path) -> Path:
     return dist
 
 
+def test_bundle_cli_verifies_the_exact_retained_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bundle, _ = _bundle(tmp_path)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "verify_release_recovery.py",
+            "bundle",
+            "--version",
+            VERSION,
+            "--source-sha",
+            SHA,
+            "--bundle",
+            str(bundle),
+        ],
+    )
+
+    recovery.main()
+
+
 def _index(dist: Path) -> dict[str, object]:
     return {
         "urls": [

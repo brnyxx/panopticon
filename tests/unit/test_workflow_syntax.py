@@ -66,6 +66,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     assert jobs["pypi"]["environment"] == "pypi"
     assert jobs["npm"]["environment"] == "npm"
     assert jobs["npm"]["permissions"]["id-token"] == "write"
+    assert "NPM_PACKAGE_BOOTSTRAP_REQUIRED" in str(jobs["npm"])
     assert jobs["promotion-images"]["permissions"] == {"packages": "read"}
     assert any(
         str(step.get("uses", "")).startswith("docker/login-action@")

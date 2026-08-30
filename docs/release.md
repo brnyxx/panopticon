@@ -121,3 +121,46 @@ publisher bootstrap for `@brnyxx`. That authorization is intentionally human-onl
 workflow or recovery command can create it. After bootstrap, platform packages publish before the
 root package, and each package's registry integrity must match the retained release manifest before
 the root package is published.
+
+### One-time exact-artifact npm bootstrap
+
+Perform this only after the 1.0.2 rehearsal succeeds and its approvals are complete. Download both
+artifacts from that exact run, then verify the retained manifest before logging in to npm:
+
+```bash
+export RUN_ID=SUCCESSFUL_REHEARSAL_RUN_ID
+export SOURCE_SHA=EXACT_40_CHARACTER_RELEASE_SHA
+export VERSION=1.0.2
+gh run download "$RUN_ID" --name "release-bundle-$VERSION" --dir recovery-bundle
+gh run download "$RUN_ID" --name npm-distributions --dir npm-dist
+python scripts/verify_release_recovery.py bundle \
+  --version "$VERSION" --source-sha "$SOURCE_SHA" --bundle recovery-bundle
+python - <<'PY'
+from pathlib import Path
+
+tarballs = sorted(Path("npm-dist").glob("*.tgz"))
+if len(tarballs) != 5:
+    raise SystemExit("NPM_BOOTSTRAP_TARBALL_COUNT")
+for tarball in tarballs:
+    retained = Path("recovery-bundle", tarball.name)
+    if not retained.is_file() or retained.read_bytes() != tarball.read_bytes():
+        raise SystemExit(f"NPM_BOOTSTRAP_ARTIFACT_MISMATCH:{tarball.name}")
+PY
+```
+
+The npm organization owner then authenticates with 2FA and publishes the exact downloaded files,
+four platform packages first and the root package last:
+
+```bash
+npm login
+npm publish "npm-dist/brnyxx-panopticon-linux-x64-gnu-$VERSION.tgz" --access public
+npm publish "npm-dist/brnyxx-panopticon-linux-arm64-gnu-$VERSION.tgz" --access public
+npm publish "npm-dist/brnyxx-panopticon-darwin-x64-$VERSION.tgz" --access public
+npm publish "npm-dist/brnyxx-panopticon-darwin-arm64-$VERSION.tgz" --access public
+npm publish "npm-dist/brnyxx-panopticon-$VERSION.tgz" --access public
+```
+
+Configure the GitHub trusted publisher for all five packages after their creation, then rerun the
+production/recovery workflow with the same `RUN_ID` and `SOURCE_SHA`. The workflow refuses a
+missing package with `NPM_PACKAGE_BOOTSTRAP_REQUIRED`, compares each registry `dist.integrity`
+against the retained tarball, and releases GitHub assets only after npm and PyPI match.
