@@ -15,7 +15,7 @@ _COMMIT_SHA = re.compile(r"[0-9a-fA-F]{40}")
 _ACTION_SHA = re.compile(r"[^@]+@[0-9a-fA-F]{40}")
 _REQUIRED_ENVIRONMENTS = {"npm", "pypi", "release", "testpypi"}
 _PUBLIC_PUBLISH_ENVIRONMENTS = _REQUIRED_ENVIRONMENTS
-_REHEARSAL_JOBS = {"draft", "testpypi"}
+_REHEARSAL_JOBS = {"draft", "homebrew-handoff", "testpypi"}
 _REQUIRED_CHECKS = {
     "lint-type",
     "self-scan",

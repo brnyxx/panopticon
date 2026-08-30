@@ -49,6 +49,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         "binary",
         "npm-package",
         "assemble",
+        "homebrew-handoff",
         "draft",
         "verify-images",
         "testpypi",
@@ -83,6 +84,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     assert jobs["draft"]["if"] == "inputs.channel == 'rehearsal'"
     assert set(jobs["draft"]["needs"]) == {
         "assemble",
+        "homebrew-handoff",
         "testpypi",
         "verify-images",
         "release-context",

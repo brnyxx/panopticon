@@ -54,9 +54,10 @@ the release evidence or rerun any gate.
 - The npm packager consumed the four retained 1.0.1 native archives, produced five deterministic
   local tarballs, installed root plus Darwin arm64 payload with scripts and registry fallback
   disabled, and reported `pano 1.0.1 (schema 1.0)`. The 1.0.2 signed bundle is still pending.
-- The hardened release preflight returned `PASS` for the exact successful 1.0.1 rehearsal after all
-  four GitHub release environments were changed to protected-branch, required-reviewer,
-  no-admin-bypass policy.
+- The environment-bound release preflight returned `PASS` for the exact successful 1.0.1 rehearsal
+  after all four GitHub release environments received protected-branch, required-reviewer, and
+  no-admin-bypass policy. The current candidate adds the required `homebrew-handoff` evidence and
+  correctly reports that older rehearsal `BLOCKED`; a new 1.0.2 rehearsal must produce it.
 - `uv pip check` passed and `pip-audit` found no known vulnerability in resolved third-party
   dependencies; unpublished local `panopticon-mcp` 1.0.2 was not available for registry lookup.
 
@@ -76,8 +77,9 @@ rehearsal and exact npm/PyPI promotion must follow that bootstrap; local checks 
    Python and six-platform workflows have not run on this candidate commit.
 3. **High — npm Linux boundary:** prove the declared GNU libc baseline on both Linux architectures;
    do not widen the package claim to musl or native Windows.
-4. **Medium — Homebrew orchestration:** the existing public formula is proven for 1.0.1, but the
-   cross-repository 1.0.2 formula handoff remains a separately operated release step.
+4. **Medium — Homebrew orchestration:** the rehearsal now generates and attests the 1.0.2 formula
+   handoff from the retained manifest, but committing that exact formula to the separate tap and
+   running its public install checks remain separately operated release steps.
 
 Authoritative release history remains [PROGRESS.md](https://github.com/brnyxx/panopticon/blob/main/docs/PROGRESS.md);
 this readiness note is evidence-scoped to the links above.

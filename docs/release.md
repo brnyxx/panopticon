@@ -99,9 +99,11 @@ the default wrap-log retention is 30 days. See [privacy](privacy.md) for local s
 
 The release workflow builds once, rehearses through TestPyPI, verifies retained bytes, then promotes
 the same bundle. The repository workflow owns PyPI, npm, and GitHub publication. The Homebrew tap
-update remains a separate cross-repository step generated from the retained manifest and must pass
-`brew audit`, install, and version checks before the release is closed. Start the rehearsal from
-the release commit:
+update remains a separate cross-repository step: the rehearsal's required `homebrew-handoff` job
+verifies the retained bundle, renders `Formula/panopticon.rb` from its manifest, attests it, and
+uploads `homebrew-formula-VERSION`. After the GitHub release becomes public, commit that exact
+formula to `brnyxx/homebrew-tap` and require `brew audit`, install, and version checks before the
+release is closed. Start the rehearsal from the release commit:
 
 ```bash
 gh workflow run release.yml --ref main -f channel=rehearsal

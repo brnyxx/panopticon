@@ -52,6 +52,7 @@ def _responses(
         "jobs": [
             {"name": "testpypi", "conclusion": "success"},
             {"name": "draft", "conclusion": "success"},
+            {"name": "homebrew-handoff", "conclusion": "success"},
         ],
     }
     calls: list[list[str]] = []
@@ -176,6 +177,15 @@ def test_preflight_rejects_malformed_workflow(
             {"jobs": [{"name": "testpypi", "conclusion": "success"}]},
             "REHEARSAL_REQUIRED_JOB_NOT_SUCCESS:draft",
         ),
+        (
+            {
+                "jobs": [
+                    {"name": "testpypi", "conclusion": "success"},
+                    {"name": "draft", "conclusion": "success"},
+                ]
+            },
+            "REHEARSAL_REQUIRED_JOB_NOT_SUCCESS:homebrew-handoff",
+        ),
     ],
 )
 def test_preflight_rejects_unbound_rehearsal_evidence(
@@ -192,6 +202,7 @@ def test_preflight_rejects_unbound_rehearsal_evidence(
         "jobs": [
             {"name": "testpypi", "conclusion": "success"},
             {"name": "draft", "conclusion": "success"},
+            {"name": "homebrew-handoff", "conclusion": "success"},
         ],
     }
     rehearsal.update(change)
