@@ -45,7 +45,7 @@ the release evidence or rerun any gate.
 
 ## Local verification for the 1.0.2 candidate
 
-- `make ci`: 1,607 passed, 1 skipped, 32 Docker/network tests deselected; branch coverage 85.29%.
+- `make ci`: 1,608 passed, 1 skipped, 32 Docker/network tests deselected; branch coverage 85.29%.
 - Python 3.13 and 3.14 non-Docker/network runs: 1,605 passed and 1 skipped on each interpreter.
 - Online `pano ci . --mode standard --fail-on never`: `COMPLETE`, 15 repository findings, SARIF
   persisted. Offline standard scan: `INCOMPLETE`, as required.
