@@ -65,6 +65,17 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     assert jobs["release-context"]["if"] == MAIN_REF
     assert jobs["testpypi"]["environment"] == "testpypi"
     assert jobs["preflight"]["if"] == PUBLISH_CHANNELS
+    preflight_steps = jobs["preflight"]["steps"]
+    assert any(
+        str(step.get("uses", "")).startswith("astral-sh/setup-uv@") for step in preflight_steps
+    )
+    assert any(step.get("run") == "uv sync --frozen" for step in preflight_steps)
+    preflight_bind = next(
+        step
+        for step in preflight_steps
+        if step.get("name") == "Bind governance to the exact successful rehearsal"
+    )
+    assert "uv run python scripts/release_preflight.py" in preflight_bind["run"]
     assert set(jobs["promotion-verify"]["needs"]) == {"preflight", "release-context"}
     assert jobs["pypi"]["environment"] == "pypi"
     assert jobs["npm"]["environment"] == "npm"
