@@ -19,6 +19,7 @@ from panopticon.engine.exit_codes import NOT_IMPLEMENTED_EXIT
 from panopticon.engine.fix import FixCommandRequest, run_fix
 from panopticon.engine.install import InstallAction, InstallRequest, run_install, run_uninstall
 from panopticon.engine.wrap import WrapRequest, run_wrap
+from panopticon.i18n.messages import epilog
 from panopticon.reporters import doctor as doctor_reporter
 from panopticon.reporters.fix import render as render_fix
 from panopticon.reporters.install import render as render_install
@@ -31,6 +32,7 @@ app = typer.Typer(
     help="Panopticon — we don't watch you, we watch your MCPs.",
     no_args_is_help=True,
     rich_markup_mode="rich",
+    epilog=epilog(),
 )
 
 
@@ -58,6 +60,7 @@ def doctor(
         False, "--list-clients", help="List detected clients without running checks."
     ),
     offline: bool = typer.Option(False, "--offline", help="Use cached information only."),
+    locale: str | None = typer.Option(None, "--locale", help="Output locale (en or ko)."),
 ) -> None:
     """Discover installed MCPs, check their configuration, and report changes."""
     rendered = doctor_reporter.render(
@@ -65,6 +68,7 @@ def doctor(
             engine.DoctorRequest(client=client, list_clients=list_clients, fix=fix, offline=offline)
         ),
         json_output=json_out,
+        locale=locale,
     )
     typer.echo(rendered.stdout, nl=False)
     typer.echo(rendered.stderr, err=True, nl=False)

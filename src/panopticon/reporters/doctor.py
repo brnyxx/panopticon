@@ -7,10 +7,16 @@ import json
 from panopticon.engine.doctor_model import DoctorOutcome
 from panopticon.engine.doctor_render import render_outcome
 from panopticon.engine.exit_codes import result_exit_code
+from panopticon.i18n.messages import message
 from panopticon.reporters.base import Render
 
 
-def render(outcome: DoctorOutcome, *, json_output: bool = False) -> Render:
+def render(
+    outcome: DoctorOutcome,
+    *,
+    json_output: bool = False,
+    locale: str | None = None,
+) -> Render:
     payload = render_outcome(outcome)
     code = result_exit_code(outcome.result)
     if outcome.result.status.value == "PARTIAL":
@@ -59,6 +65,8 @@ def render(outcome: DoctorOutcome, *, json_output: bool = False) -> Render:
             "Diagnostics: "
             + ", ".join(diagnostic.code for diagnostic in outcome.result.diagnostics)
         )
+    # Guidance is additive and deliberately does not derive a new verdict from coverage.
+    lines.append(message("next_command", locale=locale))
     return Render(stdout="\n".join(lines) + "\n", stderr="", exit_code=code)
 
 

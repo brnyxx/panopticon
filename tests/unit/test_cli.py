@@ -25,6 +25,15 @@ def test_help_is_user_facing_and_documents_real_environment_opt_ins() -> None:
     assert "--real-env" in watch_help.stdout
     assert "--real-env-all" in watch_help.stdout
     assert not re.search(r"\(E\d{2}[^)]*\)|upstream line", watch_help.stdout, re.IGNORECASE)
+    assert root_help.stdout.index("pano doctor --offline") < root_help.stdout.index(
+        "pano watch SERVER_NAME --offline"
+    )
+    assert root_help.stdout.index("pano watch SERVER_NAME --offline") < root_help.stdout.index(
+        "pano explain RULE_ID --lang ko"
+    )
+    assert root_help.stdout.index("pano explain RULE_ID --lang ko") < root_help.stdout.index(
+        "uv tool install panopticon-mcp==1.0.1"
+    )
 
 
 def test_doctor_without_configs_is_explicitly_incomplete(monkeypatch, tmp_path) -> None:
@@ -35,3 +44,20 @@ def test_doctor_without_configs_is_explicitly_incomplete(monkeypatch, tmp_path) 
     payload = json.loads(result.stdout)
     assert payload["status"] == "INCOMPLETE"
     assert payload["reason_code"] == "DISCOVERY_FAILED"
+
+
+def test_doctor_korean_terminal_appends_next_command(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["doctor", "--offline", "--locale", "ko"])
+    assert result.exit_code == 3
+    assert "다음: pano watch SERVER_NAME --offline" in result.stdout
+
+
+def test_doctor_json_is_identical_across_locales(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    english = runner.invoke(app, ["doctor", "--json", "--offline", "--locale", "en"])
+    korean = runner.invoke(app, ["doctor", "--json", "--offline", "--locale", "ko"])
+    assert english.exit_code == korean.exit_code
+    assert english.stdout == korean.stdout

@@ -40,6 +40,11 @@ class DockerRuntime:
         if created.returncode:
             raise SandboxError("NETWORK_CREATE_FAILED")
 
+    async def _ensure_image_present(self, image: str) -> None:
+        inspected = await self._command(["image", "inspect", image])
+        if inspected.returncode:
+            raise SandboxError("IMAGE_NOT_PRESENT")
+
     def _container(self, container_id: str) -> DockerContainer:
         return DockerContainer(self.executable, container_id)
 
@@ -75,12 +80,14 @@ class DockerRuntime:
             raise SandboxError("SELF_SOURCE_MUST_BE_ABSOLUTE")
         if not spec.read_only or spec.cap_add != ("SYS_PTRACE",):
             raise SandboxError("UNSUPPORTED_ISOLATION_OPTIONS")
+        await self._ensure_image_present(spec.image)
         await self._ensure_network(spec.network)
         args = [
             "run",
             "-d",
             "-i",
             "--rm",
+            "--pull=never",
             "--read-only",
             "--tmpfs",
             str(_CONTAINER_TMP),

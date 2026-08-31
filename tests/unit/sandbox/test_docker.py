@@ -68,6 +68,7 @@ async def test_run_uses_isolation_flags_and_vector(
     await DockerRuntime("docker").run(ContainerSpec(image, ["serve"], {}, b"archive"))
     command = next(call for call in calls if call[1] == "run")
     assert "--read-only" in command and "--cap-drop" in command
+    assert "--pull=never" in command
     assert "--user" in command and "1000:1000" in command
     assert "--tmpfs" in command
     assert "/home/pano:mode=1777" in command
@@ -87,6 +88,26 @@ async def test_run_rejects_mutable_image(tmp_path: Path) -> None:
     spec = ContainerSpec("registry.example/pano:latest", [], {}, b"archive")
     with pytest.raises(SandboxError, match="IMAGE_NOT_PINNED"):
         await runtime.run(spec)
+
+
+@pytest.mark.asyncio
+async def test_run_rejects_missing_image_without_implicit_pull(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    async def fake_exec(*args: object, **kwargs: object) -> _Process:
+        calls.append(tuple(str(arg) for arg in args))
+        return _Process(b"", returncode=1)
+
+    monkeypatch.setattr(
+        "panopticon.sandbox._docker_runtime.asyncio.create_subprocess_exec",
+        fake_exec,
+    )
+    image = "registry.example/pano@sha256:" + "a" * 64
+    with pytest.raises(SandboxError, match="IMAGE_NOT_PRESENT"):
+        await DockerRuntime("docker").run(ContainerSpec(image, ["serve"], {}, b"archive"))
+    assert [call[1:] for call in calls] == [("image", "inspect", image)]
 
 
 def test_local_content_digest_is_an_immutable_image_reference() -> None:
