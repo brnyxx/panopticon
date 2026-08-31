@@ -35,7 +35,9 @@ def test_build_emits_identical_bilingual_routes_and_assets(tmp_path: Path) -> No
 
     assert _snapshot(output) == first
     assert set(first) == {
+        "assets/logo-32.png",
         "assets/logo.svg",
+        "assets/social-card.png",
         "assets/site.css",
         "assets/site.js",
         "index.html",

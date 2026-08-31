@@ -5,8 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{title}}</title>
   <meta name="description" content="{{description}}">
+  <meta name="theme-color" content="#010714">
+  <meta name="color-scheme" content="dark">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Panopticon">
+  <meta property="og:title" content="{{title}}">
+  <meta property="og:description" content="{{description}}">
+  <meta property="og:url" content="{{page_url}}">
+  <meta property="og:image" content="https://brnyxx.github.io/panopticon/assets/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{title}}">
+  <meta name="twitter:description" content="{{description}}">
+  <meta name="twitter:image" content="https://brnyxx.github.io/panopticon/assets/social-card.png">
   <link rel="alternate" hreflang="en" href="{{en_href}}">
   <link rel="alternate" hreflang="ko" href="{{ko_href}}">
+  <link rel="icon" href="{{asset_prefix}}assets/logo-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="{{asset_prefix}}assets/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="{{asset_prefix}}assets/site.css">
   <script defer src="{{asset_prefix}}assets/site.js"></script>
 </head>
@@ -20,7 +36,7 @@
         <span>PANOPTICON</span>
       </a>
       <nav aria-label="{{nav_label}}">
-        <a href="#how">{{nav_how}}</a>
+        <a href="#record">{{nav_how}}</a>
         <a href="#start">{{nav_start}}</a>
         <a href="#guides">{{nav_guides}}</a>
         <a href="https://github.com/brnyxx/panopticon">{{nav_github}}</a>
@@ -35,9 +51,8 @@
     <main id="main">
       <section class="intro-grid" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <div class="pupil" aria-hidden="true"><span></span></div>
-          <p class="eyebrow">PANOPTICON / LOCAL MCP OBSERVATORY</p>
           <h1 id="hero-title">{{hero_title}}</h1>
+          <p class="brand-promise">{{brand_promise}}</p>
           <div class="headline-rule" aria-hidden="true"></div>
           <p class="summary">{{hero_summary}}</p>
           <div class="command-block install-command">
@@ -50,16 +65,23 @@
             </button>
             <p id="install-command-status" class="live-region" role="status" aria-live="polite"></p>
           </div>
-          <a class="primary-link" href="#start">{{start_link}} <span aria-hidden="true">→</span></a>
+          <a class="primary-link" href="#start">
+            <span>{{start_link}}</span>
+            <span class="arrow-mark arrow-forward" aria-hidden="true"></span>
+          </a>
         </div>
 
-        <section id="how" class="ledger" aria-labelledby="ledger-title">
+        <section class="ledger" aria-labelledby="ledger-title">
+          <div class="pupil" aria-hidden="true"><span></span></div>
           <div class="ledger-main">
             <div class="ledger-heading">
-              <span aria-hidden="true">▤</span>
+              <span class="ledger-mark" aria-hidden="true"></span>
               <h2 id="ledger-title">{{ledger_title}}</h2>
             </div>
-            <p class="tool-call"><span>{{tool_label}}:</span> <code>{{tool}}</code></p>
+            <div class="call-context">
+              <p class="tool-call"><span>{{tool_label}}:</span> <code>{{tool}}</code></p>
+              <p class="target-call"><span>{{target_label}}:</span> <code>{{target}}</code></p>
+            </div>
             <div class="table-scroll" tabindex="0" role="region" aria-label="{{table_scroll_label}}">
               <table class="evidence-table">
                 <caption>{{example_caption}}</caption>
@@ -99,6 +121,11 @@
                 </tbody>
               </table>
             </div>
+            <div class="decoy-signal">
+              <span>{{decoy_signal_label}}</span>
+              <p>{{decoy_signal_evidence}}</p>
+              <code>{{decoy_signal_rule}}</code>
+            </div>
             <p class="observation-note">{{not_pass}}</p>
             <p class="bounded-note">{{bounded_note}}</p>
           </div>
@@ -117,7 +144,6 @@
 
       <section id="start" class="prerequisite-section" aria-labelledby="prereq-title">
         <div class="section-heading">
-          <p class="eyebrow">PUBLIC 1.0.1 / PREREQUISITES</p>
           <h2 id="prereq-title">{{prereq_title}}</h2>
         </div>
         <p class="section-intro">{{prereq_intro}}</p>
@@ -126,12 +152,11 @@
           <li><span aria-hidden="true">02</span><p>{{prereq_runtime}}</p></li>
           <li><span aria-hidden="true">03</span><p>{{prereq_target}}</p></li>
         </ul>
-        <a class="prerequisite-link" href="{{prereq_image_url}}">{{prereq_image_link}} <span aria-hidden="true">↗</span></a>
+        <a class="prerequisite-link" href="{{prereq_image_url}}">{{prereq_image_link}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
       </section>
 
       <section class="runway-section" aria-labelledby="runway-title">
         <div class="section-heading">
-          <p class="eyebrow">DOCTOR → WATCH → RECORD</p>
           <h2 id="runway-title">{{runway_title}}</h2>
         </div>
         <ol class="runway">
@@ -167,7 +192,6 @@
 
       <section class="install-options-section" aria-labelledby="install-options-title">
         <div class="section-heading">
-          <p class="eyebrow">ONE OWNER / ONE PINNED RELEASE</p>
           <h2 id="install-options-title">{{install_options_title}}</h2>
         </div>
         <p class="section-intro">{{install_options_intro}}</p>
@@ -211,16 +235,15 @@
           <article class="native-option">
             <h3>{{install_native_title}}</h3>
             <p>{{install_native_body}}</p>
-            <a href="https://github.com/brnyxx/panopticon/releases/tag/v1.0.1">{{install_native_release}} <span aria-hidden="true">↗</span></a>
-            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/release.md#native-archive-and-air-gapped-install">{{install_native_link}} <span aria-hidden="true">↗</span></a>
+            <a href="https://github.com/brnyxx/panopticon/releases/tag/v1.0.1">{{install_native_release}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/release.md#native-archive-and-air-gapped-install">{{install_native_link}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
           </article>
         </div>
       </section>
 
-      <section class="dimension-section" aria-labelledby="dimension-title">
+      <section id="record" class="dimension-section" aria-labelledby="dimension-title">
         <div class="section-heading">
-          <p class="eyebrow">EVIDENCE / COVERAGE</p>
-          <h2 id="dimension-title">{{ledger_title}}</h2>
+          <h2 id="dimension-title">{{dimension_title}}</h2>
         </div>
         <div class="tabs" role="tablist" aria-label="{{tablist}}">
           <button type="button" role="tab" aria-selected="true" aria-controls="panel-files" id="tab-files" tabindex="0">{{files}}</button>
@@ -238,7 +261,6 @@
 
       <section class="command-map-section" aria-labelledby="command-map-title">
         <div class="section-heading">
-          <p class="eyebrow">READ / OBSERVE / COMPARE / ANALYZE / CHANGE</p>
           <h2 id="command-map-title">{{command_map_title}}</h2>
         </div>
         <p class="section-intro">{{command_map_intro}}</p>
@@ -266,7 +288,6 @@
 
       <section class="agent-section" aria-labelledby="agent-title">
         <div class="agent-intro">
-          <p class="eyebrow">HUMAN CHOICE / MACHINE-READABLE EVIDENCE</p>
           <h2 id="agent-title">{{agent_title}}</h2>
           <p>{{agent_intro}}</p>
           <ul>
@@ -275,7 +296,7 @@
             <li>{{agent_rule_change}}</li>
             <li>{{agent_rule_report}}</li>
           </ul>
-          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
         </div>
         <div class="command-block agent-prompt">
           <code id="agent-prompt">{{agent_prompt}}</code>
@@ -286,7 +307,6 @@
 
       <section class="local-evidence" aria-labelledby="local-title">
         <div>
-          <p class="eyebrow">LOCAL / EXPLICIT / REVERSIBLE</p>
           <h2 id="local-title">{{local_title}}</h2>
         </div>
         <div class="local-copy">
@@ -298,22 +318,20 @@
 
       <section id="guides" class="guide-section" aria-labelledby="guides-title">
         <div class="section-heading">
-          <p class="eyebrow">USE / LIMITS / ARCHITECTURE / DESIGN</p>
           <h2 id="guides-title">{{nav_guides}}</h2>
         </div>
         <div class="guide-links">
-          <a href="{{getting_started_url}}">{{getting_started}} <span aria-hidden="true">↗</span></a>
-          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span aria-hidden="true">↗</span></a>
-          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md">{{privacy}} <span aria-hidden="true">↗</span></a>
-          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/limitations.md">{{limitations_link}} <span aria-hidden="true">↗</span></a>
-          <a href="https://github.com/brnyxx/panopticon/blob/main/ARCHITECTURE.md">{{architecture_link}} <span aria-hidden="true">↗</span></a>
-          <a href="https://github.com/brnyxx/panopticon/blob/main/DESIGN.md">{{design_link}} <span aria-hidden="true">↗</span></a>
+          <a href="{{getting_started_url}}">{{getting_started}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md">{{privacy}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/limitations.md">{{limitations_link}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/ARCHITECTURE.md">{{architecture_link}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/DESIGN.md">{{design_link}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
         </div>
       </section>
 
       <section class="final-cta" aria-labelledby="cta-title">
         <div>
-          <p class="eyebrow">FIRST LOCAL RECORD</p>
           <h2 id="cta-title">{{cta_title}}</h2>
           <p>{{cta_text}}</p>
         </div>
@@ -324,10 +342,10 @@
             <p id="final-install-status" class="live-region" role="status" aria-live="polite"></p>
           </div>
           <div class="text-links">
-            <a href="https://github.com/brnyxx/panopticon">{{github}} <span aria-hidden="true">↗</span></a>
-            <a href="{{getting_started_url}}">{{getting_started}} <span aria-hidden="true">↗</span></a>
-            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span aria-hidden="true">↗</span></a>
-            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md">{{privacy}} <span aria-hidden="true">↗</span></a>
+            <a href="https://github.com/brnyxx/panopticon">{{github}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+            <a href="{{getting_started_url}}">{{getting_started}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md">{{privacy}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
           </div>
         </div>
       </section>

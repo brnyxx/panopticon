@@ -32,14 +32,14 @@ README_CONTRACT_TOKENS = (
 )
 
 README_ASSETS = (
+    ".github/assets/evidence-card.png",
     ".github/assets/hero.svg",
     ".github/assets/logo.svg",
-    ".github/assets/panopticon.png",
 )
 
 # Paths README links to or embeds that are not themselves authoritative documents.
 # The checker only resolves these paths, so the fixture stands them up empty rather
-# than copying 2 MB of artwork into every test.
+# than copying binary artwork into every test.
 README_LINKED_PATHS = (
     *README_ASSETS,
     "LICENSE",

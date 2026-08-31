@@ -17,7 +17,7 @@ from tempfile import mkdtemp
 ROOT = Path(__file__).resolve().parents[1]
 SITE_ROOT = ROOT / "site"
 LOCALES = ("en", "ko")
-ASSETS = ("site.css", "site.js", "logo.svg")
+ASSETS = ("site.css", "site.js", "logo.svg", "logo-32.png", "social-card.png")
 PLACEHOLDER = re.compile(r"{{([a-z][a-z0-9_]*)}}")
 BUILD_KEYS = frozenset({"asset_prefix", "en_current", "ko_current"})
 

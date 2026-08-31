@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/logo.svg" alt="Panopticon logo: a panopticon floor plan drawn as an eye, one cell lit in orange" width="96"/>
+<img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/logo.svg" alt="Panopticon aperture mark: one selected orange segment, one observation ring, and a terminal-cursor pupil" width="96"/>
 
-<img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/hero.svg" alt="Panopticon — We don't watch you. We watch your MCPs. A local-first MCP behavior observatory." width="920"/>
+<img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/hero.svg" alt="Panopticon flow: select one MCP, run it in a generated decoy environment, and inspect the resulting evidence record" width="920"/>
 
 [![Version](https://img.shields.io/badge/version-1.0.1-orange?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/docs/release.md) [![Python](https://img.shields.io/badge/python-3.11%2B-4B8BBE?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/pyproject.toml) [![License](https://img.shields.io/badge/license-MIT-E8EDF7?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/LICENSE) [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md)
 
@@ -14,9 +14,9 @@
 sandbox, and records files, network hosts, processes, and declared-versus-observed differences.
 It reports observation evidence; it does not make a verdict for you.
 
-<div align="center">
-<img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/panopticon.png" alt="An inspection tower at the centre of a ring of cells, each holding an MCP server" width="860"/>
-</div>
+**[Explore the bilingual interactive product tour](https://brnyxx.github.io/panopticon/)** — a
+static, local-asset demonstration with no analytics, cookies, browser storage, or automatic remote
+runtime requests.
 
 ## Start here
 
@@ -29,26 +29,46 @@ pano doctor --offline
 pano watch SERVER_NAME --offline
 ```
 
-The checked-out repository is unpublished 1.0.2 development. `uv sync --all-extras` is contributor
-setup, not a public installation path.
+What happens:
 
-Replace `SERVER_NAME` with a name printed by `doctor`; it is literal text rather than shell angle
-brackets. Package installation contacts the selected registry before `pano` runs. `--offline`
-then disables Panopticon's registry, advisory, package-lookup, and semantic-analyzer outbound
-paths. Traffic attempted by the selected MCP remains sandbox evidence rather than a Panopticon
-product lookup. `doctor` does not require Docker or Podman; local `watch` does.
-On a clean runtime, follow [Stage images for offline watch](docs/getting-started.md#stage-images-for-offline-watch)
-before the first offline observation.
+1. `doctor` lists configured names without starting third-party code or requiring Docker/Podman.
+2. You replace `SERVER_NAME` with one exact printed name. Panopticon never guesses through
+   `NAME_AMBIGUOUS`.
+3. After separate execution approval, `watch` runs that MCP in a generated decoy home and records
+   its file, network, process, leak, and snapshot evidence.
+4. The receipt preserves status, `reason_code`, every coverage dimension, finding IDs, and the
+   artifact path. Missing evidence remains visible.
+
+Before the first observation:
+
+- Package installation contacts the selected registry before `pano` runs. `--offline` then
+  disables Panopticon registry, advisory, package-lookup, and semantic-analyzer outbound paths.
+- Traffic attempted by the selected MCP remains sandbox evidence, not a Panopticon product lookup.
+- Local `watch` needs Docker or Podman. A clean runtime also needs the
+  [digest-pinned images staged](docs/getting-started.md#stage-images-for-offline-watch).
+- The checkout is unpublished 1.0.2 development. `uv sync --all-extras` is contributor setup, not
+  a public installation path.
 
 For a one-time version check, `uvx --from 'panopticon-mcp==1.0.1' pano version` prints
 `pano 1.0.1 (schema 1.0)`. Other installation methods, upgrades, rollback, and air-gapped use are
 in the [installation and release guide](https://github.com/brnyxx/panopticon/blob/main/docs/release.md).
 
-The bilingual demo source starts at
-[`site/template.html`](site/template.html). `scripts/build_site.py` validates locale parity and
-builds both routes deterministically; the SHA-pinned Pages workflow deploys those generated
-artifacts from `main`. The page has no analytics, cookies, local storage, or runtime remote
-resources. Requests handled by GitHub Pages remain subject to GitHub's hosting policy.
+## Read the record
+
+- `COMPLETE` means one named dimension completed with its stated coverage.
+- `UNKNOWN` means the available evidence cannot support a conclusion.
+- `INCOMPLETE` means the requested observation did not complete all needed work.
+- `UNSUPPORTED` means that dimension is unavailable for this platform, mode, or target.
+
+These states are not interchangeable. `WATCH-001`, for example, identifies a decoy marker that
+reached an outbound sink; the marker value is never displayed. Inspect its bilingual rule document
+with `pano explain WATCH-001`.
+
+<div align="center">
+<img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/evidence-card.png" alt="Illustrative Panopticon reporter output with incomplete overall coverage, complete file and network stages, unsupported process tracing, one WATCH-001 finding, and one leak finding" width="720"/>
+</div>
+
+<p align="center"><sub>Illustrative fixture rendered by Panopticon's deterministic PNG reporter. It is evidence, not a verdict.</sub></p>
 
 ## Pick the right workflow
 
@@ -83,34 +103,13 @@ semantic analysis, apply `--yes`, or delete local evidence without separate expl
 The copyable operating prompt, response schema, exit-code policy, and confirmation boundaries are
 in **[Operating Panopticon from an AI agent](docs/agent-guide.md)**.
 
-## Read the result
-
-- `COMPLETE` means the stage completed with its stated coverage.
-- `UNKNOWN` means the available evidence cannot support a conclusion.
-- `INCOMPLETE` means the requested observation did not complete all needed work.
-- `UNSUPPORTED` means that dimension is unavailable for this platform, mode, or target.
-
-These states are not interchangeable. For example, remote observation cannot see server-side file
-or process activity and marks those dimensions `UNSUPPORTED`. A rule ID such as `WATCH-003`,
-`CFG-008`, or `HIST-002` identifies the exact check; read its bilingual explanation with:
-
-```bash
-pano explain WATCH-003
-```
-
-Review the evidence card and the terminal result together. It intentionally retains visible
-coverage and rule identifiers rather than converting missing observation into a reassuring result.
-
 ## How it is designed
 
-- `cli` parses and renders; `engine` owns typed outcomes and exit policy.
-- Collectors return exhaustive status, stable `reason_code`, coverage, evidence, and diagnostics.
-- The sandbox receives a generated decoy home, never the user's home. `--self` is the one explicit
-  read-only project-source mount.
-- `store` is the only artifact writer and performs canonicalization, leak checking, and atomic
-  replacement before persistence.
-- The demo is built from bilingual locale catalogs with a deterministic standard-library builder
-  and local browser assets only.
+- Typed collectors preserve exhaustive status, stable `reason_code`, coverage, evidence, and
+  diagnostics through one engine-owned exit policy.
+- The sandbox receives a generated decoy home, never the user's home; `store` canonicalizes,
+  leak-checks, and atomically replaces every persisted artifact.
+- The bilingual demo is deterministic and loads only repository-owned browser assets.
 
 Read [the architecture](ARCHITECTURE.md), [the demo design system](DESIGN.md),
 [the frozen decisions](docs/DECISIONS.md), and [the product build plan](panopticon-buildplan.md)

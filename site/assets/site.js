@@ -12,7 +12,7 @@
   document.querySelectorAll("[data-copy-target]").forEach((button) => {
     const target = document.getElementById(button.dataset.copyTarget);
     const label = button.querySelector("[data-copy-label]");
-    const liveRegion = button.closest(".command-block").querySelector(".live-region");
+    const liveRegion = document.getElementById(button.getAttribute("aria-describedby"));
     const initialLabel = label.textContent;
     let resetTimer;
 

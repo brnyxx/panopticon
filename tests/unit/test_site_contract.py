@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = (ROOT / "site/template.html").read_text(encoding="utf-8")
 CSS = (ROOT / "site/assets/site.css").read_text(encoding="utf-8")
 JAVASCRIPT = (ROOT / "site/assets/site.js").read_text(encoding="utf-8")
+KOREAN = (ROOT / "site/content/ko.json").read_text(encoding="utf-8")
 WORKFLOW = (ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
 FULL_SHA = re.compile(r"uses: [\w-]+/[\w-]+@[0-9a-f]{40}$", re.MULTILINE)
 
@@ -19,6 +20,15 @@ def test_template_has_semantic_landmarks_and_frozen_seed() -> None:
         assert landmark in TEMPLATE
     assert 'class="skip-link"' in TEMPLATE
     assert '<h1 id="hero-title">' in TEMPLATE
+    assert '<meta name="theme-color" content="#010714">' in TEMPLATE
+    assert '<meta name="color-scheme" content="dark">' in TEMPLATE
+    assert '<meta property="og:image"' in TEMPLATE
+    assert '<meta name="twitter:card" content="summary_large_image">' in TEMPLATE
+    assert "assets/social-card.png" in TEMPLATE
+    assert "assets/logo-32.png" in TEMPLATE
+    assert 'rel="icon"' in TEMPLATE
+    assert 'class="ledger-mark"' in TEMPLATE
+    assert "▤" not in TEMPLATE
 
 
 def test_commands_and_observation_contract_are_machine_visible() -> None:
@@ -34,12 +44,19 @@ def test_commands_and_observation_contract_are_machine_visible() -> None:
         "{{incomplete}}",
         "{{timeout}}",
         "{{unknown}}",
+        "{{brand_promise}}",
+        "{{target}}",
+        "{{decoy_signal_rule}}",
     ):
         assert placeholder in TEMPLATE
-    assert TEMPLATE.count('class="copy-button') == 10
+    assert TEMPLATE.count('data-copy-target="') == 10
     assert TEMPLATE.count('aria-describedby="') == 10
     copy_labels = re.findall(r'aria-label="{{(copy_[^}]+)}}"', TEMPLATE)
     assert len(copy_labels) == len(set(copy_labels)) == 10
+    assert 'class="primary-link" href="#start"' in TEMPLATE
+    assert TEMPLATE.count('data-copy-target="install-command"') == 1
+    assert 'id="record" class="dimension-section"' in TEMPLATE
+    assert 'href="#record"' in TEMPLATE
     assert "<caption>{{example_caption}}</caption>" in TEMPLATE
     assert 'role="region" aria-label="{{table_scroll_label}}"' in TEMPLATE
 
@@ -87,6 +104,7 @@ def test_copy_and_tabs_expose_keyboard_and_fallback_hooks() -> None:
     assert "navigator.clipboard.writeText" in JAVASCRIPT
     assert "setTemporaryState(button.dataset.copySuccess, button.dataset.copySuccess)" in JAVASCRIPT
     assert "selectText(target)" in JAVASCRIPT
+    assert 'getElementById(button.getAttribute("aria-describedby"))' in JAVASCRIPT
     assert 'role="status" aria-live="polite"' in TEMPLATE
 
 
@@ -115,6 +133,17 @@ def test_accessibility_and_responsive_contracts_are_explicit() -> None:
     assert "prefers-reduced-motion: reduce" in CSS
     assert "scroll-behavior: auto !important" in CSS
     assert "overflow-x: auto" in CSS
+    assert 'class="eyebrow"' not in TEMPLATE
+    assert "→" not in TEMPLATE
+    assert "↗" not in TEMPLATE
+    assert ".arrow-forward::before" in CSS
+    assert ".arrow-external::before" in CSS
+    assert "@keyframes evidence-resolve" in CSS
+    assert "@keyframes signal-resolve" in CSS
+    assert "animation: signal-resolve 520ms 650ms" in CSS
+    assert "nth-child(4) .status { animation-delay: 580ms; }" in CSS
+    assert "읽기 전용 이중 언어 규칙 문서" in KOREAN
+    assert "Read-only bilingual rule document" not in KOREAN
 
 
 def test_pages_workflow_is_sha_pinned_and_least_privilege() -> None:
