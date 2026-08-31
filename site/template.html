@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}">
+  <link rel="alternate" hreflang="en" href="{{en_href}}">
+  <link rel="alternate" hreflang="ko" href="{{ko_href}}">
+  <link rel="stylesheet" href="{{asset_prefix}}assets/site.css">
+  <script defer src="{{asset_prefix}}assets/site.js"></script>
+</head>
+<body>
+  <!-- impeccable:seed d13edae8 -->
+  <a class="skip-link" href="#main">{{skip}}</a>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="wordmark" href="./" aria-label="Panopticon">
+        <img src="{{asset_prefix}}assets/logo.svg" alt="" width="36" height="36">
+        <span>PANOPTICON</span>
+      </a>
+      <nav aria-label="{{nav_label}}">
+        <a href="#how">{{nav_how}}</a>
+        <a href="#start">{{nav_start}}</a>
+        <a href="#guides">{{nav_guides}}</a>
+        <a href="https://github.com/brnyxx/panopticon">{{nav_github}}</a>
+      </nav>
+      <div class="language-switch" aria-label="{{language}}">
+        <a href="{{en_href}}" lang="en" {{en_current}}>EN</a>
+        <span aria-hidden="true">/</span>
+        <a href="{{ko_href}}" lang="ko" {{ko_current}}>KO</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="intro-grid" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="pupil" aria-hidden="true"><span></span></div>
+          <p class="eyebrow">PANOPTICON / LOCAL MCP OBSERVATORY</p>
+          <h1 id="hero-title">{{hero_title}}</h1>
+          <div class="headline-rule" aria-hidden="true"></div>
+          <p class="summary">{{hero_summary}}</p>
+          <div class="command-block install-command">
+            <code id="install-command">{{install}}</code>
+            <button type="button" class="copy-button" data-copy-target="install-command"
+                    data-copy-success="{{copied}}" data-copy-manual="{{manual}}"
+                    data-copy-manual-label="{{manual_copy}}"
+                    aria-label="{{copy_hero_install}}" aria-describedby="install-command-status">
+              <span data-copy-label>{{copy}}</span>
+            </button>
+            <p id="install-command-status" class="live-region" role="status" aria-live="polite"></p>
+          </div>
+          <a class="primary-link" href="#start">{{start_link}} <span aria-hidden="true">→</span></a>
+        </div>
+
+        <section id="how" class="ledger" aria-labelledby="ledger-title">
+          <div class="ledger-main">
+            <div class="ledger-heading">
+              <span aria-hidden="true">▤</span>
+              <h2 id="ledger-title">{{ledger_title}}</h2>
+            </div>
+            <p class="tool-call"><span>{{tool_label}}:</span> <code>{{tool}}</code></p>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="{{table_scroll_label}}">
+              <table class="evidence-table">
+                <caption>{{example_caption}}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{{coverage_header}}</th>
+                    <th scope="col">{{evidence_header}}</th>
+                    <th scope="col">{{status_header}}</th>
+                    <th scope="col">{{reason_header}}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">{{files}}</th>
+                    <td>{{files_evidence}}</td>
+                    <td><span class="status status-complete"><i aria-hidden="true"></i>{{complete}}</span></td>
+                    <td><code>{{completed}}</code></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">{{network}}</th>
+                    <td>{{network_evidence}}</td>
+                    <td><span class="status status-complete"><i aria-hidden="true"></i>{{complete}}</span></td>
+                    <td><code>{{completed}}</code></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">{{processes}}</th>
+                    <td>{{processes_evidence}}</td>
+                    <td><span class="status status-unsupported"><i aria-hidden="true"></i>{{unsupported}}</span></td>
+                    <td><code>{{runtime_unavailable}}</code></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">{{snapshot}}</th>
+                    <td>{{snapshot_evidence}}</td>
+                    <td><span class="status status-incomplete"><i aria-hidden="true"></i>{{incomplete}}</span></td>
+                    <td><code>{{timeout}}</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="observation-note">{{not_pass}}</p>
+            <p class="bounded-note">{{bounded_note}}</p>
+          </div>
+
+          <aside class="coverage-rail" aria-labelledby="coverage-title">
+            <h3 id="coverage-title">{{coverage_title}}</h3>
+            <ul>
+              <li class="coverage-complete"><i aria-hidden="true"></i><strong>{{complete}}</strong><span>{{coverage_complete}}</span></li>
+              <li class="coverage-incomplete"><i aria-hidden="true"></i><strong>{{incomplete}}</strong><span>{{coverage_incomplete}}</span></li>
+              <li class="coverage-unsupported"><i aria-hidden="true"></i><strong>{{unsupported}}</strong><span>{{coverage_unsupported}}</span></li>
+              <li class="coverage-unknown"><i aria-hidden="true"></i><strong>{{unknown}}</strong><span>{{coverage_unknown}}</span></li>
+            </ul>
+          </aside>
+        </section>
+      </section>
+
+      <section id="start" class="prerequisite-section" aria-labelledby="prereq-title">
+        <div class="section-heading">
+          <p class="eyebrow">PUBLIC 1.0.1 / PREREQUISITES</p>
+          <h2 id="prereq-title">{{prereq_title}}</h2>
+        </div>
+        <p class="section-intro">{{prereq_intro}}</p>
+        <ul class="prerequisite-list">
+          <li><span aria-hidden="true">01</span><p>{{prereq_uv}}</p></li>
+          <li><span aria-hidden="true">02</span><p>{{prereq_runtime}}</p></li>
+          <li><span aria-hidden="true">03</span><p>{{prereq_target}}</p></li>
+        </ul>
+        <a class="prerequisite-link" href="{{prereq_image_url}}">{{prereq_image_link}} <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section class="runway-section" aria-labelledby="runway-title">
+        <div class="section-heading">
+          <p class="eyebrow">DOCTOR → WATCH → RECORD</p>
+          <h2 id="runway-title">{{runway_title}}</h2>
+        </div>
+        <ol class="runway">
+          <li>
+            <span class="step-number">01</span>
+            <div class="command-block">
+              <code id="runway-install">{{install}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="runway-install" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_runway_install}}" aria-describedby="runway-install-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="runway-install-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+            <p>{{step1_result}} <span>{{step1_next}}</span></p>
+          </li>
+          <li>
+            <span class="step-number">02</span>
+            <div class="command-block">
+              <code id="runway-doctor">{{doctor}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="runway-doctor" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_doctor}}" aria-describedby="runway-doctor-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="runway-doctor-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+            <p>{{step2_result}} <span>{{step2_next}}</span></p>
+          </li>
+          <li>
+            <span class="step-number">03</span>
+            <div class="command-block">
+              <code id="runway-watch">{{watch}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="runway-watch" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_watch}}" aria-describedby="runway-watch-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="runway-watch-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+            <p>{{step3_result}} <span>{{step3_next}}</span></p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="install-options-section" aria-labelledby="install-options-title">
+        <div class="section-heading">
+          <p class="eyebrow">ONE OWNER / ONE PINNED RELEASE</p>
+          <h2 id="install-options-title">{{install_options_title}}</h2>
+        </div>
+        <p class="section-intro">{{install_options_intro}}</p>
+        <div class="install-options">
+          <article>
+            <h3>{{install_try_title}}</h3>
+            <p>{{install_try_body}}</p>
+            <div class="command-block">
+              <code id="install-uvx">{{install_uvx}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="install-uvx" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_uvx}}" aria-describedby="install-uvx-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="install-uvx-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+          </article>
+          <article>
+            <h3>{{install_uv_title}}</h3>
+            <p>{{install_uv_body}}</p>
+            <div class="command-block">
+              <code id="install-uv">{{install}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="install-uv" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_option_uv}}" aria-describedby="install-uv-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="install-uv-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+          </article>
+          <article>
+            <h3>{{install_pipx_title}}</h3>
+            <p>{{install_pipx_body}}</p>
+            <div class="command-block">
+              <code id="install-pipx">{{install_pipx}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="install-pipx" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_pipx}}" aria-describedby="install-pipx-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="install-pipx-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+          </article>
+          <article>
+            <h3>{{install_brew_title}}</h3>
+            <p>{{install_brew_body}}</p>
+            <div class="command-block">
+              <code id="install-brew">{{install_brew}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="install-brew" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_brew}}" aria-describedby="install-brew-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="install-brew-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+          </article>
+          <article class="native-option">
+            <h3>{{install_native_title}}</h3>
+            <p>{{install_native_body}}</p>
+            <a href="https://github.com/brnyxx/panopticon/releases/tag/v1.0.1">{{install_native_release}} <span aria-hidden="true">↗</span></a>
+            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/release.md#native-archive-and-air-gapped-install">{{install_native_link}} <span aria-hidden="true">↗</span></a>
+          </article>
+        </div>
+      </section>
+
+      <section class="dimension-section" aria-labelledby="dimension-title">
+        <div class="section-heading">
+          <p class="eyebrow">EVIDENCE / COVERAGE</p>
+          <h2 id="dimension-title">{{ledger_title}}</h2>
+        </div>
+        <div class="tabs" role="tablist" aria-label="{{tablist}}">
+          <button type="button" role="tab" aria-selected="true" aria-controls="panel-files" id="tab-files" tabindex="0">{{files}}</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="panel-network" id="tab-network" tabindex="-1">{{network}}</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="panel-processes" id="tab-processes" tabindex="-1">{{processes}}</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="panel-snapshot" id="tab-snapshot" tabindex="-1">{{snapshot}}</button>
+        </div>
+        <div class="tab-panels">
+          <div id="panel-files" role="tabpanel" tabindex="0" aria-labelledby="tab-files">{{panel_files}}</div>
+          <div id="panel-network" role="tabpanel" tabindex="0" aria-labelledby="tab-network" hidden>{{panel_network}}</div>
+          <div id="panel-processes" role="tabpanel" tabindex="0" aria-labelledby="tab-processes" hidden>{{panel_processes}}</div>
+          <div id="panel-snapshot" role="tabpanel" tabindex="0" aria-labelledby="tab-snapshot" hidden>{{panel_snapshot}}</div>
+        </div>
+      </section>
+
+      <section class="command-map-section" aria-labelledby="command-map-title">
+        <div class="section-heading">
+          <p class="eyebrow">READ / OBSERVE / COMPARE / ANALYZE / CHANGE</p>
+          <h2 id="command-map-title">{{command_map_title}}</h2>
+        </div>
+        <p class="section-intro">{{command_map_intro}}</p>
+        <div class="command-map-scroll" tabindex="0" role="region" aria-label="{{command_map_title}}">
+          <table class="command-map">
+            <thead>
+              <tr>
+                <th scope="col">{{command_header}}</th>
+                <th scope="col">{{command_example_header}}</th>
+                <th scope="col">{{command_boundary_header}}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">{{goal_discover}}</th><td><code>{{doctor}}</code></td><td>{{boundary_discover}}</td></tr>
+              <tr><th scope="row">{{goal_observe}}</th><td><code>{{watch}}</code></td><td>{{boundary_observe}}</td></tr>
+              <tr><th scope="row">{{goal_explain}}</th><td><code>pano explain RULE_ID</code></td><td>{{boundary_explain}}</td></tr>
+              <tr><th scope="row">{{goal_baseline}}</th><td><code>{{command_baseline}}</code></td><td>{{boundary_baseline}}</td></tr>
+              <tr><th scope="row">{{goal_diff}}</th><td><code>{{command_diff}}</code></td><td>{{boundary_diff}}</td></tr>
+              <tr><th scope="row">{{goal_scan}}</th><td><code>{{command_scan}}</code></td><td>{{boundary_scan}}</td></tr>
+              <tr><th scope="row">{{goal_fix}}</th><td><code>{{command_fix}}</code></td><td>{{boundary_fix}}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="agent-section" aria-labelledby="agent-title">
+        <div class="agent-intro">
+          <p class="eyebrow">HUMAN CHOICE / MACHINE-READABLE EVIDENCE</p>
+          <h2 id="agent-title">{{agent_title}}</h2>
+          <p>{{agent_intro}}</p>
+          <ul>
+            <li>{{agent_rule_select}}</li>
+            <li>{{agent_rule_execute}}</li>
+            <li>{{agent_rule_change}}</li>
+            <li>{{agent_rule_report}}</li>
+          </ul>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="command-block agent-prompt">
+          <code id="agent-prompt">{{agent_prompt}}</code>
+          <button type="button" class="copy-button" data-copy-target="agent-prompt" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_agent_prompt}}" aria-describedby="agent-prompt-status"><span data-copy-label>{{copy}}</span></button>
+          <p id="agent-prompt-status" class="live-region" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="local-evidence" aria-labelledby="local-title">
+        <div>
+          <p class="eyebrow">LOCAL / EXPLICIT / REVERSIBLE</p>
+          <h2 id="local-title">{{local_title}}</h2>
+        </div>
+        <div class="local-copy">
+          <p>{{local_text}}</p>
+          <p>{{flow}}</p>
+          <p>{{offline}}</p>
+        </div>
+      </section>
+
+      <section id="guides" class="guide-section" aria-labelledby="guides-title">
+        <div class="section-heading">
+          <p class="eyebrow">USE / LIMITS / ARCHITECTURE / DESIGN</p>
+          <h2 id="guides-title">{{nav_guides}}</h2>
+        </div>
+        <div class="guide-links">
+          <a href="{{getting_started_url}}">{{getting_started}} <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md">{{privacy}} <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/docs/limitations.md">{{limitations_link}} <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/ARCHITECTURE.md">{{architecture_link}} <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/brnyxx/panopticon/blob/main/DESIGN.md">{{design_link}} <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+
+      <section class="final-cta" aria-labelledby="cta-title">
+        <div>
+          <p class="eyebrow">FIRST LOCAL RECORD</p>
+          <h2 id="cta-title">{{cta_title}}</h2>
+          <p>{{cta_text}}</p>
+        </div>
+        <div class="final-actions">
+          <div class="command-block">
+            <code id="final-install">{{install}}</code>
+            <button type="button" class="copy-button" data-copy-target="final-install" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_final_install}}" aria-describedby="final-install-status"><span data-copy-label>{{copy}}</span></button>
+            <p id="final-install-status" class="live-region" role="status" aria-live="polite"></p>
+          </div>
+          <div class="text-links">
+            <a href="https://github.com/brnyxx/panopticon">{{github}} <span aria-hidden="true">↗</span></a>
+            <a href="{{getting_started_url}}">{{getting_started}} <span aria-hidden="true">↗</span></a>
+            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/agent-guide.md">{{agent_guide}} <span aria-hidden="true">↗</span></a>
+            <a href="https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md">{{privacy}} <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div><p>{{footer}}</p><p>{{footer_scope}}</p></div>
+      <p>{{hosting_prefix}} <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">{{hosting_link}}</a></p>
+    </footer>
+  </div>
+</body>
+</html>
