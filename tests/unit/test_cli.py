@@ -1,6 +1,7 @@
 import json
 import re
 
+from typer.main import get_command
 from typer.testing import CliRunner
 
 from panopticon import SCHEMA_VERSION
@@ -22,8 +23,11 @@ def test_help_is_user_facing_and_documents_real_environment_opt_ins() -> None:
 
     watch_help = runner.invoke(app, ["watch", "--help"], terminal_width=160)
     assert watch_help.exit_code == 0
-    assert "--real-env" in watch_help.stdout
-    assert "--real-env-all" in watch_help.stdout
+    watch_command = get_command(app).commands["watch"]
+    option_names = {
+        option for parameter in watch_command.params for option in getattr(parameter, "opts", ())
+    }
+    assert {"--real-env", "--real-env-all"} <= option_names
     assert not re.search(r"\(E\d{2}[^)]*\)|upstream line", watch_help.stdout, re.IGNORECASE)
     assert root_help.stdout.index("pano doctor --offline") < root_help.stdout.index(
         "pano watch SERVER_NAME --offline"
