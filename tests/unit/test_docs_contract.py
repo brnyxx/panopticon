@@ -18,7 +18,7 @@ from check_docs import CHECKED_FILES, CONTRACT_TOKENS, check, main
 ROOT = Path(__file__).resolve().parents[2]
 
 # Release guidance and the evidence-scoped readiness note are authoritative.
-EXPECTED_AUTHORITATIVE_FILES = 12
+EXPECTED_AUTHORITATIVE_FILES = 18
 
 # Every README contract token must be a machine-consumed identifier: a state name the
 # renderer emits, a command a user types, or the pinned upstream hash. Natural-language
@@ -40,7 +40,12 @@ README_ASSETS = (
 # Paths README links to or embeds that are not themselves authoritative documents.
 # The checker only resolves these paths, so the fixture stands them up empty rather
 # than copying 2 MB of artwork into every test.
-README_LINKED_PATHS = (*README_ASSETS, "LICENSE", "THIRD_PARTY_NOTICES.md")
+README_LINKED_PATHS = (
+    *README_ASSETS,
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "site/template.html",
+)
 
 
 @pytest.fixture
@@ -276,4 +281,6 @@ def test_cli_surface_exits_zero_with_a_deterministic_summary(
     # Then: both exit 0 with identical output stating the frozen checked-file count
     assert codes == [0, 0], outputs
     assert outputs[0] == outputs[1]
-    assert outputs[0] == "checked 12 authoritative files, 0 problem(s)\n"
+    assert outputs[0] == (
+        f"checked {EXPECTED_AUTHORITATIVE_FILES} authoritative files, 0 problem(s)\n"
+    )

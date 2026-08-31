@@ -21,7 +21,7 @@ The complete product and implementation plan is in **`panopticon-buildplan.md`**
 5. **Determinism.** Same input → same output. `diff` on identical observations must be zero. Canonicalize before comparing (sort, strip timestamps/PIDs/durations/container IDs), and compare run metadata separately from the semantic view.
 6. **Fix is always: dry-run diff → confirm → backup → apply → re-check → undo available.** Never edit a client config outside `fix/` and `install/` code paths. Secret-bearing fixes go through `SecretStore`; with no secure backend they are guidance-only (DECISIONS #10).
 7. **ko and en are the same rule.** Every rule has `i18n/ko/rules/<ID>.md` and `i18n/en/rules/<ID>.md` with identical 6-section structure. CI fails if the ID sets differ.
-8. **No telemetry.** Outbound product paths are limited to registry/package-install lookups, exact-version OSV advisory lookup in standard/deep `scan`, the MCP's own traffic inside the sandbox, explicitly permitted remote `watch`, bounded unauthenticated FIX-008 validation, and the user-invoked semantic analyzer in `scan --mode deep` (DECISIONS #12, #18, and #21; exhaustive table: `docs/privacy.md`). `--offline` must disable every path; under `--offline` advisory and semantic results are typed `UNSUPPORTED` and the scan is `INCOMPLETE`.
+8. **No telemetry.** Outbound product paths are limited to registry/package-install lookups, the digest-pinned GHCR sandbox-image resolution/pull before connected local `watch`, exact-version OSV advisory lookup in standard/deep `scan`, the MCP's own traffic inside the sandbox, explicitly permitted remote `watch`, bounded unauthenticated FIX-008 validation, and the user-invoked semantic analyzer in `scan --mode deep` (DECISIONS #12, #18, and #21; exhaustive table: `docs/privacy.md`). `--offline` must disable every path; under `--offline` advisory and semantic results are typed `UNSUPPORTED` and the scan is `INCOMPLETE`.
 9. **Don't fork the plan silently.** If an epic's scope, a rule's condition, or a schema must change, edit `panopticon-buildplan.md` in the same PR and say why in the PR body. Contract-level changes also need a `docs/DECISIONS.md` entry.
 
 ## Repository layout
@@ -50,12 +50,12 @@ src/panopticon/
   engine/       Pipeline contracts for doctor/watch/diff/scan; boundary Result and diagnostics.
   secrets/      SecretStore protocol and OS credential-store backends.
   util/         leak_check, paths, canonicalize, jsonc.
-schemas/        JSON Schema (2020-12), generated from the runtime models. Development line `0.x`; `1.0` is frozen once at the 0.9 gate (§21, §23).
+schemas/        JSON Schema (2020-12), generated from the runtime models. Public schema `1.0` is frozen; a post-1.0 breaking shape is `2.0` and requires its own release plan (§21, §23).
 panopticon-buildplan.md   The plan (what to build). ARCHITECTURE.md, ROADMAP.md at root.
 action.yml      GitHub Action wrapper around `pano ci`. panopticon.toml: example project config for the analyze line.
 THIRD_PARTY_NOTICES.md    Upstream MIT attribution; list every vendored file here.
 tests/          unit/, integration/ (Docker-marked), e2e/, fixtures/.
-docs/           DECISIONS.md (frozen contracts), PROGRESS.md, limitations.md, privacy.md, disclosure.md, self-declaration.md, contributing.md, README.ko.md, rules/.
+docs/           DECISIONS.md (frozen contracts), PROGRESS.md, getting-started*.md, agent-guide.md, release*.md, limitations.md, privacy.md, disclosure.md, self-declaration.md, contributing.md, README.ko.md, rules/.
 scripts/        Dev helpers (image build, i18n check, rule catalog generation).
 ```
 
@@ -100,9 +100,9 @@ make ci                            # everything above
 3. Register in `discovery/__init__.py`. Add the row to `panopticon-buildplan.md §5`.
 
 ### Schemas
-- Persisted schemas live on the `0.x` development line. Any change to a persisted shape → regenerate `schemas/*.json` from the runtime models, bump `schema_version` within 0.x if breaking, add an explicitly dispatched idempotent migrator in `baseline/migrate.py`, update `panopticon-buildplan.md §21`.
-- Do not write `1.0` into a schema before the 0.9 release-candidate gate. That freeze happens exactly once (DECISIONS #6).
-- Round-trip tests in `tests/unit/test_schema_roundtrip.py` must pass, and migration replay must converge idempotently from every shipped 0.x version.
+- Persisted schema `1.0` was frozen at the 0.9 release-candidate gate. Any compatible shape clarification → regenerate `schemas/*.json` from the runtime models and update `panopticon-buildplan.md §21`; never silently widen a frozen contract.
+- Any post-1.0 breaking persisted-shape change is schema `2.0`, requires its own release plan and DECISIONS entry, and ships an explicitly dispatched idempotent migrator in `baseline/migrate.py`.
+- Round-trip tests in `tests/unit/test_schema_roundtrip.py` must pass, and migration replay must converge idempotently from every shipped 0.x version into 1.0 and across every later explicitly shipped migration.
 
 ### Identity
 - `server_id` groups; `installation_id` addresses one config entry; `logical_key` addresses one finding across runs. Never use one where the contract calls for another (DECISIONS #7, `ARCHITECTURE.md`).
@@ -147,6 +147,27 @@ make ci                            # everything above
 - Do not delete or add MCP entries in a client config. `fix` edits values; `install` swaps `command`/`args` and preserves the original under `_pano_original`.
 - Do not skip `panopticon-buildplan.md` updates when behavior changes.
 - Do not weaken a "Definition of done" to close an epic.
+
+## When an agent operates Panopticon for a user
+
+Repository contribution and product operation are different roles. An agent that installs or runs
+`pano` for a user must follow [`docs/agent-guide.md`](docs/agent-guide.md).
+
+- Start with `pano version` and `pano doctor --offline --json`.
+- Bind `watch` to one exact server name returned by discovery; do not default to `--all`. The
+  current selector cannot bind an `installation_id`, so stop on `NAME_AMBIGUOUS` and report that
+  limitation instead of choosing an installation.
+- Treat showing a command and executing the selected third-party MCP as separate actions. A request
+  to inspect configuration does not authorize `watch`; obtain explicit authorization for one exact
+  target before execution.
+- Keep package installation, real environment values, destructive calls, remote credentials,
+  semantic deep analysis, configuration apply, and deletion behind separate explicit authorization.
+  For `fix`, `install`, and `uninstall`, authorization attaches to the mutating effect after the
+  exact preview is shown, not merely to the `--yes` flag.
+- Report exit code, exhaustive status, `reason_code`, every coverage dimension, finding IDs,
+  diagnostics, artifact paths, and all unknown or unsupported areas.
+- Preview configuration changes through `pano fix ... --dry-run --offline`; never edit a client MCP
+  configuration directly.
 
 ## Where to ask
 

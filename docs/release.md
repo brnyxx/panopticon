@@ -1,4 +1,4 @@
-# Installation, verification, upgrade, rollback, and release recovery
+# Installation, verification, upgrade, and rollback
 
 Version 1.0.1 is currently published as the `panopticon-mcp` Python package, four native archives,
 and Homebrew formula `brnyxx/homebrew-tap/panopticon`. The release assets are immutable:
@@ -6,17 +6,36 @@ and Homebrew formula `brnyxx/homebrew-tap/panopticon`. The release assets are im
 [GitHub release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.1), and
 [Homebrew tap revision](https://github.com/brnyxx/homebrew-tap/commit/7733d8fec72c6bde2f6b9e284e29ba2c77272eb0).
 The scoped npm channel is forthcoming and is not a v1.0.1 distribution.
+The checked-out repository is unpublished 1.0.2 development; its `uv sync --all-extras` setup is
+for contributors and is not one of the public install methods below.
+
+First-time users should follow [Getting started](getting-started.md). Automation agents should use
+the confirmation boundaries and JSON response contract in [the agent operating guide](agent-guide.md).
+Release maintainers use the separate [promotion and recovery guide](release-maintainers.md).
 
 ## Choose an install method
 
+| Method | Use it when | Network before `pano` | Owner for upgrade/rollback |
+|---|---|---|---|
+| `uvx` | You want a one-shot invocation | PyPI through uv | Temporary environment; pin every invocation |
+| `uv tool` | uv owns persistent command-line tools | PyPI through uv | uv |
+| `pipx` | pipx owns isolated Python applications | PyPI through pip/pipx | pipx |
+| Homebrew | Homebrew owns system command-line tools | GitHub/Homebrew hosts | Homebrew tap |
+| Native archive | You need a standalone binary or air-gapped transfer | GitHub release host before transfer | Your verified archive inventory |
+
+Package installation traffic happens before Panopticon starts and is not controlled by
+`pano --offline`.
+
 ### One-shot `uvx`
 
-`uvx` installs into its temporary tool environment for this invocation:
-
 ```bash
-uvx panopticon-mcp@1.0.1 version
-uvx panopticon-mcp@1.0.1 doctor
+uvx --from 'panopticon-mcp==1.0.1' pano version
+uvx --from 'panopticon-mcp==1.0.1' pano doctor --offline
+uvx --from 'panopticon-mcp==1.0.1' pano watch SERVER_NAME --offline
 ```
+
+`uvx` installs into a temporary tool environment for each invocation.
+Use the complete `uvx --from ... pano` prefix for every one-shot command.
 
 ### Persistent Python or Homebrew install
 
@@ -24,7 +43,9 @@ Choose one persistent installer:
 
 ```bash
 uv tool install panopticon-mcp==1.0.1
+# or
 pipx install panopticon-mcp==1.0.1
+# or
 brew install brnyxx/homebrew-tap/panopticon
 ```
 
@@ -36,133 +57,133 @@ pano version
 
 It reports `pano 1.0.1 (schema 1.0)`.
 
-### Native archive and air-gapped install
+## Native archive and air-gapped install
 
 Download the matching `linux-x86_64`, `linux-arm64`, `darwin-x86_64`, or `darwin-arm64` archive,
 `SHA256SUMS`, and the archive's `.sigstore.json` bundle from the
-[v1.0.1 release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.1). In a connected,
-trusted transfer environment, verify the downloaded archive against the release checksum:
+[v1.0.1 release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.1).
+
+In a connected, trusted transfer environment, verify the downloaded archive against the release
+checksum:
 
 ```bash
-shasum -a 256 -c SHA256SUMS
+export ARCHIVE=panopticon-1.0.1-darwin-arm64.tar.gz
+awk -v file="$ARCHIVE" '$2 == file' SHA256SUMS | shasum -a 256 -c -
 ```
 
-Transfer the verified archive and checksum file into the air-gapped environment, verify the checksum
-again with the same command, extract the archive, and put `pano` on `PATH`. Retain the matching
-Sigstore bundle with the archive as release provenance. No installer network access is needed after
-that transfer.
+Verify the keyless signature against the exact release workflow identity. Set `ARCHIVE` to the
+downloaded filename; `uvx sigstore` contacts PyPI when the verifier is not already installed:
 
-`pano doctor` needs no container runtime. Local `pano watch` needs Docker or Podman. Remote
-observation marks server-side file and process dimensions `UNSUPPORTED`. Native Windows supports
-discovery only; use WSL2 for supported Linux observation behavior.
+```bash
+uvx sigstore verify identity \
+  --bundle "$ARCHIVE.sigstore.json" \
+  --cert-identity \
+  "https://github.com/brnyxx/panopticon/.github/workflows/release.yml@refs/heads/main" \
+  --cert-oidc-issuer "https://token.actions.githubusercontent.com" \
+  "$ARCHIVE"
+```
 
-### Forthcoming scoped npm channel
+Use the filename for your platform. Retain the matching Sigstore bundle with the archive as
+provenance. Transfer the archive, checksum, and bundle into the air-gapped environment, verify the
+checksum again, extract the archive, and put `pano` on `PATH`. No installer network access is
+needed after transfer.
 
-The next patch is planned to publish root package `@brnyxx/panopticon` with exact-version optional
-native packages `@brnyxx/panopticon-linux-x64-gnu`,
-`@brnyxx/panopticon-linux-arm64-gnu`, `@brnyxx/panopticon-darwin-x64`, and
-`@brnyxx/panopticon-darwin-arm64`. After that publication, install the root package with:
+`pano doctor` needs no container runtime. Local `pano watch` needs Docker or Podman and its
+pinned sandbox image; offline observation cannot pull a missing image. Remote observation marks
+server-side file and process dimensions `UNSUPPORTED`. Native Windows supports discovery only; use
+WSL2 for supported Linux observation behavior.
+
+## Forthcoming scoped npm channel
+
+The next patch is designed to publish root package `@brnyxx/panopticon` with exact-version optional
+native packages for Linux GNU x64/arm64 and macOS x64/arm64. It is not an installation option until
+registry publication and public clean-install evidence exist.
+
+After that publication, the documented install will be:
 
 ```bash
 npm install -g @brnyxx/panopticon
 pano version
 ```
 
-The root package selects the matching native optional package; it does not download a binary during
-postinstall. npm registry traffic occurs before `pano` starts and is not controlled by
-`pano --offline`.
+The root package selects the matching native optional package. It has no lifecycle download script,
+and npm registry traffic occurs before `pano` starts.
 
 ## Upgrade and rollback
 
-Use the installer that owns the installation:
+Use the installer that owns the current installation:
 
 ```bash
 uv tool upgrade panopticon-mcp
 pipx upgrade panopticon-mcp
 brew upgrade panopticon
-npm update -g @brnyxx/panopticon
 ```
 
-For a Python rollback, pin the earlier immutable published version with `uv tool install
-panopticon-mcp==VERSION` or `pipx install panopticon-mcp==VERSION`; for npm, use `npm install -g
-@brnyxx/panopticon@VERSION`. Homebrew rollback uses a prior tap formula revision. Native users
-restore a previously verified archive. Preserve the archive, `SHA256SUMS`, Sigstore bundle, and
-release manifest for every retained version.
-
-Configuration rollback is independent of package rollback. Run the originating `pano fix --undo`
-or `pano uninstall` transaction before removing a version that created a configuration change.
-Undo refuses to replace a file changed since its recorded transaction. Retain observations,
-baselines, wrap logs, journals, and encrypted backups only for the period your policy requires;
-the default wrap-log retention is 30 days. See [privacy](privacy.md) for local storage and cleanup.
-
-## Maintainer promotion and recovery
-
-The release workflow builds once, rehearses through TestPyPI, verifies retained bytes, then promotes
-the same bundle. The repository workflow owns PyPI, npm, and GitHub publication. The Homebrew tap
-update remains a separate cross-repository step: the rehearsal's required `homebrew-handoff` job
-verifies the retained bundle, renders `Formula/panopticon.rb` from its manifest, attests it, and
-uploads `homebrew-formula-VERSION`. After the GitHub release becomes public, commit that exact
-formula to `brnyxx/homebrew-tap` and require `brew audit`, install, and version checks before the
-release is closed. Start the rehearsal from the release commit:
+For Python rollback, replace `VERSION` with an immutable published version:
 
 ```bash
-gh workflow run release.yml --ref main -f channel=rehearsal
+uv tool install "panopticon-mcp==VERSION" --force
+# or
+pipx install "panopticon-mcp==VERSION" --upgrade
+pano version
 ```
 
-For production or recovery, use the successful rehearsal run's numeric ID and its exact 40-character
-commit SHA as the `source_run_id` and `source_sha` workflow inputs. The workflow re-verifies the
-retained bundle, PyPI files, signatures, SBOM, checksums, draft assets, and image digests; it
-publishes only a missing channel and never rebuilds or overwrites published bytes. Select
-`production` to promote every pending production channel or `recovery` to resume only a missing
-channel. Before either path, the checked-in preflight binds those inputs to the successful
-`release` workflow dispatch and requires protected branches, a reviewer, and disabled admin bypass
-on the `npm`, `pypi`, `testpypi`, and `release` environments.
-
-Before the first npm publication, a human organization owner must complete npm's 2FA/trusted
-publisher bootstrap for `@brnyxx`. That authorization is intentionally human-only; no repository
-workflow or recovery command can create it. After bootstrap, platform packages publish before the
-root package, and each package's registry integrity must match the retained release manifest before
-the root package is published.
-
-### One-time exact-artifact npm bootstrap
-
-Perform this only after the 1.0.2 rehearsal succeeds and its approvals are complete. Download both
-artifacts from that exact run, then verify the retained manifest before logging in to npm:
+For Homebrew, extract the retained formula history into a version tap. Replace
+`YOUR_GITHUB_USER` with the tap owner you control:
 
 ```bash
-export RUN_ID=SUCCESSFUL_REHEARSAL_RUN_ID
-export SOURCE_SHA=EXACT_40_CHARACTER_RELEASE_SHA
-export VERSION=1.0.2
-gh run download "$RUN_ID" --name "release-bundle-$VERSION" --dir recovery-bundle
-gh run download "$RUN_ID" --name npm-distributions --dir npm-dist
-python scripts/verify_release_recovery.py bundle \
-  --version "$VERSION" --source-sha "$SOURCE_SHA" --bundle recovery-bundle
-python - <<'PY'
-from pathlib import Path
-
-tarballs = sorted(Path("npm-dist").glob("*.tgz"))
-if len(tarballs) != 5:
-    raise SystemExit("NPM_BOOTSTRAP_TARBALL_COUNT")
-for tarball in tarballs:
-    retained = Path("recovery-bundle", tarball.name)
-    if not retained.is_file() or retained.read_bytes() != tarball.read_bytes():
-        raise SystemExit(f"NPM_BOOTSTRAP_ARTIFACT_MISMATCH:{tarball.name}")
-PY
+brew tap-new YOUR_GITHUB_USER/panopticon-versions
+brew extract --version=1.0.1 \
+  brnyxx/homebrew-tap/panopticon \
+  YOUR_GITHUB_USER/panopticon-versions
+brew install YOUR_GITHUB_USER/panopticon-versions/panopticon@1.0.1
+ROLLBACK_PREFIX="$(brew --prefix YOUR_GITHUB_USER/panopticon-versions/panopticon@1.0.1)"
+"$ROLLBACK_PREFIX/bin/pano" version
 ```
 
-The npm organization owner then authenticates with 2FA and publishes the exact downloaded files,
-four platform packages first and the root package last:
+That verifies the restored keg without changing the active command. To make it active, review the
+current links, then explicitly switch and verify:
 
 ```bash
-npm login
-npm publish "npm-dist/brnyxx-panopticon-linux-x64-gnu-$VERSION.tgz" --access public
-npm publish "npm-dist/brnyxx-panopticon-linux-arm64-gnu-$VERSION.tgz" --access public
-npm publish "npm-dist/brnyxx-panopticon-darwin-x64-$VERSION.tgz" --access public
-npm publish "npm-dist/brnyxx-panopticon-darwin-arm64-$VERSION.tgz" --access public
-npm publish "npm-dist/brnyxx-panopticon-$VERSION.tgz" --access public
+brew unlink panopticon
+brew link --force YOUR_GITHUB_USER/panopticon-versions/panopticon@1.0.1
+pano version
 ```
 
-Configure the GitHub trusted publisher for all five packages after their creation, then rerun the
-production/recovery workflow with the same `RUN_ID` and `SOURCE_SHA`. The workflow refuses a
-missing package with `NPM_PACKAGE_BOOTSTRAP_REQUIRED`, compares each registry `dist.integrity`
-against the retained tarball, and releases GitHub assets only after npm and PyPI match.
+Native users extract a previously checksum- and signature-verified archive into a versioned
+directory and verify that exact binary before changing the active path:
+
+```bash
+export ARCHIVE=panopticon-1.0.1-darwin-arm64.tar.gz
+export ROLLBACK_ROOT="$HOME/.local/opt/panopticon/1.0.1"
+mkdir -p "$ROLLBACK_ROOT"
+tar -xzf "$ARCHIVE" -C "$ROLLBACK_ROOT" --strip-components=1
+"$ROLLBACK_ROOT/pano" version
+```
+
+After it reports `pano 1.0.1 (schema 1.0)`, back up the path owned by the prior native install,
+replace that path with the verified binary or a symlink to it, and invoke that exact active path
+with `version` again. Do not overwrite a uv, pipx, or Homebrew-owned executable with this branch.
+Preserve the archive, `SHA256SUMS`, Sigstore bundle, and release manifest for every retained
+version.
+
+After a scoped npm release is publicly verified, npm users upgrade or roll back with
+`npm update -g @brnyxx/panopticon` or `npm install -g @brnyxx/panopticon@VERSION`. These commands are
+not a v1.0.1 installation path. Run `pano version` after either operation.
+
+## Configuration rollback is separate
+
+Run the originating `pano fix --undo TRANSACTION_ID` or `pano uninstall CLIENT --dry-run` before
+removing a version that created a configuration change. Undo refuses to replace a file changed
+since its transaction. Preview an uninstall, then apply with `--yes` only after reviewing the exact
+restore.
+
+Retain observations, baselines, wrap records, journals, and encrypted backups only for the period
+your policy requires; default wrap retention is 30 days. Storage and cleanup are specified in
+[privacy.md](privacy.md).
+
+## Maintainer release operations
+
+Build-once rehearsal, protected promotion, exact-artifact recovery, Homebrew handoff, and the
+human-only npm bootstrap live in [Maintainer release promotion and recovery](release-maintainers.md).
+Those commands are not part of end-user installation.

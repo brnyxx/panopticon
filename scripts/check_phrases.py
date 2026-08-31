@@ -7,17 +7,34 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1] / "src" / "panopticon"
-GLOSSARY = yaml.safe_load((ROOT / "i18n" / "glossary.yaml").read_text())
-SCAN_DIRS = [ROOT / "i18n", ROOT / "reporters", ROOT / "cli"]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_ROOT = REPO_ROOT / "src" / "panopticon"
+GLOSSARY = yaml.safe_load((PACKAGE_ROOT / "i18n" / "glossary.yaml").read_text())
+SCAN_PATHS = [
+    PACKAGE_ROOT / "i18n",
+    PACKAGE_ROOT / "reporters",
+    PACKAGE_ROOT / "cli",
+    REPO_ROOT / "site" / "content",
+    REPO_ROOT / "site" / "template.html",
+    REPO_ROOT / "README.md",
+    REPO_ROOT / "docs" / "README.ko.md",
+]
+
+
+def _files(path: Path) -> list[Path]:
+    if path.is_file():
+        return [path]
+    return sorted(candidate for candidate in path.rglob("*") if candidate.is_file())
 
 
 def main() -> int:
     forbidden = GLOSSARY["forbidden"]["en"] + GLOSSARY["forbidden"]["ko"]
     bad = 0
-    for d in SCAN_DIRS:
-        for p in d.rglob("*"):
-            if p.suffix not in {".md", ".py", ".yaml"} or p.name == "glossary.yaml":
+    for path in SCAN_PATHS:
+        for p in _files(path):
+            if p.suffix not in {".html", ".json", ".md", ".py", ".yaml"}:
+                continue
+            if p.name == "glossary.yaml":
                 continue
             text = p.read_text(encoding="utf-8")
             for phrase in forbidden:

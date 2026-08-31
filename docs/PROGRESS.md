@@ -25,7 +25,11 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | E17 Reporters | CLOSED | terminal, JSON, SARIF, Markdown, deterministic ko/en PNG, accessible SVG, leak rejection, persistence, stable hashes, and live self-scan upload pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E18 i18n | CLOSED | all 47 bilingual six-section rule documents, locale precedence/fallback, CJK-safe explain, catalog generation, glossary, and phrase gates pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E19 Release | CLOSED | v1.0.0 remains immutable; exact commit `1f92491` passes [patch CI][patch-ci] and the [six-platform matrix][patch-platform], [rehearsal][patch-source] built once, [promotion][patch-promotion] published the unchanged PyPI and 28-asset [v1.0.1 release][patch-release] while reusing public `ghcr.io/brnyxx` digests, and public uvx, pipx, native archive, and [Homebrew tap][patch-homebrew] installs pass |
-| E20 npm & hardening | IN PROGRESS | code, contracts, deterministic npm packages, standard self-scan/OSV production wiring, protected release preflight, bilingual onboarding, local Python 3.12–3.14 gates, reproducible PyPI builds, and retained-binary npm smoke pass; a signed 1.0.2 hosted matrix/rehearsal, first npm 2FA bootstrap, exact npm/PyPI promotion, and public clean-install evidence remain |
+| E20 npm & hardening | IN PROGRESS | code, contracts, deterministic npm packages, standard self-scan/OSV production wiring, protected release preflight, full EN/KO human onboarding, agent operating/confirmation guidance, explicit no-pull offline image bootstrap, localized first-run CLI guidance, deterministic progressive demo source and Pages deployment workflow, local Python 3.12–3.14 gates, reproducible PyPI builds, and retained-binary npm smoke pass; a signed 1.0.2 hosted matrix/rehearsal, first npm 2FA bootstrap, exact npm/PyPI promotion, and public clean-install evidence remain |
+
+Local pre-push evidence on 2026-08-31: the exact one-shot command
+`uvx --from 'panopticon-mcp==1.0.1' pano version` returned
+`pano 1.0.1 (schema 1.0)`. This is a local command receipt only, not hosted or GA evidence.
 
 [ci]: https://github.com/brnyxx/panopticon/actions/runs/33226587357
 [platform]: https://github.com/brnyxx/panopticon/actions/runs/33226587338/attempts/2

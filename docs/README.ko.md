@@ -10,27 +10,67 @@
 
 ## 처음 한 번 따라 하기
 
-설치 방법을 **하나만** 고르세요. 한 번 실행하려면 `uvx`를 사용합니다.
+현재 공개된 PyPI 릴리스를 설치하고, 설정된 서버 이름을 확인한 뒤 하나를 골라 관측합니다.
 
 ```bash
-uvx panopticon-mcp@1.0.1 version
-uvx panopticon-mcp@1.0.1 doctor
+uv tool install panopticon-mcp==1.0.1
+pano doctor --offline
+pano watch SERVER_NAME --offline
 ```
 
-첫 명령은 설치된 릴리스(`pano 1.0.1 (schema 1.0)`)를 확인합니다. 두 번째 명령은 Docker나
-Podman 없이 발견 가능한 MCP 설정을 나열하고 검사합니다. 계속 설치하는 `uv tool`, `pipx`,
-Homebrew, 네이티브 아카이브와 업그레이드·되돌리기·폐쇄망 사용법은
+현재 checkout된 repository는 공개되지 않은 1.0.2 개발 버전입니다.
+`uv sync --all-extras`는 contributor setup이며 공개 설치 경로가 아닙니다.
+
+`SERVER_NAME`은 `doctor`가 출력한 실제 이름으로 바꿉니다. 셸 꺾쇠 placeholder가 아닙니다.
+패키지 설치는 `pano` 실행 전에 선택한 레지스트리에 연결합니다. 그 뒤 `--offline`은
+Panopticon의 registry, advisory, package lookup, semantic analyzer 외부 경로를 끕니다.
+선택한 MCP가 시도한 트래픽은 Panopticon의 제품 조회가 아니라 sandbox 관측 근거로 남습니다.
+`doctor`에는 Docker나 Podman이 필요하지 않으며, 로컬 `watch`에는 필요합니다.
+깨끗한 runtime에서는 첫 offline observation 전에
+[Offline watch용 image 준비](getting-started.ko.md#offline-watch용-image-준비)를 따릅니다.
+
+한 번만 버전을 확인하려면 `uvx --from 'panopticon-mcp==1.0.1' pano version`을 실행합니다. 출력은
+`pano 1.0.1 (schema 1.0)`입니다. 다른 설치 방법, 업그레이드, 되돌리기, 폐쇄망 사용법은
 [설치 및 릴리스 안내](release.md)를 보세요.
 
-`doctor` 출력에서 서버 이름 하나를 고른 뒤 관측합니다.
+두 언어 데모 소스는
+[`site/template.html`](../site/template.html)에서 시작합니다. `scripts/build_site.py`가
+locale key 동일성을 검사하고 두 경로를 결정적으로 빌드하며, SHA가 고정된 Pages workflow가
+`main`의 생성 산출물을 배포합니다. 페이지에는 analytics, cookie, local storage, runtime
+remote resource가 없습니다. GitHub Pages가 처리하는 요청에는 GitHub의 호스팅 정책이
+적용됩니다.
+
+## 목적에 맞는 흐름 선택
+
+| 하고 싶은 일 | 시작 명령 | 요구사항 또는 경계 |
+|---|---|---|
+| 설정된 MCP 찾기 | `pano doctor --offline` | Container runtime 불필요 |
+| 로컬 MCP 하나 관찰 | `pano watch SERVER_NAME --offline` | Docker 또는 Podman. `doctor`가 출력한 정확한 이름 사용 |
+| Finding 하나 설명 | `pano explain RULE_ID --lang ko` | Stable rule ID 사용 |
+| 반복 관찰 비교 | `pano baseline create` 후 `pano diff SERVER_NAME` | 하나의 installation에 대한 canonical evidence 유지 |
+| MCP 저장소 분석 | `pano scan . --mode quick --offline` | Standard/deep 외부 경로는 privacy 문서에 명시 |
+| 저장소 policy 적용 | `pano ci . --mode standard --fail-on high` | SARIF를 쓰고 문서화된 exit-code 우선순위 사용 |
+| Client configuration 변경 | `pano fix SERVER_NAME --dry-run --offline` | Diff 검토 후 별도 `--yes` 호출 |
+| MCP command wrap 또는 복원 | `pano install CLIENT --dry-run` / `pano uninstall CLIENT --dry-run` | Undo를 위해 원래 command 보존 |
+
+설치 matrix, 전체 첫 사용 흐름, 상태표, exit code, artifact 위치, 정리, 문제 해결, command
+예시는 **[Panopticon 시작하기](getting-started.ko.md)**에 있습니다.
+
+## AI agent에서 사용
+
+Agent는 JSON을 읽고 불확실성을 유지해야 합니다. 모든 nonzero exit를 process crash로,
+완료된 stage를 제품 판정으로 바꾸지 않습니다. 기본 순서는 다음과 같습니다.
 
 ```bash
-pano watch SERVER_NAME --png
+pano version
+pano doctor --offline --json
+pano watch SERVER_NAME --offline --json
 ```
 
-로컬 관측에는 Docker 또는 Podman이 필요합니다. `--png`는 저장되는 관측 결과와 함께
-누출 검사를 거친 결정적 PNG 근거 카드를 만듭니다. 위 명령은 실행 예시일 뿐 결과 전사본이
-아닙니다. 실제 결과에는 선택한 서버, 적용 범위, 관측 근거가 표시됩니다.
+Agent는 별도 명시적 승인 없이 `--all`, 실제 환경 변수, destructive call, deep semantic
+analysis, `--yes`, local evidence 삭제를 사용하지 않습니다. 복사 가능한 agent prompt,
+response schema, exit-code policy, confirmation boundary는
+**[Agent 실행 가이드](agent-guide.md)**에 있습니다.
 
 ## 결과 읽기
 
@@ -49,6 +89,22 @@ pano explain WATCH-003
 
 터미널 결과와 근거 카드를 함께 검토하세요. 카드는 관측하지 못한 부분을 다른 상태로 바꾸지
 않고 적용 범위와 규칙 ID를 그대로 표시합니다.
+
+## 설계 방식
+
+- `cli`는 parse와 render를 담당하고 `engine`이 typed outcome과 exit policy를 소유합니다.
+- Collector는 exhaustive status, stable `reason_code`, coverage, evidence, diagnostic을
+  반환합니다.
+- Sandbox에는 사용자 home이 아니라 생성한 decoy home이 들어갑니다. `--self`만 project
+  source를 read-only로 명시적으로 mount합니다.
+- `store`만 artifact를 쓰며 persistence 전에 canonicalize, leak check, atomic replace를
+  수행합니다.
+- Demo는 bilingual locale catalog, Python standard-library builder, local browser asset으로
+  결정적으로 생성됩니다.
+
+[Architecture](../ARCHITECTURE.md), [demo design system](../DESIGN.md),
+[frozen decisions](DECISIONS.md), [product build plan](../panopticon-buildplan.md)에서 전체
+계약을 확인할 수 있습니다.
 
 ## 개인정보와 정리
 
