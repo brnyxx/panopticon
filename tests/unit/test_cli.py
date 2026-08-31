@@ -6,6 +6,7 @@ from typer.testing import CliRunner
 
 from panopticon import SCHEMA_VERSION
 from panopticon.cli.main import app
+from panopticon.i18n.messages import epilog
 
 runner = CliRunner()
 
@@ -29,13 +30,14 @@ def test_help_is_user_facing_and_documents_real_environment_opt_ins() -> None:
     }
     assert {"--real-env", "--real-env-all"} <= option_names
     assert not re.search(r"\(E\d{2}[^)]*\)|upstream line", watch_help.stdout, re.IGNORECASE)
-    assert root_help.stdout.index("pano doctor --offline") < root_help.stdout.index(
+    root_epilog = epilog()
+    assert root_epilog.index("pano doctor --offline") < root_epilog.index(
         "pano watch SERVER_NAME --offline"
     )
-    assert root_help.stdout.index("pano watch SERVER_NAME --offline") < root_help.stdout.index(
+    assert root_epilog.index("pano watch SERVER_NAME --offline") < root_epilog.index(
         "pano explain RULE_ID --lang ko"
     )
-    assert root_help.stdout.index("pano explain RULE_ID --lang ko") < root_help.stdout.index(
+    assert root_epilog.index("pano explain RULE_ID --lang ko") < root_epilog.index(
         "uv tool install panopticon-mcp==1.0.1"
     )
 
