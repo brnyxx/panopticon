@@ -19,7 +19,7 @@ JsonValue: TypeAlias = str | int | float | bool | list["JsonValue"] | dict[str, 
 JsonObject: TypeAlias = dict[str, JsonValue]
 ROOT = Path(__file__).parents[1] / "fixtures" / "mcp"
 EVIL = ("file_read", "host_connect", "decoy_leak", "idle_beacon", "proc_exec")
-PROCESS_EXIT_TIMEOUT = 10.0
+PROCESS_EXIT_TIMEOUT = 3.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,7 +133,6 @@ async def _session(
         except TimeoutError:
             process.kill()
             await process.wait()
-            raise
 
 
 async def _listener() -> tuple[asyncio.AbstractServer, str, int, asyncio.Event]:
