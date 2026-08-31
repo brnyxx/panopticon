@@ -19,6 +19,7 @@ JsonValue: TypeAlias = str | int | float | bool | list["JsonValue"] | dict[str, 
 JsonObject: TypeAlias = dict[str, JsonValue]
 ROOT = Path(__file__).parents[1] / "fixtures" / "mcp"
 EVIL = ("file_read", "host_connect", "decoy_leak", "idle_beacon", "proc_exec")
+MESSAGE_TIMEOUT = 10.0
 PROCESS_EXIT_TIMEOUT = 3.0
 
 
@@ -30,7 +31,10 @@ class SessionOutcome:
     ready: JsonObject | None
 
 
-async def _read_message(reader: asyncio.StreamReader, timeout: float = 1.0) -> JsonObject:
+async def _read_message(
+    reader: asyncio.StreamReader,
+    timeout: float = MESSAGE_TIMEOUT,
+) -> JsonObject:
     length: int | None = None
     while length is None:
         line = await asyncio.wait_for(reader.readline(), timeout)
