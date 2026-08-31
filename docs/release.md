@@ -1,13 +1,13 @@
 # Installation, verification, upgrade, and rollback
 
-Version 1.0.1 is currently published as the `panopticon-mcp` Python package, four native archives,
-and Homebrew formula `brnyxx/homebrew-tap/panopticon`. The release assets are immutable:
-[PyPI](https://pypi.org/project/panopticon-mcp/1.0.1/),
-[GitHub release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.1), and
-[Homebrew tap revision](https://github.com/brnyxx/homebrew-tap/commit/7733d8fec72c6bde2f6b9e284e29ba2c77272eb0).
-The scoped npm channel is forthcoming and is not a v1.0.1 distribution.
-The checked-out repository is unpublished 1.0.2 development; its `uv sync --all-extras` setup is
-for contributors and is not one of the public install methods below.
+Version 1.0.2 is published as the `panopticon-mcp` Python package, root plus four native npm
+packages, four native archives, and Homebrew formula `brnyxx/homebrew-tap/panopticon`. The release
+assets are immutable: [PyPI](https://pypi.org/project/panopticon-mcp/1.0.2/),
+[npm](https://www.npmjs.com/package/@brnyxx/panopticon/v/1.0.2),
+[GitHub release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.2), and
+[Homebrew tap revision](https://github.com/brnyxx/homebrew-tap/commit/c74b28cb03986e69705b82d8b8a89c1e65b7d493).
+The checkout has the same product version; `uv sync --all-extras` is contributor setup rather than
+one of the public install methods below.
 
 First-time users should follow [Getting started](getting-started.md). Automation agents should use
 the confirmation boundaries and JSON response contract in [the agent operating guide](agent-guide.md).
@@ -20,6 +20,7 @@ Release maintainers use the separate [promotion and recovery guide](release-main
 | `uvx` | You want a one-shot invocation | PyPI through uv | Temporary environment; pin every invocation |
 | `uv tool` | uv owns persistent command-line tools | PyPI through uv | uv |
 | `pipx` | pipx owns isolated Python applications | PyPI through pip/pipx | pipx |
+| npm | npm owns the global command and matching native optional package | npm registry | npm |
 | Homebrew | Homebrew owns system command-line tools | GitHub/Homebrew hosts | Homebrew tap |
 | Native archive | You need a standalone binary or air-gapped transfer | GitHub release host before transfer | Your verified archive inventory |
 
@@ -29,22 +30,24 @@ Package installation traffic happens before Panopticon starts and is not control
 ### One-shot `uvx`
 
 ```bash
-uvx --from 'panopticon-mcp==1.0.1' pano version
-uvx --from 'panopticon-mcp==1.0.1' pano doctor --offline
-uvx --from 'panopticon-mcp==1.0.1' pano watch SERVER_NAME --offline
+uvx --from 'panopticon-mcp==1.0.2' pano version
+uvx --from 'panopticon-mcp==1.0.2' pano doctor --offline
+uvx --from 'panopticon-mcp==1.0.2' pano watch SERVER_NAME --offline
 ```
 
 `uvx` installs into a temporary tool environment for each invocation.
 Use the complete `uvx --from ... pano` prefix for every one-shot command.
 
-### Persistent Python or Homebrew install
+### Persistent Python, npm, or Homebrew install
 
 Choose one persistent installer:
 
 ```bash
-uv tool install panopticon-mcp==1.0.1
+uv tool install panopticon-mcp==1.0.2
 # or
-pipx install panopticon-mcp==1.0.1
+pipx install panopticon-mcp==1.0.2
+# or
+npm install --global @brnyxx/panopticon@1.0.2
 # or
 brew install brnyxx/homebrew-tap/panopticon
 ```
@@ -55,19 +58,19 @@ Verify every installed form with:
 pano version
 ```
 
-It reports `pano 1.0.1 (schema 1.0)`.
+It reports `pano 1.0.2 (schema 1.0)`.
 
 ## Native archive and air-gapped install
 
 Download the matching `linux-x86_64`, `linux-arm64`, `darwin-x86_64`, or `darwin-arm64` archive,
 `SHA256SUMS`, and the archive's `.sigstore.json` bundle from the
-[v1.0.1 release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.1).
+[v1.0.2 release](https://github.com/brnyxx/panopticon/releases/tag/v1.0.2).
 
 In a connected, trusted transfer environment, verify the downloaded archive against the release
 checksum:
 
 ```bash
-export ARCHIVE=panopticon-1.0.1-darwin-arm64.tar.gz
+export ARCHIVE=panopticon-1.0.2-darwin-arm64.tar.gz
 awk -v file="$ARCHIVE" '$2 == file' SHA256SUMS | shasum -a 256 -c -
 ```
 
@@ -93,16 +96,13 @@ pinned sandbox image; offline observation cannot pull a missing image. Remote ob
 server-side file and process dimensions `UNSUPPORTED`. Native Windows supports discovery only; use
 WSL2 for supported Linux observation behavior.
 
-## Forthcoming scoped npm channel
+## Scoped npm channel
 
-The next patch is designed to publish root package `@brnyxx/panopticon` with exact-version optional
-native packages for Linux GNU x64/arm64 and macOS x64/arm64. It is not an installation option until
-registry publication and public clean-install evidence exist.
-
-After that publication, the documented install will be:
+The public root package `@brnyxx/panopticon` selects one exact-version native optional package for
+GNU Linux x64/arm64 or macOS x64/arm64:
 
 ```bash
-npm install -g @brnyxx/panopticon
+npm install --global @brnyxx/panopticon@1.0.2
 pano version
 ```
 
@@ -167,9 +167,9 @@ with `version` again. Do not overwrite a uv, pipx, or Homebrew-owned executable 
 Preserve the archive, `SHA256SUMS`, Sigstore bundle, and release manifest for every retained
 version.
 
-After a scoped npm release is publicly verified, npm users upgrade or roll back with
+Npm users upgrade or roll back with
 `npm update -g @brnyxx/panopticon` or `npm install -g @brnyxx/panopticon@VERSION`. These commands are
-not a v1.0.1 installation path. Run `pano version` after either operation.
+owned by npm; run `pano version` after either operation.
 
 ## Configuration rollback is separate
 

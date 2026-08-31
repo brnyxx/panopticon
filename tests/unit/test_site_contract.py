@@ -49,10 +49,10 @@ def test_commands_and_observation_contract_are_machine_visible() -> None:
         "{{decoy_signal_rule}}",
     ):
         assert placeholder in TEMPLATE
-    assert TEMPLATE.count('data-copy-target="') == 10
-    assert TEMPLATE.count('aria-describedby="') == 10
+    assert TEMPLATE.count('data-copy-target="') == 11
+    assert TEMPLATE.count('aria-describedby="') == 11
     copy_labels = re.findall(r'aria-label="{{(copy_[^}]+)}}"', TEMPLATE)
-    assert len(copy_labels) == len(set(copy_labels)) == 10
+    assert len(copy_labels) == len(set(copy_labels)) == 11
     assert 'class="primary-link" href="#start"' in TEMPLATE
     assert TEMPLATE.count('data-copy-target="install-command"') == 1
     assert 'id="record" class="dimension-section"' in TEMPLATE
@@ -86,7 +86,7 @@ def test_complete_onboarding_and_agent_routes_are_visible() -> None:
     assert "{{getting_started_url}}" in TEMPLATE
     assert "docs/agent-guide.md" in TEMPLATE
     assert "{{footer_scope}}" in TEMPLATE
-    assert "releases/tag/v1.0.1" in TEMPLATE
+    assert "releases/tag/v1.0.2" in TEMPLATE
     assert TEMPLATE.index('id="start" class="prerequisite-section"') < TEMPLATE.index(
         'class="runway-section"'
     )

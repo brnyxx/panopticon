@@ -18,19 +18,17 @@ judgment with a product verdict.
 | Observe a remote MCP | Its HTTP/SSE endpoint and any headers you explicitly choose to provide; server-side files and processes remain `UNSUPPORTED` |
 | Analyze an MCP repository with `scan` | A local source tree; standard/deep advisory lookup may use the network unless `--offline` is set |
 
-The current public release is **1.0.1**. The scoped npm package described in development documents
-is not a public 1.0.1 install channel.
-The checked-out repository is unpublished 1.0.2 development; `uv sync --all-extras` is contributor
-setup, not an end-user installation method.
+The current public release is **1.0.2** across PyPI, npm, GitHub, and Homebrew.
+`uv sync --all-extras` remains contributor setup, not an end-user installation method.
 
 ## 1. Choose one installation method
 
 ### Try once
 
 ```bash
-uvx --from 'panopticon-mcp==1.0.1' pano version
-uvx --from 'panopticon-mcp==1.0.1' pano doctor --offline
-uvx --from 'panopticon-mcp==1.0.1' pano watch SERVER_NAME --offline
+uvx --from 'panopticon-mcp==1.0.2' pano version
+uvx --from 'panopticon-mcp==1.0.2' pano doctor --offline
+uvx --from 'panopticon-mcp==1.0.2' pano watch SERVER_NAME --offline
 ```
 
 `uvx` creates a temporary tool environment for each invocation.
@@ -41,9 +39,11 @@ Use the full `uvx --from ... pano` prefix for every later command in this guide.
 Choose one owner for the installation:
 
 ```bash
-uv tool install panopticon-mcp==1.0.1
+uv tool install panopticon-mcp==1.0.2
 # or
-pipx install panopticon-mcp==1.0.1
+pipx install panopticon-mcp==1.0.2
+# or
+npm install --global @brnyxx/panopticon@1.0.2
 # or
 brew install brnyxx/homebrew-tap/panopticon
 ```
@@ -54,7 +54,7 @@ Verify it before observing anything:
 pano version
 ```
 
-The public release prints `pano 1.0.1 (schema 1.0)`. Native archive, checksum, Sigstore, air-gapped,
+The public release prints `pano 1.0.2 (schema 1.0)`. Native archive, checksum, Sigstore, air-gapped,
 upgrade, and rollback instructions are in [the release guide](release.md).
 
 Package installation contacts the selected package registry. `pano --offline` controls outbound
@@ -119,7 +119,7 @@ before choosing it.
 ### Stage images for offline watch
 
 On a clean runtime, make one separately authorized connection to GHCR before the offline
-observation. This stages every immutable image that 1.0.1 can select without executing an MCP:
+observation. This stages every immutable image that 1.0.2 can select without executing an MCP:
 
 ```bash
 RUNTIME=docker  # or podman

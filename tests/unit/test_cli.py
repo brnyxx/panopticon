@@ -38,7 +38,7 @@ def test_help_is_user_facing_and_documents_real_environment_opt_ins() -> None:
         "pano explain RULE_ID --lang ko"
     )
     assert root_epilog.index("pano explain RULE_ID --lang ko") < root_epilog.index(
-        "uv tool install panopticon-mcp==1.0.1"
+        "uv tool install panopticon-mcp==1.0.2"
     )
 
 

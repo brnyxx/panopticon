@@ -25,13 +25,14 @@ An epic is CLOSED only when every item in its definition of done has been proven
 | E17 Reporters | CLOSED | terminal, JSON, SARIF, Markdown, deterministic ko/en PNG, accessible SVG, leak rejection, persistence, stable hashes, and live self-scan upload pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E18 i18n | CLOSED | all 47 bilingual six-section rule documents, locale precedence/fallback, CJK-safe explain, catalog generation, glossary, and phrase gates pass exact-product [CI][ci] and the final [audit bundle][audit] |
 | E19 Release | CLOSED | v1.0.0 remains immutable; exact commit `1f92491` passes [patch CI][patch-ci] and the [six-platform matrix][patch-platform], [rehearsal][patch-source] built once, [promotion][patch-promotion] published the unchanged PyPI and 28-asset [v1.0.1 release][patch-release] while reusing public `ghcr.io/brnyxx` digests, and public uvx, pipx, native archive, and [Homebrew tap][patch-homebrew] installs pass |
-| E20 npm & hardening | IN PROGRESS | code, contracts, deterministic npm packages, standard self-scan/OSV production wiring, protected release preflight, full EN/KO human and agent onboarding, explicit no-pull offline image bootstrap, localized first-run CLI guidance, deterministic Fable-5-reviewed Decoy Lab branding and Pages deployment, reproducible Python builds, the [hosted matrix][e20-platform], signed [1.0.2 rehearsal][e20-rehearsal], and exact public npm packages pass; hosted replay of the preflight dependency fix, npm trusted-publisher/token cleanup, exact PyPI/GitHub/Homebrew promotion, and public clean-install evidence remain |
+| E20 npm & hardening | CLOSED | exact commit `902c0e7` was built once by the signed [1.0.2 rehearsal][e20-rehearsal]; the final usability tree passes [CI][e20-ci] and the [six-platform matrix][e20-platform], [production][e20-promotion] promoted the retained PyPI/npm bytes and 48-asset [v1.0.2 release][e20-release], the exact formula is public in the [Homebrew tap][e20-homebrew], and no-cache uvx, isolated npm, native archive, and Homebrew install/version checks pass; bilingual CLI guidance, Fable-5-reviewed Pages, explicit offline image staging, protected promotion, reproducible Python builds, authoritative cleanup, and registry propagation gates are closed |
 
-Local pre-push evidence on 2026-08-31: the exact one-shot command
-`uvx --from 'panopticon-mcp==1.0.1' pano version` returned
-`pano 1.0.1 (schema 1.0)`. This is a local command receipt only, not hosted or GA evidence.
-The final branding and preflight-fix tree also passes `make ci`: 1,634 passed, one skipped,
-32 deselected, and 85.43% coverage.
+Public verification on 2026-08-31: `uvx --no-cache --from 'panopticon-mcp==1.0.2' pano
+version`, an isolated `npm install @brnyxx/panopticon@1.0.2`, the checksum-verified Darwin arm64
+archive, and `brew test brnyxx/tap/panopticon` each returned `pano 1.0.2 (schema 1.0)`.
+All 24 public Sigstore bundles verify offline against the exact `release.yml@refs/heads/main`
+identity. The final tree also passes `make ci`: 1,634 passed, one skipped, 32 deselected, and
+85.43% coverage.
 
 [ci]: https://github.com/brnyxx/panopticon/actions/runs/33226587357
 [platform]: https://github.com/brnyxx/panopticon/actions/runs/33226587338/attempts/2
@@ -46,8 +47,12 @@ The final branding and preflight-fix tree also passes `make ci`: 1,634 passed, o
 [patch-promotion]: https://github.com/brnyxx/panopticon/actions/runs/33258298469/attempts/2
 [patch-release]: https://github.com/brnyxx/panopticon/releases/tag/v1.0.1
 [patch-homebrew]: https://github.com/brnyxx/homebrew-tap/commit/7733d8fec72c6bde2f6b9e284e29ba2c77272eb0
-[e20-platform]: https://github.com/brnyxx/panopticon/actions/runs/33357818187
+[e20-ci]: https://github.com/brnyxx/panopticon/actions/runs/33382566931
+[e20-platform]: https://github.com/brnyxx/panopticon/actions/runs/33382566918
 [e20-rehearsal]: https://github.com/brnyxx/panopticon/actions/runs/33356213584/attempts/2
+[e20-promotion]: https://github.com/brnyxx/panopticon/actions/runs/33383001430
+[e20-release]: https://github.com/brnyxx/panopticon/releases/tag/v1.0.2
+[e20-homebrew]: https://github.com/brnyxx/homebrew-tap/commit/c74b28cb03986e69705b82d8b8a89c1e65b7d493
 
 ## Why E01 is closed
 

@@ -31,11 +31,11 @@ installation command and the registry access it performs; run it only when the u
 already authorizes installation.
 
 ```bash
-uv tool install panopticon-mcp==1.0.1
+uv tool install panopticon-mcp==1.0.2
 ```
 
-The public version is 1.0.1. Do not present the forthcoming scoped npm package as an available 1.0.1
-channel.
+The public version is 1.0.2. For an npm-owned global installation, the equivalent exact command is
+`npm install --global @brnyxx/panopticon@1.0.2`; do not mix installer ownership.
 
 ## Required sequence
 

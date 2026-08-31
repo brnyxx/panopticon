@@ -47,7 +47,7 @@ target execution with `IMAGE_NOT_PRESENT`; the runtime is invoked with an explic
 
 ### Installer traffic is separate
 
-`uvx`, `uv tool`, `pipx`, Homebrew, archive downloads, and the forthcoming npm installer contact
+`uvx`, `uv tool`, `pipx`, npm, Homebrew, and archive downloads contact
 their own package registries or download hosts before `pano` starts. That traffic is controlled by
 the installer and its network configuration, **not** by `pano --offline`. Once running,
 `pano --offline` disables the runtime paths described below. Manually staging the four immutable

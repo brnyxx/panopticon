@@ -27,4 +27,4 @@ def test_epilog_orders_first_use_commands() -> None:
         "2. Observe one server: pano watch SERVER_NAME --offline",
         "3. Explain a rule in Korean: pano explain RULE_ID --lang ko",
     ]
-    assert lines[3] == "Install: uv tool install panopticon-mcp==1.0.1"
+    assert lines[3] == "Install: uv tool install panopticon-mcp==1.0.2"

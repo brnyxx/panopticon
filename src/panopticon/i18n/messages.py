@@ -35,7 +35,7 @@ class MessageCatalog(TypedDict):
 
 MESSAGES: Mapping[Locale, MessageCatalog] = {
     "en": {
-        "install": "Install: uv tool install panopticon-mcp==1.0.1",
+        "install": "Install: uv tool install panopticon-mcp==1.0.2",
         "doctor": "1. Check your setup: pano doctor --offline",
         "watch": "2. Observe one server: pano watch SERVER_NAME --offline",
         "explain": "3. Explain a rule in Korean: pano explain RULE_ID --lang ko",
@@ -46,7 +46,7 @@ MESSAGES: Mapping[Locale, MessageCatalog] = {
         "next_command": "Next: pano watch SERVER_NAME --offline",
     },
     "ko": {
-        "install": "설치: uv tool install panopticon-mcp==1.0.1",
+        "install": "설치: uv tool install panopticon-mcp==1.0.2",
         "doctor": "1. 설정 확인: pano doctor --offline",
         "watch": "2. 서버 하나 관찰: pano watch SERVER_NAME --offline",
         "explain": "3. 규칙 설명(한국어): pano explain RULE_ID --lang ko",

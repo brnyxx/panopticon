@@ -232,10 +232,19 @@
               <p id="install-brew-status" class="live-region" role="status" aria-live="polite"></p>
             </div>
           </article>
+          <article>
+            <h3>{{install_npm_title}}</h3>
+            <p>{{install_npm_body}}</p>
+            <div class="command-block">
+              <code id="install-npm">{{install_npm}}</code>
+              <button type="button" class="copy-button compact" data-copy-target="install-npm" data-copy-success="{{copied}}" data-copy-manual="{{manual}}" data-copy-manual-label="{{manual_copy}}" aria-label="{{copy_npm}}" aria-describedby="install-npm-status"><span data-copy-label>{{copy}}</span></button>
+              <p id="install-npm-status" class="live-region" role="status" aria-live="polite"></p>
+            </div>
+          </article>
           <article class="native-option">
             <h3>{{install_native_title}}</h3>
             <p>{{install_native_body}}</p>
-            <a href="https://github.com/brnyxx/panopticon/releases/tag/v1.0.1">{{install_native_release}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
+            <a href="https://github.com/brnyxx/panopticon/releases/tag/v1.0.2">{{install_native_release}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
             <a href="https://github.com/brnyxx/panopticon/blob/main/docs/release.md#native-archive-and-air-gapped-install">{{install_native_link}} <span class="arrow-mark arrow-external" aria-hidden="true"></span></a>
           </article>
         </div>

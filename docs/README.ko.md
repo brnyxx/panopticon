@@ -24,7 +24,7 @@ analytics, cookie, browser storage, 자동 remote runtime request가 없는 정�
 현재 공개된 PyPI 릴리스를 설치하고, 설정된 서버 이름을 확인한 뒤 하나를 골라 관측합니다.
 
 ```bash
-uv tool install panopticon-mcp==1.0.1
+uv tool install panopticon-mcp==1.0.2
 pano doctor --offline
 pano watch SERVER_NAME --offline
 ```
@@ -50,8 +50,8 @@ pano watch SERVER_NAME --offline
 - 현재 checkout은 공개되지 않은 1.0.2 개발 버전입니다. `uv sync --all-extras`는
   contributor setup이며 공개 설치 경로가 아닙니다.
 
-한 번만 버전을 확인하려면 `uvx --from 'panopticon-mcp==1.0.1' pano version`을 실행합니다. 출력은
-`pano 1.0.1 (schema 1.0)`입니다. 다른 설치 방법, 업그레이드, 되돌리기, 폐쇄망 사용법은
+한 번만 버전을 확인하려면 `uvx --from 'panopticon-mcp==1.0.2' pano version`을 실행합니다. 출력은
+`pano 1.0.2 (schema 1.0)`입니다. npm과 다른 설치 방법, 업그레이드, 되돌리기, 폐쇄망 사용법은
 [설치 및 릴리스 안내](release.md)를 보세요.
 
 ## 기록 읽기

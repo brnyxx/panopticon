@@ -88,7 +88,7 @@ CONTRACT_TOKENS = {
         "api.osv.dev",
         "credential store",
     ),
-    "docs/release.md": ("1.0.1", "uvx", "pipx", "Homebrew", "SHA256SUMS", "Sigstore"),
+    "docs/release.md": ("1.0.2", "uvx", "pipx", "Homebrew", "SHA256SUMS", "Sigstore"),
     "SECURITY.md": ("--real-env", "ghcr.io/brnyxx", "sandbox/images.lock"),
     "AGENTS.md": ("installation_id", "reason_code", "SecretStore", "store/", "e717e955"),
     "docs/limitations.md": ("UNSUPPORTED", "UNKNOWN", "PARTIAL"),
@@ -102,17 +102,17 @@ CONTRACT_TOKENS = {
     "docs/PRODUCT_READINESS.md": (
         "standard self-scan",
         "@brnyxx/panopticon",
-        "Pending human action",
+        "Public verification for 1.0.2",
     ),
     "docs/getting-started.md": (
-        "panopticon-mcp==1.0.1",
+        "panopticon-mcp==1.0.2",
         "pano doctor --offline",
         "pano watch SERVER_NAME --offline",
         "reason_code",
         "~/.panopticon/",
     ),
     "docs/getting-started.ko.md": (
-        "panopticon-mcp==1.0.1",
+        "panopticon-mcp==1.0.2",
         "pano doctor --offline",
         "pano watch SERVER_NAME --offline",
         "reason_code",
@@ -126,7 +126,7 @@ CONTRACT_TOKENS = {
         "pano fix SERVER_NAME --dry-run --offline",
     ),
     "DESIGN.md": ("d13edae8", "prefers-reduced-motion", "No telemetry"),
-    "PRODUCT.md": ("1.0.1", "UNKNOWN", "INCOMPLETE", "--offline"),
+    "PRODUCT.md": ("1.0.2", "UNKNOWN", "INCOMPLETE", "--offline"),
     "docs/release-maintainers.md": (
         "source_run_id",
         "source_sha",

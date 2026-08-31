@@ -65,9 +65,8 @@ coverage and observation evidence. It does not turn missing evidence into a verd
 - Do not send real secrets, home paths, or observation artifacts from the website.
 - The website is an explanatory and activation surface; it does not execute an MCP in the browser.
 - English and Korean experiences must expose the same information and actions.
-- The repository development version is 1.0.2. The latest public PyPI release verified on
-  2026-08-31 is 1.0.1, so public install surfaces use 1.0.1 until public evidence exists for a
-  newer release: <https://pypi.org/pypi/panopticon-mcp/json>.
+- The repository and latest public PyPI, npm, GitHub, and Homebrew release verified on
+  2026-08-31 are 1.0.2: <https://pypi.org/pypi/panopticon-mcp/1.0.2/json>.
 - Configuration changes remain dry-run, confirm, backup, apply, re-check, and undo operations.
 - Copyable shell examples use `SERVER_NAME` or `RULE_ID`, never angle-bracket placeholders that a
   shell can interpret as redirection.

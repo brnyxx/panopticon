@@ -2,8 +2,9 @@
 
 This document is for Panopticon release maintainers. End users should use
 [Getting started](getting-started.md) and [installation, upgrade, and rollback](release.md).
-The scoped npm channel remains unpublished until the recorded 1.0.2 rehearsal and human bootstrap
-complete; none of the commands below make it a public 1.0.1 channel.
+The 1.0.2 release established the scoped npm package identities through a one-time human bootstrap.
+Future missing versions must publish through the protected `npm` environment's OIDC identity;
+existing versions pass only when registry integrity matches the retained tarball.
 
 ## Build-once promotion
 

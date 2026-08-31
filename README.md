@@ -4,7 +4,7 @@
 
 <img src="https://raw.githubusercontent.com/brnyxx/panopticon/main/.github/assets/hero.svg" alt="Panopticon flow: select one MCP, run it in a generated decoy environment, and inspect the resulting evidence record" width="920"/>
 
-[![Version](https://img.shields.io/badge/version-1.0.1-orange?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/docs/release.md) [![Python](https://img.shields.io/badge/python-3.11%2B-4B8BBE?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/pyproject.toml) [![License](https://img.shields.io/badge/license-MIT-E8EDF7?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/LICENSE) [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md)
+[![Version](https://img.shields.io/badge/version-1.0.2-orange?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/docs/release.md) [![Python](https://img.shields.io/badge/python-3.11%2B-4B8BBE?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/pyproject.toml) [![License](https://img.shields.io/badge/license-MIT-E8EDF7?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/LICENSE) [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043?style=flat-square&labelColor=0A0E1A)](https://github.com/brnyxx/panopticon/blob/main/docs/privacy.md)
 
 [한국어 안내](https://github.com/brnyxx/panopticon/blob/main/docs/README.ko.md)
 
@@ -24,7 +24,7 @@ Install the current public PyPI release, inspect the configured server names, an
 selected server:
 
 ```bash
-uv tool install panopticon-mcp==1.0.1
+uv tool install panopticon-mcp==1.0.2
 pano doctor --offline
 pano watch SERVER_NAME --offline
 ```
@@ -46,11 +46,11 @@ Before the first observation:
 - Traffic attempted by the selected MCP remains sandbox evidence, not a Panopticon product lookup.
 - Local `watch` needs Docker or Podman. A clean runtime also needs the
   [digest-pinned images staged](docs/getting-started.md#stage-images-for-offline-watch).
-- The checkout is unpublished 1.0.2 development. `uv sync --all-extras` is contributor setup, not
+- The checkout has the same 1.0.2 product version. `uv sync --all-extras` is contributor setup, not
   a public installation path.
 
-For a one-time version check, `uvx --from 'panopticon-mcp==1.0.1' pano version` prints
-`pano 1.0.1 (schema 1.0)`. Other installation methods, upgrades, rollback, and air-gapped use are
+For a one-time version check, `uvx --from 'panopticon-mcp==1.0.2' pano version` prints
+`pano 1.0.2 (schema 1.0)`. npm, other installation methods, upgrades, rollback, and air-gapped use are
 in the [installation and release guide](https://github.com/brnyxx/panopticon/blob/main/docs/release.md).
 
 ## Read the record

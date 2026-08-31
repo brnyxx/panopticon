@@ -17,19 +17,17 @@
 | 원격 MCP 관찰 | HTTP/SSE endpoint와 사용자가 명시적으로 선택한 header. 서버 쪽 파일·프로세스는 `UNSUPPORTED` |
 | `scan`으로 MCP 저장소 분석 | 로컬 source tree. `--offline`이 없으면 standard/deep advisory 조회가 네트워크를 사용할 수 있음 |
 
-현재 공개 릴리스는 **1.0.1**입니다. 개발 문서의 scoped npm package는 공개된 1.0.1 설치
-채널이 아닙니다.
-현재 checkout된 repository는 공개되지 않은 1.0.2 개발 버전이며 `uv sync --all-extras`는
-사용자 설치가 아니라 contributor setup입니다.
+현재 공개 릴리스는 PyPI, npm, GitHub, Homebrew 모두 **1.0.2**입니다.
+`uv sync --all-extras`는 사용자 설치가 아니라 contributor setup입니다.
 
 ## 1. 설치 방법 하나 선택
 
 ### 한 번만 실행
 
 ```bash
-uvx --from 'panopticon-mcp==1.0.1' pano version
-uvx --from 'panopticon-mcp==1.0.1' pano doctor --offline
-uvx --from 'panopticon-mcp==1.0.1' pano watch SERVER_NAME --offline
+uvx --from 'panopticon-mcp==1.0.2' pano version
+uvx --from 'panopticon-mcp==1.0.2' pano doctor --offline
+uvx --from 'panopticon-mcp==1.0.2' pano watch SERVER_NAME --offline
 ```
 
 `uvx`는 호출할 때마다 임시 tool environment를 만듭니다.
@@ -40,9 +38,11 @@ uvx --from 'panopticon-mcp==1.0.1' pano watch SERVER_NAME --offline
 설치를 소유할 도구 하나를 선택합니다.
 
 ```bash
-uv tool install panopticon-mcp==1.0.1
+uv tool install panopticon-mcp==1.0.2
 # 또는
-pipx install panopticon-mcp==1.0.1
+pipx install panopticon-mcp==1.0.2
+# 또는
+npm install --global @brnyxx/panopticon@1.0.2
 # 또는
 brew install brnyxx/homebrew-tap/panopticon
 ```
@@ -53,7 +53,7 @@ brew install brnyxx/homebrew-tap/panopticon
 pano version
 ```
 
-공개 릴리스는 `pano 1.0.1 (schema 1.0)`을 출력합니다. Native archive, checksum, Sigstore,
+공개 릴리스는 `pano 1.0.2 (schema 1.0)`을 출력합니다. Native archive, checksum, Sigstore,
 폐쇄망 설치, upgrade, rollback은 [릴리스 가이드](release.md)에 있습니다.
 
 패키지 설치는 선택한 package registry에 연결합니다. `pano --offline`은 Panopticon이 시작된
@@ -118,7 +118,7 @@ traffic을 허용할 수 있습니다. Connected mode를 선택하기 전에
 ### Offline watch용 image 준비
 
 깨끗한 runtime에서는 offline observation 전에 별도 승인을 받아 GHCR에 한 번 연결합니다.
-다음 명령은 MCP를 실행하지 않고 1.0.1이 선택할 수 있는 immutable image를 모두 준비합니다.
+다음 명령은 MCP를 실행하지 않고 1.0.2가 선택할 수 있는 immutable image를 모두 준비합니다.
 
 ```bash
 RUNTIME=docker  # 또는 podman
