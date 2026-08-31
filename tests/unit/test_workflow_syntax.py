@@ -107,6 +107,13 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     }
     assert jobs["testpypi"]["if"] == f"{MAIN_REF} && inputs.channel == 'rehearsal'"
     assert set(jobs["testpypi"]["needs"]) == {"assemble", "release-context"}
+    python_build = next(
+        step
+        for step in jobs["python-package"]["steps"]
+        if step.get("name") == "Require two clean Python builds to match"
+    )
+    assert python_build["run"].count("$RUNNER_TEMP/pano-python-build-") == 2
+    assert "--out-dir release-assets" not in python_build["run"]
     assert "--clobber" not in str(jobs["draft"])
     testpypi_publish = next(
         step

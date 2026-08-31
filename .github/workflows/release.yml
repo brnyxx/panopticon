@@ -99,15 +99,20 @@ jobs:
       - run: uv sync --frozen --extra dev
       - name: Require two clean Python builds to match
         run: |
-          uv build --no-build-isolation --no-sources --out-dir release-assets
-          uv build --no-build-isolation --no-sources --out-dir release-assets-repeated
+          first="$RUNNER_TEMP/pano-python-build-first"
+          second="$RUNNER_TEMP/pano-python-build-second"
+          rm -rf "$first" "$second"
+          uv build --no-build-isolation --no-sources --out-dir "$first"
+          uv build --no-build-isolation --no-sources --out-dir "$second"
           cmp \
-            "release-assets/panopticon_mcp-$PANO_VERSION-py3-none-any.whl" \
-            "release-assets-repeated/panopticon_mcp-$PANO_VERSION-py3-none-any.whl"
+            "$first/panopticon_mcp-$PANO_VERSION-py3-none-any.whl" \
+            "$second/panopticon_mcp-$PANO_VERSION-py3-none-any.whl"
           cmp \
-            "release-assets/panopticon_mcp-$PANO_VERSION.tar.gz" \
-            "release-assets-repeated/panopticon_mcp-$PANO_VERSION.tar.gz"
-          rm -rf release-assets-repeated
+            "$first/panopticon_mcp-$PANO_VERSION.tar.gz" \
+            "$second/panopticon_mcp-$PANO_VERSION.tar.gz"
+          mkdir release-assets
+          cp "$first/panopticon_mcp-$PANO_VERSION-py3-none-any.whl" release-assets/
+          cp "$first/panopticon_mcp-$PANO_VERSION.tar.gz" release-assets/
       - run: uvx --from "release-assets/panopticon_mcp-$PANO_VERSION-py3-none-any.whl" pano version
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
         with:
