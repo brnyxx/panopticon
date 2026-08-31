@@ -245,6 +245,8 @@ def test_platform_matrix_is_exact_and_uses_immutable_actions() -> None:
     )
     assert staged["if"] == "startsWith(matrix.label, 'linux-')"
     assert "debian:bookworm-slim@sha256:" in staged["run"]
+    assert 'docker pull "$image"' in staged["run"]
+    assert 'podman pull "$image"' in staged["run"]
     for job in jobs.values():
         for step in job.get("steps", []):
             if "uses" in step:
