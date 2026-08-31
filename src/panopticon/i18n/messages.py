@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Literal, TypedDict, cast
 
+from panopticon import __version__
 from panopticon.i18n.loader import locale_precedence
 
 Locale = Literal["en", "ko"]
@@ -35,7 +36,7 @@ class MessageCatalog(TypedDict):
 
 MESSAGES: Mapping[Locale, MessageCatalog] = {
     "en": {
-        "install": "Install: uv tool install panopticon-mcp==1.0.2",
+        "install": f"Install: uv tool install panopticon-mcp=={__version__}",
         "doctor": "1. Check your setup: pano doctor --offline",
         "watch": "2. Observe one server: pano watch SERVER_NAME --offline",
         "explain": "3. Explain a rule in Korean: pano explain RULE_ID --lang ko",
@@ -46,7 +47,7 @@ MESSAGES: Mapping[Locale, MessageCatalog] = {
         "next_command": "Next: pano watch SERVER_NAME --offline",
     },
     "ko": {
-        "install": "설치: uv tool install panopticon-mcp==1.0.2",
+        "install": f"설치: uv tool install panopticon-mcp=={__version__}",
         "doctor": "1. 설정 확인: pano doctor --offline",
         "watch": "2. 서버 하나 관찰: pano watch SERVER_NAME --offline",
         "explain": "3. 규칙 설명(한국어): pano explain RULE_ID --lang ko",

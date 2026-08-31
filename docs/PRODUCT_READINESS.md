@@ -71,6 +71,9 @@ evidence or rerun any gate.
 3. **Future npm publication authentication:** configure each existing package's Trusted Publisher
    before publishing another version so subsequent missing versions use GitHub OIDC rather than a
    new bootstrap token. This does not change the verified 1.0.2 bytes.
+4. **Immutable CLI hint:** the 1.0.2 artifacts were signed while 1.0.1 was the public release, so
+   their help footer retains that valid prior-version install pin. Main now derives the hint from
+   package metadata; the next rehearsal must verify that its help footer names its own version.
 
 Authoritative release history remains [PROGRESS.md](https://github.com/brnyxx/panopticon/blob/main/docs/PROGRESS.md);
 this readiness note is evidence-scoped to the links above.
