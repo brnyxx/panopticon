@@ -26,6 +26,7 @@ env:
 
 jobs:
   release-context:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.context.outputs.version }}
@@ -40,7 +41,9 @@ jobs:
         run: PYTHONPATH=src python scripts/release_context.py --github-output "$GITHUB_OUTPUT"
 
   preflight:
-    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'production' || inputs.channel == 'recovery')
     needs: release-context
     runs-on: ubuntu-24.04
     permissions:
@@ -67,7 +70,9 @@ jobs:
           path: release-preflight.json
 
   quality:
-    if: inputs.channel == 'build' || inputs.channel == 'rehearsal'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'build' || inputs.channel == 'rehearsal')
     needs: release-context
     runs-on: ubuntu-24.04
     steps:
@@ -268,7 +273,9 @@ jobs:
           path: release-assets/*
 
   homebrew-handoff:
-    if: inputs.channel == 'build' || inputs.channel == 'rehearsal'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'build' || inputs.channel == 'rehearsal')
     needs: [assemble, release-context]
     runs-on: ubuntu-24.04
     permissions:
@@ -303,7 +310,7 @@ jobs:
           path: Formula/panopticon.rb
 
   draft:
-    if: inputs.channel == 'rehearsal'
+    if: github.ref == 'refs/heads/main' && inputs.channel == 'rehearsal'
     needs: [assemble, homebrew-handoff, testpypi, verify-images, release-context]
     runs-on: ubuntu-24.04
     permissions:
@@ -345,7 +352,7 @@ jobs:
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-python@sha256:3e2b99433c18506f59d0e44e40b8af2b0350ee4df903252a1ab462f0eac3f589
 
   testpypi:
-    if: inputs.channel == 'rehearsal'
+    if: github.ref == 'refs/heads/main' && inputs.channel == 'rehearsal'
     needs: [assemble, release-context]
     runs-on: ubuntu-24.04
     environment: testpypi
@@ -433,7 +440,9 @@ jobs:
           test "$output" = "pano $PANO_VERSION (schema 1.0)"
 
   promotion-verify:
-    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'production' || inputs.channel == 'recovery')
     needs: [preflight, release-context]
     runs-on: ubuntu-24.04
     permissions:
@@ -511,7 +520,9 @@ jobs:
           python scripts/verify_release_recovery.py source --version "$PANO_VERSION" --source-run-id "$SOURCE_RUN_ID" --source-sha "$SOURCE_SHA" --bundle recovery-bundle --dist recovery-dist --index testpypi.json --release draft.json --release-assets draft-assets --run-metadata run-metadata.json
 
   pypi:
-    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'production' || inputs.channel == 'recovery')
     needs: [promotion-verify, promotion-images, release-context]
     runs-on: ubuntu-24.04
     environment: pypi
@@ -590,7 +601,10 @@ jobs:
           PY
 
   promotion-images:
-    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'production' || inputs.channel == 'recovery')
+    needs: release-context
     runs-on: ubuntu-24.04
     permissions:
       packages: read
@@ -607,7 +621,9 @@ jobs:
       - run: docker buildx imagetools inspect ghcr.io/brnyxx/pano-sandbox-python@sha256:3e2b99433c18506f59d0e44e40b8af2b0350ee4df903252a1ab462f0eac3f589
 
   npm:
-    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'production' || inputs.channel == 'recovery')
     needs: [promotion-verify, release-context]
     runs-on: ubuntu-24.04
     environment: npm
@@ -700,7 +716,9 @@ jobs:
           publish_or_verify @brnyxx/panopticon "npm-dist/brnyxx-panopticon-$PANO_VERSION.tgz"
 
   publish-github:
-    if: inputs.channel == 'production' || inputs.channel == 'recovery'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (inputs.channel == 'production' || inputs.channel == 'recovery')
     needs: [pypi, npm, release-context]
     runs-on: ubuntu-24.04
     environment: release

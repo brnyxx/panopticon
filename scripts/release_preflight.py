@@ -105,6 +105,8 @@ def _rehearsal_problems(rehearsal: dict[str, Any], source_sha: str) -> list[str]
         problems.append("REHEARSAL_WORKFLOW_MISMATCH")
     if rehearsal.get("event") != "workflow_dispatch":
         problems.append("REHEARSAL_EVENT_MISMATCH")
+    if rehearsal.get("headBranch") != "main":
+        problems.append("REHEARSAL_BRANCH_MISMATCH")
     if rehearsal.get("headSha") != source_sha:
         problems.append("REHEARSAL_SOURCE_SHA_MISMATCH")
     if rehearsal.get("conclusion") != "success":
@@ -165,7 +167,7 @@ def evaluate(repo: str, rehearsal_run: int, source_sha: str, root: Path) -> dict
             "--repo",
             repo,
             "--json",
-            "conclusion,headSha,workflowName,event,jobs",
+            "conclusion,headBranch,headSha,workflowName,event,jobs",
         ]
     )
     problems.extend(_rehearsal_problems(rehearsal, source_sha))

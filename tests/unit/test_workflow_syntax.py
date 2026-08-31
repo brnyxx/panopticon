@@ -9,6 +9,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
+MAIN_REF = "github.ref == 'refs/heads/main'"
+BUILD_CHANNELS = f"{MAIN_REF} && (inputs.channel == 'build' || inputs.channel == 'rehearsal')"
+PUBLISH_CHANNELS = f"{MAIN_REF} && (inputs.channel == 'production' || inputs.channel == 'recovery')"
 
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda path: path.name)
@@ -59,10 +62,9 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         "promotion-images",
         "publish-github",
     } == set(jobs)
+    assert jobs["release-context"]["if"] == MAIN_REF
     assert jobs["testpypi"]["environment"] == "testpypi"
-    assert jobs["preflight"]["if"] == (
-        "inputs.channel == 'production' || inputs.channel == 'recovery'"
-    )
+    assert jobs["preflight"]["if"] == PUBLISH_CHANNELS
     assert set(jobs["promotion-verify"]["needs"]) == {"preflight", "release-context"}
     assert jobs["pypi"]["environment"] == "pypi"
     assert jobs["npm"]["environment"] == "npm"
@@ -74,6 +76,20 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         for step in jobs["promotion-images"]["steps"]
     )
     assert jobs["publish-github"]["environment"] == "release"
+    for name in (
+        "release-context",
+        "preflight",
+        "quality",
+        "homebrew-handoff",
+        "draft",
+        "testpypi",
+        "promotion-verify",
+        "pypi",
+        "promotion-images",
+        "npm",
+        "publish-github",
+    ):
+        assert MAIN_REF in jobs[name]["if"]
     assert set(jobs["publish-github"]["needs"]) == {"pypi", "npm", "release-context"}
     text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "TODO" not in text
@@ -81,7 +97,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     assert "v1.0.0" not in text
     assert "scripts/release_context.py" in text
     assert "inputs.version" not in text
-    assert jobs["draft"]["if"] == "inputs.channel == 'rehearsal'"
+    assert jobs["draft"]["if"] == f"{MAIN_REF} && inputs.channel == 'rehearsal'"
     assert set(jobs["draft"]["needs"]) == {
         "assemble",
         "homebrew-handoff",
@@ -89,7 +105,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
         "verify-images",
         "release-context",
     }
-    assert jobs["testpypi"]["if"] == "inputs.channel == 'rehearsal'"
+    assert jobs["testpypi"]["if"] == f"{MAIN_REF} && inputs.channel == 'rehearsal'"
     assert set(jobs["testpypi"]["needs"]) == {"assemble", "release-context"}
     assert "--clobber" not in str(jobs["draft"])
     testpypi_publish = next(
@@ -118,10 +134,8 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
     assert dispatch["inputs"]["source_run_id"]["required"] == "false"
     assert dispatch["inputs"]["source_sha"]["required"] == "false"
     jobs = document["jobs"]
-    assert jobs["quality"]["if"] == "inputs.channel == 'build' || inputs.channel == 'rehearsal'"
-    assert jobs["promotion-verify"]["if"] == (
-        "inputs.channel == 'production' || inputs.channel == 'recovery'"
-    )
+    assert jobs["quality"]["if"] == BUILD_CHANNELS
+    assert jobs["promotion-verify"]["if"] == PUBLISH_CHANNELS
     assert jobs["promotion-verify"]["permissions"] == {
         "actions": "read",
         "contents": "write",
@@ -129,6 +143,8 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
     assert jobs["pypi"]["environment"] == "pypi"
     assert jobs["npm"]["environment"] == "npm"
     assert jobs["publish-github"]["environment"] == "release"
+    assert jobs["promotion-images"]["if"] == PUBLISH_CHANNELS
+    assert jobs["promotion-images"]["needs"] == "release-context"
     publish = next(
         step
         for step in jobs["pypi"]["steps"]

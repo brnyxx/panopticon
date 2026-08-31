@@ -46,6 +46,7 @@ def _responses(
     }
     run = rehearsal or {
         "conclusion": "success",
+        "headBranch": "main",
         "headSha": SHA,
         "workflowName": "release",
         "event": "workflow_dispatch",
@@ -167,6 +168,7 @@ def test_preflight_rejects_malformed_workflow(
     [
         ({"workflowName": "other"}, "REHEARSAL_WORKFLOW_MISMATCH"),
         ({"event": "push"}, "REHEARSAL_EVENT_MISMATCH"),
+        ({"headBranch": "feature/release"}, "REHEARSAL_BRANCH_MISMATCH"),
         ({"headSha": "b" * 40}, "REHEARSAL_SOURCE_SHA_MISMATCH"),
         ({"conclusion": "failure"}, "REHEARSAL_CONCLUSION_NOT_SUCCESS"),
         (
@@ -196,6 +198,7 @@ def test_preflight_rejects_unbound_rehearsal_evidence(
 ) -> None:
     rehearsal = {
         "conclusion": "success",
+        "headBranch": "main",
         "headSha": SHA,
         "workflowName": "release",
         "event": "workflow_dispatch",
