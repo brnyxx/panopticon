@@ -237,6 +237,14 @@ def test_platform_matrix_is_exact_and_uses_immutable_actions() -> None:
     assert jobs["probe-wsl2"]["runs-on"] == "windows-2025"
     assert "run_wsl2_probe.ps1" in jobs["probe-wsl2"]["steps"][1]["run"]
     assert set(jobs["validate"]["needs"]) == {"probe", "probe-wsl2"}
+    probe_steps = jobs["probe"]["steps"]
+    staged = next(
+        step
+        for step in probe_steps
+        if step.get("name") == "Stage immutable runtime isolation image"
+    )
+    assert staged["if"] == "startsWith(matrix.label, 'linux-')"
+    assert "debian:bookworm-slim@sha256:" in staged["run"]
     for job in jobs.values():
         for step in job.get("steps", []):
             if "uses" in step:
