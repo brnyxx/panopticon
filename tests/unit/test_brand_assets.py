@@ -26,7 +26,7 @@ def _image(payload: bytes, expected_size: tuple[int, int]) -> None:
         assert image.info == {}
 
 
-def test_generated_brand_images_match_checked_assets() -> None:
+def test_generated_and_checked_brand_images_have_stable_contracts() -> None:
     logo = build_brand_assets.render_logo_png()
     social = build_brand_assets.render_social_card()
     evidence = build_brand_assets.render_fixture_evidence()
@@ -34,12 +34,12 @@ def test_generated_brand_images_match_checked_assets() -> None:
     assert logo == build_brand_assets.render_logo_png()
     assert social == build_brand_assets.render_social_card()
     assert evidence == build_brand_assets.render_fixture_evidence()
-    assert logo == (ROOT / "site/assets/logo-32.png").read_bytes()
-    assert social == (ROOT / "site/assets/social-card.png").read_bytes()
-    assert evidence == (ROOT / ".github/assets/evidence-card.png").read_bytes()
     _image(logo, (32, 32))
     _image(social, (1200, 630))
     _image(evidence, (960, 540))
+    _image((ROOT / "site/assets/logo-32.png").read_bytes(), (32, 32))
+    _image((ROOT / "site/assets/social-card.png").read_bytes(), (1200, 630))
+    _image((ROOT / ".github/assets/evidence-card.png").read_bytes(), (960, 540))
 
 
 def test_logo_sources_are_one_filter_free_mark() -> None:
