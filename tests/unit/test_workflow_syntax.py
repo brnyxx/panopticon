@@ -124,6 +124,7 @@ def test_release_workflow_builds_once_before_guarded_promotion() -> None:
     assert testpypi_publish["with"]["packages-dir"] == "publish-dist"
     assert "verify_index" in str(jobs["testpypi"])
     assert "test-files.pythonhosted.org" in str(jobs["testpypi"])
+    assert "TESTPYPI_INDEX_PROPAGATION_TIMEOUT" in str(jobs["testpypi"])
     assert 'uvx --from "$wheel_url" pano version' in str(jobs["testpypi"])
     assert "pano $PANO_VERSION (schema 1.0)" in str(jobs["testpypi"])
     for job in jobs.values():
@@ -159,6 +160,7 @@ def test_recovery_path_is_append_only_and_reuses_retained_artifacts() -> None:
     )
     assert publish["if"] == "steps.pypi-state.outputs.publish == 'true'"
     assert publish["with"]["packages-dir"] == "publish-dist"
+    assert "PYPI_INDEX_PROPAGATION_TIMEOUT" in str(jobs["pypi"])
     text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
     assert "recovery-bundle" in text
     assert "/jobs?per_page=100" in str(jobs["promotion-verify"])

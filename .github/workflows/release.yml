@@ -417,17 +417,26 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import time
           from pathlib import Path
+          from urllib.error import HTTPError
           from urllib.parse import urlsplit
           from urllib.request import urlopen
           from scripts.verify_release_recovery import verify_index
 
           version = os.environ["PANO_VERSION"]
-          with urlopen(
-              f"https://test.pypi.org/pypi/panopticon-mcp/{version}/json",
-              timeout=30,
-          ) as response:
-              metadata = json.loads(response.read())
+          index_url = f"https://test.pypi.org/pypi/panopticon-mcp/{version}/json"
+          for attempt in range(12):
+              try:
+                  with urlopen(index_url, timeout=30) as response:
+                      metadata = json.loads(response.read())
+                  break
+              except HTTPError as error:
+                  if error.code != 404:
+                      raise
+                  if attempt == 11:
+                      raise RuntimeError("TESTPYPI_INDEX_PROPAGATION_TIMEOUT") from error
+                  time.sleep(5)
           verify_index(metadata, Path("dist"), version)
           wheel_name = f"panopticon_mcp-{version}-py3-none-any.whl"
           wheel_urls = [
@@ -590,13 +599,24 @@ jobs:
         run: |
           python - <<'PY'
           import os
+          import time
           from pathlib import Path
+          from urllib.error import HTTPError
           from urllib.request import urlopen
-          with urlopen(
-              f"https://pypi.org/pypi/panopticon-mcp/{os.environ['PANO_VERSION']}/json",
-              timeout=30,
-          ) as response:
-              Path("pypi-after.json").write_bytes(response.read())
+
+          version = os.environ["PANO_VERSION"]
+          index_url = f"https://pypi.org/pypi/panopticon-mcp/{version}/json"
+          for attempt in range(12):
+              try:
+                  with urlopen(index_url, timeout=30) as response:
+                      Path("pypi-after.json").write_bytes(response.read())
+                  break
+              except HTTPError as error:
+                  if error.code != 404:
+                      raise
+                  if attempt == 11:
+                      raise RuntimeError("PYPI_INDEX_PROPAGATION_TIMEOUT") from error
+                  time.sleep(5)
           PY
           python - <<'PY'
           import os
