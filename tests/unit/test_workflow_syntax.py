@@ -197,9 +197,24 @@ def test_ci_self_scan_uses_trusted_local_action_and_pinned_upload() -> None:
     steps = self_scan["steps"]
     assert steps[0]["uses"].startswith("actions/checkout@")
     assert steps[1]["uses"] == "./"
-    upload = steps[2]
+    upload = steps[-1]
     assert upload["uses"].startswith("github/codeql-action/upload-sarif@")
     assert upload["if"] == "always()"
+    docker_steps = document["jobs"]["test-docker"]["steps"]
+    staging = next(
+        step
+        for step in docker_steps
+        if step.get("name") == "Stage immutable images for no-pull runtime tests"
+    )
+    assert "debian:bookworm-slim@sha256:" in staging["run"]
+    assert staging["run"].count("ghcr.io/brnyxx/pano-sandbox-") == 4
+    assert 'docker pull "$image"' in staging["run"]
+    assert 'podman pull "$image"' in staging["run"]
+    assert docker_steps.index(staging) < next(
+        index
+        for index, step in enumerate(docker_steps)
+        if step.get("run") == "uv run pytest -m docker"
+    )
 
 
 def test_platform_matrix_is_exact_and_uses_immutable_actions() -> None:

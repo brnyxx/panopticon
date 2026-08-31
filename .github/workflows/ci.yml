@@ -51,6 +51,19 @@ jobs:
         with: { version: "0.10.9" }
       - run: uv sync --frozen --all-extras
       - run: make images images-podman
+      - name: Stage immutable images for no-pull runtime tests
+        run: |
+          images=(
+            "debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171"
+            "ghcr.io/brnyxx/pano-sandbox-base:0.1@sha256:0b88136f67f67f463ac1e9cc531dbe1bad7ea95d5ad5e4afd68337b966e24249"
+            "ghcr.io/brnyxx/pano-sandbox-node:20@sha256:2ef58b44bd9ebc247e97d1b3c54f63570ae206b925b277d86d93e5319d1cd367"
+            "ghcr.io/brnyxx/pano-sandbox-node:22@sha256:d0f7cc3fcac6a24ea0f8b7b9d62c542a04642ca5b38a4e249e017a7311a8b7c5"
+            "ghcr.io/brnyxx/pano-sandbox-python:3.12@sha256:3e2b99433c18506f59d0e44e40b8af2b0350ee4df903252a1ab462f0eac3f589"
+          )
+          for image in "${images[@]}"; do
+            docker pull "$image"
+            podman pull "$image"
+          done
       - run: uv run pytest -m docker
   self-scan:
     # E16: run our own analyze line on this repository.

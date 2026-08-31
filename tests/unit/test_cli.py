@@ -16,11 +16,11 @@ def test_version_prints_schema() -> None:
 
 
 def test_help_is_user_facing_and_documents_real_environment_opt_ins() -> None:
-    root_help = runner.invoke(app, ["--help"])
+    root_help = runner.invoke(app, ["--help"], terminal_width=160)
     assert root_help.exit_code == 0
     assert not re.search(r"\(E\d{2}[^)]*\)|upstream line", root_help.stdout, re.IGNORECASE)
 
-    watch_help = runner.invoke(app, ["watch", "--help"])
+    watch_help = runner.invoke(app, ["watch", "--help"], terminal_width=160)
     assert watch_help.exit_code == 0
     assert "--real-env" in watch_help.stdout
     assert "--real-env-all" in watch_help.stdout
