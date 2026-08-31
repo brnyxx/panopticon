@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Mapping
+from contextlib import suppress
 from pathlib import Path, PurePosixPath
 
 from .archive import archive_for_copy
@@ -62,13 +63,11 @@ class _InteractiveSession:
         await asyncio.shield(cleanup)
 
     async def _cleanup_impl(self) -> None:
-        try:
+        with suppress(OSError, SandboxError):
             await self.terminate()
-        finally:
-            try:
-                await self._container.terminate()
-            finally:
-                await self._container.rm()
+        with suppress(OSError, SandboxError):
+            await self._container.terminate()
+        await self._container.rm()
 
 
 class DockerContainer:

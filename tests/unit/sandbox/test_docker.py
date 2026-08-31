@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from panopticon.sandbox._docker_container import _InteractiveSession
 from panopticon.sandbox.base import ContainerSpec, SandboxError
 from panopticon.sandbox.docker import DockerContainer, DockerRuntime, is_pinned_image
 
@@ -27,6 +28,11 @@ class _Process:
 
     async def wait(self) -> int:
         return 0
+
+
+class _Writer:
+    def close(self) -> None:
+        return None
 
 
 @pytest.mark.asyncio
@@ -190,3 +196,60 @@ async def test_lifecycle_methods_emit_vector_commands(monkeypatch: pytest.Monkey
 
     assert [call[1] for call in calls] == ["stop", "kill", "rm"]
     assert calls[0][1:] == ("stop", "-t", "3", "container-id")
+
+
+@pytest.mark.asyncio
+async def test_session_cleanup_accepts_force_remove_after_stop_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    container = DockerContainer("docker", "container-id")
+
+    async def stop() -> None:
+        calls.append("stop")
+        raise SandboxError("STOP_FAILED")
+
+    async def rm() -> None:
+        calls.append("rm")
+
+    monkeypatch.setattr(container, "terminate", stop)
+    monkeypatch.setattr(container, "rm", rm)
+    process = _Process(returncode=0)
+    session = _InteractiveSession(
+        container,
+        process,
+        _Reader(b""),
+        _Writer(),
+        _Reader(b""),
+    )
+
+    await session.cleanup()
+
+    assert calls == ["stop", "rm"]
+
+
+@pytest.mark.asyncio
+async def test_session_cleanup_propagates_force_remove_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    container = DockerContainer("docker", "container-id")
+
+    async def stop() -> None:
+        raise SandboxError("STOP_FAILED")
+
+    async def rm() -> None:
+        raise SandboxError("RM_FAILED")
+
+    monkeypatch.setattr(container, "terminate", stop)
+    monkeypatch.setattr(container, "rm", rm)
+    process = _Process(returncode=0)
+    session = _InteractiveSession(
+        container,
+        process,
+        _Reader(b""),
+        _Writer(),
+        _Reader(b""),
+    )
+
+    with pytest.raises(SandboxError, match="RM_FAILED"):
+        await session.cleanup()
